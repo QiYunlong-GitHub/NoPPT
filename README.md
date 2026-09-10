@@ -1,0 +1,216 @@
+<div align="center">
+
+# NoPPT
+
+**Open-source, Gamma-style card presentation platform — generate slide decks with AI and export to HTML / PDF / PNG.**
+
+[English](./README.md) · [简体中文](./README_CN.md)
+
+</div>
+
+---
+
+NoPPT is an open-source alternative to Gamma / SlidesAI. Describe your topic (or supply reference
+material) and NoPPT plans a structured deck, then renders self-contained, interactive HTML slides with
+a card-style design system. It runs as a monorepo: a **React + Vite** editor and a **NestJS** backend
+that orchestrates LLM providers (OpenAI / Anthropic / Ollama / Free.ai / v0 by Vercel).
+
+## ✨ Features
+
+- **AI deck generation** — topic → structured plan → interactive HTML slides, with optional reference
+  HTML / image / text as grounding material.
+- **Card-style design system** — consistent, responsive cards, theming, icon sets, and dense / compact
+  layouts.
+- **Full editor** — drag-and-drop canvas, element inspector, slide list, AI chat assistant, live preview.
+- **Multi-language UI** — switch between **Simplified Chinese** and **English** from Settings → Interface;
+  the language is persisted to the server config and also drives the language of generated content and
+  server messages.
+- **Flexible export** — single-file HTML, ZIP of static web assets, PDF, and PNG sequences.
+- **Extensible model routing** — configure multiple providers per stage (planning / content / editing),
+  with high-contrast and audit modes.
+- **MCP server for AI agents** — 8 `noppt_*` tools let any MCP-compatible client (Hermes, Claude
+  Desktop, …) generate, edit, export and preview decks programmatically.
+- **Private & self-hostable** — all data lives under `packages/server/data/`; no cloud lock-in.
+
+## 🧱 Tech Stack
+
+| Layer | Technology |
+| ----- | ---------- |
+| Frontend | React 18 · TypeScript · Vite 5 · Zustand 4 · Immer · TailwindCSS 3 · React Router 6 |
+| Backend | NestJS · TypeScript · Express |
+| AI | OpenAI · Anthropic · Ollama · Free.ai · v0 by Vercel |
+| Agent protocol | MCP (Model Context Protocol) · Streamable HTTP · JSON-RPC 2.0 |
+| Export | html2canvas · jsPDF · JSZip |
+| Test | Vitest · React Testing Library |
+| Tooling | ESLint · Prettier |
+
+## 📂 Project Structure
+
+```
+packages/
+├── core/      # Shared domain types and utilities (@noppt/core)
+├── ai/        # AI agent orchestration (@noppt/ai): planning, HTML slide generation, audit
+├── audit/     # Visual / content self-audit engine (@noppt/audit)
+├── server/    # NestJS backend (MCP + REST) (@noppt/server)
+└── web/       # React editor and presentation viewer (@noppt/web)
+```
+
+## 🚀 Quick Start
+
+Requirements: **Node ≥ 18.17.0**, **pnpm ≥ 8.0.0**.
+
+```bash
+# 1. Install dependencies
+pnpm install
+
+# 2. Start both frontend (5173) and backend (3001) in dev
+pnpm dev:all
+
+# Or run them separately
+pnpm dev          # frontend only (http://localhost:5173)
+pnpm dev:server   # backend only (http://localhost:3001)
+```
+
+Open http://localhost:5173. Configure a model provider under **Settings → AI Model** before generating.
+
+### Build & Production
+
+```bash
+pnpm build         # build all packages
+pnpm build:web     # build frontend only
+pnpm build:server  # build backend only
+pnpm start:server  # run the built backend (PORT=3001 by default)
+```
+
+### Scripts
+
+| Script | Description |
+| ------ | ----------- |
+| `pnpm dev` / `dev:server` / `dev:all` | Dev servers |
+| `pnpm build` / `build:web` / `build:server` | Production builds |
+| `pnpm preview` | Preview the built frontend |
+| `pnpm lint` / `lint:fix` | ESLint |
+| `pnpm typecheck` | TypeScript type check |
+| `pnpm test` / `test:ui` | Vitest |
+| `pnpm format` / `format:check` | Prettier |
+
+## 🌐 Internationalization (i18n)
+
+- **UI language** is controlled in **Settings → Interface → Interface language** (`zh-CN` / `en`).
+  It is persisted to `data/config.json` and also sent via the `Accept-Language` header, so server-side
+  error messages follow the same setting.
+- **Generation language** can be set independently per generation in the AI generate dialog (defaults to
+  following the interface language). It is forwarded to the AI agents so the generated slide copy is
+  produced in the chosen language.
+- The frontend uses a lightweight, dependency-free dictionary (`packages/web/src/i18n/`); the backend
+  keeps a parallel message catalog (`packages/server/src/i18n/`).
+
+## 🔌 MCP Server & AI Agent Integration
+
+NoPPT ships a built-in **MCP (Model Context Protocol) server**, so MCP-compatible agents (Hermes,
+Claude Desktop, or your own client) can drive the whole deck lifecycle — generate → poll → edit →
+export → preview — purely through tool calls.
+
+| Item | Value |
+| ---- | ----- |
+| Endpoint | `POST http://localhost:3001/api/mcp` |
+| Transport | MCP **Streamable HTTP**, **stateless** (no session), JSON-RPC 2.0 |
+| Auth | `Authorization: Bearer nppt_<32-hex>` — each key is scoped to a `tenantId/userKey` |
+| Async model | Calls enqueue a job and return `jobId`; `wait=true` blocks up to 60s, otherwise poll |
+| Read-only preview | `GET /api/mcp-view/:tenant/:user/:presentationId`, plus the Web route `/mcp-preview/...` |
+
+### Tools (8)
+
+| Tool | What it does |
+| ---- | ------------ |
+| `noppt_generate` | Generate a deck from `topic` (optional `referenceText` / `referenceHtml` / `referenceImage`, `slideCount`, `style`, `audience`, `colorTheme`, `imageEnabled`). |
+| `noppt_get_presentation` | Poll any job by `jobId` — shared by generation and all three edit tools. |
+| `noppt_edit_slide` | Rewrite a whole slide (`slideIndex` + `userRequest`). |
+| `noppt_edit_element` | Edit a single element precisely by `elementIndex` / `selector`. |
+| `noppt_edit_global` | Deck-wide edit (palette, fonts, slide count). |
+| `noppt_export_html` | Return self-contained HTML (assets inlined as data URLs). |
+| `noppt_list_templates` | List available styles, colour themes and built-in templates. |
+| `noppt_prepare_outline_draft` | **Stage material without generating** — saves a draft and returns `draftId` + `openUrl`, for an "agent drafts the outline, human confirms in the Web UI" flow. |
+
+Results come back as JSON in `result.content[0].text`. Business errors set `result.isError = true`
+while HTTP stays `200`; only auth failures return HTTP `401`.
+
+### Connect a client (Hermes example)
+
+```ini
+# .env — keep the secret out of version-controlled config
+MCP_NOPPT_API_KEY=nppt_<32-hex>
+```
+
+```yaml
+# config.yaml
+mcp_servers:
+  noppt:
+    url: http://localhost:3001/api/mcp
+    enabled: true
+    headers:
+      Authorization: Bearer ${MCP_NOPPT_API_KEY}
+      # optional: override the user scope
+      # X-User-Id: local
+```
+
+Then run `hermes mcp test noppt` — it should report `Tools discovered: 8`. MCP configuration is only
+loaded when a session starts, so restart the session after changing it.
+
+### Issue an API key
+
+**Option A — fixed dev key** in `packages/server/data/server.env` (auto-provisioned on first boot):
+
+```ini
+NOPPT_DEV_KEY=nppt_<32-hex>            # must be `nppt_` + 32 hex chars
+NOPPT_ADMIN_KEY=<admin-key>            # required by /api/keys (x-admin-key header)
+NOPPT_WEB_URL=http://localhost:5173    # used to build the viewUrl returned to agents
+PORT=3001
+```
+
+**Option B — issue scoped keys at runtime** via the admin API (guarded by the `x-admin-key` header):
+
+```bash
+curl -X POST http://localhost:3001/api/keys \
+  -H 'Content-Type: application/json' \
+  -H 'x-admin-key: <admin-key>' \
+  -d '{"name":"hermes-local","tenantId":"hermes","userKey":"local"}'
+```
+
+The plaintext key appears in the response **only once** — store it immediately. List keys with
+`GET /api/keys` and revoke with `DELETE /api/keys/:id`.
+
+### Scopes, artifacts & preview
+
+- Artifacts are written per scope to
+  `packages/server/data/tenants/<tenant>/users/<user>/workspace/`; different scopes cannot see each
+  other's data (cross-scope reads fail with `E4001`).
+- Agents receive a `viewUrl` of `{NOPPT_WEB_URL}/mcp-preview/{tenant}/{user}/{presentationId}`,
+  which renders the deck in a sandboxed, read-only iframe.
+- If `NOPPT_MCP_VIEW_TOKEN` is unset, the view endpoints only allow loopback requests — convenient for
+  local use. Set it (and pass `?token=` / `X-View-Token`) when accessing from another machine.
+
+## 🔐 Data Storage & Self-hosting
+
+- Runtime data lives under `packages/server/data/` (presentations, drafts, tenants, API keys, logs).
+  **Do not commit this directory** — it is git-ignored; only `config.example.json` is tracked as a template.
+- Before going public, rotate every API key / secret and replace `config.json` with `config.example.json`.
+- MCP tool endpoints are protected by bearer API keys (`Authorization: Bearer nppt_…`); the key
+  management routes (`/api/keys`) are guarded by the `x-admin-key` header (`NOPPT_ADMIN_KEY`).
+
+## 🤝 Contributing
+
+1. Fork and create a feature branch.
+2. `pnpm install && pnpm dev:all` for local development.
+3. Run `pnpm lint`, `pnpm typecheck`, and `pnpm test` before opening a PR.
+4. Keep i18n strings in the dictionaries rather than hard-coding user-facing text.
+
+## 🙏 Acknowledgements
+
+NoPPT was designed by Qiyunlong (齐云龙). Every line of code was built from scratch with AI Coding
+tools. It draws on the ideas and methods of **revealjs-validator**, **SlidesGen-Bench**, and
+**huashu-skills**. Special thanks to them.
+
+## 📄 License
+
+[MIT](./LICENSE) © 2026 NoPPT Authors.

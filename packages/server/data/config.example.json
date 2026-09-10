@@ -1,0 +1,224 @@
+{
+  "_comment": "NoPPT 应用配置文件 - 请将此文件复制为 config.json 并修改配置",
+  "_comment_structure": "配置文件支持多模型列表、多图片尺寸配置，为后续路由功能和自动尺寸选择预留",
+  "_comment_apiConfig": "各 AI 文本模型提供商的 API 配置",
+  "_comment_models": "每个提供商支持配置多个模型，使用数组存储；默认使用第一个模型",
+  "apiConfig": {
+    "openai": {
+      "_comment": "OpenAI 兼容接口，支持 GPT-4、GPT-3.5 等模型",
+      "apiKey": "sk-your-openai-api-key-here",
+      "baseUrl": "https://api.openai.com/v1",
+      "models": ["gpt-4o-mini"]
+    },
+    "anthropic": {
+      "_comment": "Anthropic Claude 系列模型",
+      "apiKey": "sk-ant-your-anthropic-api-key-here",
+      "baseUrl": "https://api.anthropic.com/v1",
+      "models": ["claude-3-5-sonnet-20241022"]
+    },
+    "ollama": {
+      "_comment": "本地部署的 Ollama 模型，默认地址 http://localhost:11434",
+      "apiKey": "",
+      "baseUrl": "http://localhost:11434/v1",
+      "models": ["llama3.1"]
+    },
+    "freeai": {
+      "_comment": "Free.ai 提供的免费模型（380+ 模型）",
+      "apiKey": "your-freeai-api-key-here",
+      "baseUrl": "https://api.free.ai/v1",
+      "models": ["qwen-coder"]
+    },
+    "v0": {
+      "_comment": "Vercel v0 模型，专门用于 UI 生成",
+      "apiKey": "your-v0-api-key-here",
+      "baseUrl": "https://api.v0.dev/v1",
+      "models": ["v0-1.5-md"]
+    },
+    "company-gateway": {
+      "_comment": "公司内部 API 网关地址",
+      "apiKey": "your-company-gateway-key-here",
+      "baseUrl": "https://your-company-gateway.example.com/ai-api",
+      "models": []
+    }
+  },
+  "_comment_defaultModelProvider": "默认使用的模型提供商，可选值: openai | anthropic | ollama | freeai | v0 | company-gateway",
+  "defaultModelProvider": "openai",
+  "_comment_interfaceSettings": "界面显示相关设置",
+  "interfaceSettings": {
+    "_comment_theme": "主题设置：light（浅色）| dark（深色）| auto（跟随系统）",
+    "theme": "light",
+    "_comment_language": "界面语言：zh-CN（简体中文）| en（英文）",
+    "language": "zh-CN",
+    "_comment_defaultZoom": "画布默认缩放比例（百分比）",
+    "defaultZoom": 100,
+    "_comment_showGrid": "是否显示网格",
+    "showGrid": false,
+    "_comment_snapToGrid": "是否开启吸附网格",
+    "snapToGrid": false,
+    "_comment_gridSize": "网格大小（像素）",
+    "gridSize": 20
+  },
+  "_comment_exportSettings": "幻灯片导出相关设置",
+  "exportSettings": {
+    "_comment_defaultFormat": "默认导出格式：html | pdf | png",
+    "defaultFormat": "html",
+    "_comment_pdfQuality": "PDF 导出质量：low | medium | high",
+    "pdfQuality": "high",
+    "_comment_pngScale": "PNG 导出缩放比例",
+    "pngScale": 2,
+    "_comment_includeSpeakerNotes": "是否包含演讲者备注",
+    "includeSpeakerNotes": false
+  },
+  "_comment_editorSettings": "编辑器行为设置",
+  "editorSettings": {
+    "_comment_autoSave": "是否自动保存",
+    "autoSave": true,
+    "_comment_autoSaveInterval": "自动保存间隔（毫秒）",
+    "autoSaveInterval": 30000,
+    "_comment_undoHistoryLimit": "撤销历史记录最大条数",
+    "undoHistoryLimit": 50,
+    "_comment_defaultSlideWidth": "默认幻灯片宽度（像素）",
+    "defaultSlideWidth": 1280,
+    "_comment_defaultSlideHeight": "默认幻灯片高度（像素）",
+    "defaultSlideHeight": 720
+  },
+  "_comment_imageGeneration": "AI 图片生成配置 - 包含所有6个图片服务商的独立配置",
+  "_comment_image_providers": "每个服务商独立配置apiKey、baseUrl、模型列表、尺寸列表、像素范围",
+  "_comment_image_models": "每个模型可以配置多个可用尺寸，默认使用第一个尺寸",
+  "_comment_pixelRanges": "可选配置总像素范围（minPixels/maxPixels），用于路由功能自动选择合适尺寸",
+  "imageGeneration": {
+    "_comment_enabled": "是否启用 AI 图片生成功能",
+    "enabled": false,
+    "_comment_useDefaultApiKey": "是否使用默认文本模型的 API Key",
+    "useDefaultApiKey": true,
+    "_comment_activeProvider": "当前选中的图片生成服务商",
+    "activeProvider": "openai",
+    "providers": {
+      "openai": {
+        "_comment": "OpenAI DALL-E 系列图片生成",
+        "apiKey": "",
+        "baseUrl": "https://api.openai.com/v1",
+        "models": [
+          {
+            "modelName": "dall-e-3",
+            "sizes": [
+              { "width": 1792, "height": 1024, "label": "1792×1024 (横屏)" },
+              { "width": 1024, "height": 1792, "label": "1024×1792 (竖屏)" },
+              { "width": 1024, "height": 1024, "label": "1024×1024 (方形)" }
+            ]
+          },
+          {
+            "modelName": "dall-e-2",
+            "sizes": [
+              { "width": 1024, "height": 1024, "label": "1024×1024" },
+              { "width": 512, "height": 512, "label": "512×512" },
+              { "width": 256, "height": 256, "label": "256×256" }
+            ]
+          }
+        ]
+      },
+      "qwen": {
+        "_comment": "阿里云百炼通义万相图片生成",
+        "apiKey": "",
+        "baseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "models": [
+          {
+            "modelName": "qwen-image-2.0-pro",
+            "sizes": [
+              { "width": 2048, "height": 2048, "label": "2048×2048 (方形)" },
+              { "width": 2048, "height": 1152, "label": "2048×1152 (16:9)" },
+              { "width": 1152, "height": 2048, "label": "1152×2048 (9:16)" }
+            ]
+          }
+        ]
+      },
+      "seedream": {
+        "_comment": "字节火山引擎 Seedream 图片生成，支持像素范围配置",
+        "apiKey": "",
+        "baseUrl": "https://ark.cn-beijing.volces.com/api/v3",
+        "models": [
+          {
+            "modelName": "seedream-5.0-lite",
+            "sizes": [
+              { "width": 1024, "height": 1024, "label": "1024×1024" },
+              { "width": 2048, "height": 2048, "label": "2048×2048" }
+            ],
+            "pixelRanges": [
+              { "minPixels": 0, "maxPixels": 1048576, "label": "标准质量" },
+              { "minPixels": 1048577, "maxPixels": 4194304, "label": "高清" }
+            ]
+          }
+        ]
+      },
+      "freeai": {
+        "_comment": "Free.ai 提供的图片生成模型",
+        "apiKey": "",
+        "baseUrl": "https://api.free.ai/v1",
+        "models": [
+          {
+            "modelName": "flux-dev",
+            "sizes": [
+              { "width": 1024, "height": 1024, "label": "1024×1024" }
+            ]
+          }
+        ]
+      },
+      "ollama": {
+        "_comment": "本地 Ollama 部署的图片生成模型",
+        "apiKey": "",
+        "baseUrl": "http://localhost:11434/v1",
+        "models": [
+          {
+            "modelName": "flux-dev",
+            "sizes": [
+              { "width": 1024, "height": 1024, "label": "1024×1024" }
+            ]
+          }
+        ]
+      },
+      "company-gateway": {
+        "_comment": "公司 API 网关图片生成，需要配置 gatewayVendor",
+        "apiKey": "",
+        "baseUrl": "https://your-company-gateway.example.com/ai-api",
+        "gatewayVendor": "openai",
+        "models": []
+      }
+    }
+  },
+  "_comment_auditSettings": "多引擎自动审核配置 - 对AI生成的幻灯片进行布局、视觉、内容、保真度四维校验",
+  "auditSettings": {
+    "_comment_enabled": "是否在生成流程结束后自动触发审核",
+    "enabled": true,
+    "_comment_strictness": "严格级别：strict（阈值80，正式交付）| normal（阈值70，默认）| relaxed（阈值50，内部沟通）",
+    "strictness": "normal",
+    "_comment_autoFix": "是否对可自动修复的布局样式问题执行修复并二次验证",
+    "autoFix": true,
+    "_comment_maxRegenerationRetries": "不可自动修复的致命问题最大重生成次数",
+    "maxRegenerationRetries": 1,
+    "_comment_engines": "四大审核引擎开关：layout布局样式 / visual视觉设计 / content内容质量 / fidelity渲染保真度",
+    "engines": {
+      "layout": true,
+      "visual": true,
+      "content": true,
+      "fidelity": true
+    },
+    "_comment_thresholds": "综合评分门禁阈值：达到pass为通过，达到warn为警告，否则为未通过",
+    "thresholds": {
+      "pass": 70,
+      "warn": 50
+    }
+  },
+  "_comment_inlineSelfCheckSettings": "生成过程内联自检配置 - 每张幻灯片生成后立即执行LLM批评和VLM占位校验",
+  "inlineSelfCheckSettings": {
+    "_comment_enabled": "是否启用生成过程内联自检（关闭则跳过所有即时校验，直接产出）",
+    "enabled": true,
+    "_comment_llmCritique": "是否启用 LLM 文本批评：检查文案质量、错别字、语义重复",
+    "llmCritique": true,
+    "_comment_vlmPlaceholder": "是否启用 VLM 占位图检测：识别替换失败的AI图片占位符",
+    "vlmPlaceholder": true,
+    "_comment_maxRetries": "自检未通过时的最大局部重生成次数（不含兜底）",
+    "maxRetries": 1,
+    "_comment_threshold": "触发重生成的问题数量阈值，超过此值才执行重生成",
+    "threshold": 7
+  }
+}

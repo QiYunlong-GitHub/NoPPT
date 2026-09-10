@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "allowImportingTsExtensions": false,
+    "baseUrl": ".",
+    "paths": {
+      "@noppt/core": ["../core/dist/cjs/index.d.ts"],
+      "@noppt/core/*": ["../core/dist/cjs/*"],
+      "@noppt/ai": ["../ai/dist/cjs/index.d.ts"],
+      "@noppt/ai/*": ["../ai/dist/cjs/*"]
+    }
+  },
+  "include": ["src"]
+}

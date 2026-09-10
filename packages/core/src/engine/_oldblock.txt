@@ -1,0 +1,13 @@
+    // FR-2 高度兜底 MARK1
+    if (!styles['height']) {
+      const ratioM = attrs.match(/data-image-ratio\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s"'`=>]+))/i);
+      const ratio = (ratioM && (ratioM[1] || ratioM[2] || ratioM[3])) || '';
+      if (ratio && /^(\d+)\s*:\s*(\d+)$/.test(ratio)) {
+        const rm = /^(\d+)\s*:\s*(\d+)$/.exec(ratio)!;
+        styles['aspect-ratio'] = `${rm[1]} / ${rm[2]}`;
+        styles['height'] = 'auto';
+        if (!styles['object-fit']) styles['object-fit'] = 'cover';
+      } else {
+        styles['height'] = 'auto';
+      }
+    }

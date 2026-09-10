@@ -1,0 +1,74 @@
+node_modules/
+.pnpm-store/
+dist/
+build/
+.next/
+.vite/
+
+# ===== 环境变量 / 密钥 =====
+.env
+.env.local
+.env.*.local
+server.env
+*.local
+
+# ===== 构建产物 / 日志 =====
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+_vitest_out.txt
+coverage/
+.nyc_output/
+*.tsbuildinfo
+.cache/
+
+# ===== 编辑器 / 系统 =====
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ===== NoPPT 敏感 / 调试 / 内部资料（切勿入库） =====
+# 含真实 API Key 的配置文件
+# 注意：必须写 data/* 而不是 data/ —— 目录一旦被整体排除，下面的例外规则无法生效
+packages/server/data/*
+# 唯一例外：开源模板（已脱敏）
+!packages/server/data/config.example.json
+
+scripts/
+调试相关/
+调研报告/
+corpus/
+wiki/
+docs/
+Slides_Templates/
+tests/
+offline-wheels/
+*.lnk
+noppt-config-*.json
+AGENTS.md
+
+# ===== 个人 / 临时文件（清单第三节） =====
+AI生成演示全流程.txt
+ToDoList.txt
+未来计划.txt
+测试参考图片.png
+测试参考文档.html
+PnpmInstallBuild.ps1
+前后端一键启动脚本.ps1
+*PnpmInstallBuild.bat
+*前后端一键启动.bat
+GitHub上传清单.md
+
+# 预览 / Agent 缓存（非源码）
+.preview/
+.trae/
+.roo/
+.codebuddy/

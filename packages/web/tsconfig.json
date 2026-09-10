@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@noppt/core": ["../core/src"],
+      "@noppt/core/*": ["../core/src/*"],
+      "@noppt/ai": ["../ai/src"],
+      "@noppt/ai/*": ["../ai/src/*"]
+    },
+    "types": ["vite/client", "vitest/globals"],
+    "noEmit": true,
+    "allowImportingTsExtensions": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+  },
+  "include": ["src"],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}

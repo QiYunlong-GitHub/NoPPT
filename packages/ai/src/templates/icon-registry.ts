@@ -1,0 +1,532 @@
+/**
+ * 统一图标注册表
+ *
+ * 数据来源：
+ * - 线性图标：Lucide Static（1400+ 开源 ISC 协议图标，https://lucide.dev）
+ * - 面性图标：精选 Heroicons Solid 风格内嵌路径（80+ 常用语义图标）
+ * - Emoji：系统原生 Emoji（仅用于内部轻松沟通场景）
+ *
+ * 解析优先级（resolveIcon）：
+ *   1. 显式图标名称（AI 可直接指定 Lucide 图标名，如 "rocket"、"cloud-cog"）
+ *   2. 语义关键词匹配（中英文关键词 → 图标名）
+ *   3. 按索引循环精选图标列表
+ *   4. 兜底默认图标（"check"）
+ */
+
+import * as LucideIcons from 'lucide-static';
+
+const LUCIDE_ICONS = LucideIcons as unknown as Record<string, string>;
+
+export interface IconEntry {
+  name: string;
+  keywords: string[];
+}
+
+export const CURATED_ICONS: IconEntry[] = [
+  { name: 'target', keywords: ['目标', '定位', '核心', '使命', '愿景', '宗旨', '靶心', 'target', 'goal', 'objective'] },
+  { name: 'code', keywords: ['代码', '研发', '开发', '编程', '程序', '编码', '工程师', 'code', 'develop', 'programming', 'developer', 'coding', 'engineering'] },
+  { name: 'code-xml', keywords: ['xml', 'html', '标记', '标签', '结构化', 'markup'] },
+  { name: 'terminal', keywords: ['命令行', '终端', 'cli', '脚本', '自动化', 'shell', 'terminal', 'command', 'script', 'console', 'bash'] },
+  { name: 'cpu', keywords: ['算力', '处理器', '性能', '计算', '硬件', '芯片', 'cpu', 'processor', 'compute', 'hardware', 'chip'] },
+  { name: 'server', keywords: ['服务器', '后端', '服务端', 'server', 'backend', 'host'] },
+  { name: 'database', keywords: ['数据库', '存储', '持久化', 'db', 'database', 'storage', 'sql', 'nosql'] },
+  { name: 'cloud', keywords: ['云', '云端', '云服务', '云原生', 'cloud', 'saas', 'cloud-native', 'cloud-computing'] },
+  { name: 'cloud-cog', keywords: ['云配置', '云运维', '云管理', 'cloud-config', 'cloud-settings'] },
+  { name: 'cloud-upload', keywords: ['云上传', '上云', '同步上传', 'cloud-upload'] },
+  { name: 'cloud-download', keywords: ['云下载', '拉取', 'cloud-download'] },
+  { name: 'git-branch', keywords: ['分支', 'git', '版本控制', 'branch', 'version-control'] },
+  { name: 'git-merge', keywords: ['合并', 'merge', '集成'] },
+  { name: 'git-fork', keywords: ['复刻', 'fork', '开源协作'] },
+  { name: 'git-commit', keywords: ['提交', 'commit', '版本提交'] },
+  { name: 'git-pull-request', keywords: ['pr', 'pull-request', '代码评审', '合并请求'] },
+  { name: 'workflow', keywords: ['工作流', '流程', '流水线', 'ci', 'cd', 'cicd', 'pipeline', 'workflow', 'automation'] },
+  { name: 'rocket', keywords: ['启动', '发布', '上线', '增长', '腾飞', '加速', '部署', 'launch', 'rocket', 'startup', 'deploy', 'release'] },
+  { name: 'zap', keywords: ['效率', '速度', '性能', '快速', '闪电', '高性能', '即时', 'speed', 'fast', 'performance', 'instant', 'lightning'] },
+  { name: 'bolt', keywords: ['闪电', '电力', '能量', 'bolt', 'electric', 'power'] },
+  { name: 'shield', keywords: ['安全', '保护', '合规', '风控', '防御', '防护', 'security', 'safe', 'shield', 'compliance', 'protection'] },
+  { name: 'shield-check', keywords: ['安全验证', '安全通过', '安全认证', 'secure-verified'] },
+  { name: 'lock', keywords: ['隐私', '加密', '权限', '保护', '锁', 'privacy', 'lock', 'encryption', 'secure', 'permission'] },
+  { name: 'key', keywords: ['关键', '密钥', '解锁', '钥匙', '权限', 'key', 'critical', 'unlock', 'access', 'secret'] },
+  { name: 'key-round', keywords: ['密钥', '钥匙', '认证', 'key-round', 'authentication'] },
+  { name: 'lightbulb', keywords: ['创意', '灵感', '想法', '创新', '思路', '点子', 'idea', 'innovation', 'creative', 'insight'] },
+  { name: 'sparkles', keywords: ['亮点', '特色', '优势', '智能', 'ai', '魔法', '特效', 'feature', 'highlight', 'smart', 'sparkle', 'magic'] },
+  { name: 'brain', keywords: ['大脑', '智能', '机器学习', '认知', 'brain', 'intelligence', 'ml', 'cognitive'] },
+  { name: 'brain-cog', keywords: ['ai设置', '智能配置', 'ml-ops', '智能运维'] },
+  { name: 'bot', keywords: ['机器人', '聊天机器人', 'bot', 'robot', 'chatbot', 'assistant'] },
+  { name: 'users', keywords: ['团队', '协作', '用户', '客户', '人员', '成员', 'team', 'users', 'collaboration', 'people', 'group'] },
+  { name: 'user', keywords: ['用户', '个人', '账户', 'user', 'account', 'profile', 'person'] },
+  { name: 'user-check', keywords: ['用户验证', '认证用户', 'verified-user'] },
+  { name: 'user-cog', keywords: ['用户设置', '用户管理', 'user-settings'] },
+  { name: 'building-2', keywords: ['企业', '公司', '组织', '办公楼', 'enterprise', 'company', 'organization', 'office'] },
+  { name: 'briefcase', keywords: ['商务', '工作', '职业', '业务', 'briefcase', 'business', 'work', 'job'] },
+  { name: 'trending-up', keywords: ['增长', '上升', '趋势', '提升', '涨幅', '上行', 'growth', 'trend', 'increase', 'upward'] },
+  { name: 'trending-down', keywords: ['下降', '下跌', '衰退', 'decline', 'decrease', 'downward'] },
+  { name: 'bar-chart-3', keywords: ['柱状图', '数据', '分析', '统计', '报表', '指标', '营收', '销售', '业绩', 'bar-chart', 'chart', 'data', 'analytics', 'statistics'] },
+  { name: 'line-chart', keywords: ['折线图', '趋势图', 'line-chart', 'trend-chart'] },
+  { name: 'pie-chart', keywords: ['饼图', '占比', '份额', 'pie-chart', 'proportion', 'share'] },
+  { name: 'activity', keywords: ['活动', '活跃度', '监控', '实时', 'activity', 'monitor', 'pulse'] },
+  { name: 'gauge', keywords: ['仪表盘', '指标', '度量', 'gauge', 'dashboard', 'metric', 'kpi'] },
+  { name: 'search', keywords: ['搜索', '发现', '研究', '查找', '检索', '查询', 'search', 'find', 'research', 'discover', 'query'] },
+  { name: 'filter', keywords: ['筛选', '过滤', 'filter', 'refine'] },
+  { name: 'settings', keywords: ['设置', '配置', '管理', '偏好', '齿轮', 'settings', 'config', 'preference', 'admin', 'gear'] },
+  { name: 'cog', keywords: ['齿轮', '配置项', 'cog', 'gear'] },
+  { name: 'sliders-horizontal', keywords: ['调参', '滑块', '参数调节', 'sliders', 'controls', 'parameters'] },
+  { name: 'wrench', keywords: ['工具', '维修', '修复', 'wrench', 'tool', 'repair', 'fix'] },
+  { name: 'hammer', keywords: ['构建', '打造', 'hammer', 'build', 'construct'] },
+  { name: 'package', keywords: ['打包', '部署', '交付', '产品', '包', 'package', 'deploy', 'delivery', 'bundle'] },
+  { name: 'package-open', keywords: ['开箱', '拆包', 'open-package'] },
+  { name: 'boxes', keywords: ['容器', '多包', '微服务', 'boxes', 'containers', 'microservices'] },
+  { name: 'container', keywords: ['容器', 'docker', 'container', 'docker'] },
+  { name: 'layers', keywords: ['架构', '层级', '模块', '组件', '分层', '栈', 'architecture', 'layers', 'module', 'component', 'stack'] },
+  { name: 'component', keywords: ['组件', '零件', 'component', 'widget'] },
+  { name: 'blocks', keywords: ['积木', '模块', '区块', 'blocks', 'modules'] },
+  { name: 'network', keywords: ['网络', '拓扑', '连接', '分布式', 'network', 'topology', 'connection', 'distributed'] },
+  { name: 'globe', keywords: ['全球', '国际化', '互联网', '世界', 'world', 'global', 'network', 'web', 'internet', 'international'] },
+  { name: 'earth', keywords: ['地球', '全球', 'earth', 'planet', 'global'] },
+  { name: 'map', keywords: ['地图', '映射', '路线', 'map', 'mapping', 'route'] },
+  { name: 'map-pin', keywords: ['位置', '定位', '地标', 'location', 'pin', 'place', 'marker'] },
+  { name: 'navigation', keywords: ['导航', '指引', '方向', 'navigation', 'direction', 'guide'] },
+  { name: 'compass', keywords: ['指南针', '方向', '探索', 'compass', 'direction', 'explore'] },
+  { name: 'route', keywords: ['路由', '路径', '路线', 'route', 'path', 'routing'] },
+  { name: 'mail', keywords: ['邮件', '邮箱', '消息', '信件', 'mail', 'email', 'message', 'letter'] },
+  { name: 'message-square', keywords: ['消息', '评论', '对话', 'message', 'comment', 'chat'] },
+  { name: 'messages-square', keywords: ['群聊', '多消息', '讨论', 'messages', 'discussion'] },
+  { name: 'bell', keywords: ['通知', '提醒', '推送', '铃铛', 'notification', 'bell', 'alert', 'reminder'] },
+  { name: 'bell-ring', keywords: ['响铃', '紧急通知', 'bell-ring'] },
+  { name: 'phone', keywords: ['电话', '手机', '通话', 'phone', 'call', 'mobile', 'telephone'] },
+  { name: 'smartphone', keywords: ['手机', '移动端', 'smartphone', 'mobile', 'cellphone'] },
+  { name: 'monitor', keywords: ['显示器', '桌面端', '电脑', 'monitor', 'desktop', 'screen', 'display'] },
+  { name: 'laptop', keywords: ['笔记本', '电脑', '办公', 'laptop', 'notebook', 'computer'] },
+  { name: 'tablet', keywords: ['平板', 'tablet', 'pad'] },
+  { name: 'devices', keywords: ['多端', '设备', '响应式', 'devices', 'multi-device', 'responsive'] },
+  { name: 'eye', keywords: ['视图', '预览', '可见', '监控', '洞察', '观察', 'view', 'eye', 'preview', 'monitor', 'insight', 'visible'] },
+  { name: 'eye-off', keywords: ['隐藏', '不可见', '隐私', 'hide', 'invisible', 'hidden'] },
+  { name: 'clock', keywords: ['时间', '时效', '日程', '周期', '实时', '时钟', 'time', 'clock', 'schedule', 'real-time'] },
+  { name: 'timer', keywords: ['计时器', '倒计时', '定时', 'timer', 'countdown', 'stopwatch'] },
+  { name: 'calendar', keywords: ['日历', '计划', '排期', '日期', '日程', 'calendar', 'plan', 'schedule', 'date'] },
+  { name: 'calendar-check', keywords: ['日程确认', '预约', 'scheduled'] },
+  { name: 'hourglass', keywords: ['等待', '耗时', '沙漏', 'hourglass', 'waiting', 'elapsed'] },
+  { name: 'check-circle', keywords: ['完成', '通过', '正确', '已实现', '成功', 'check', 'done', 'complete', 'correct', 'success'] },
+  { name: 'check-circle-2', keywords: ['验证通过', '已确认', 'verified'] },
+  { name: 'check', keywords: ['勾选', '确认', 'checkmark', 'tick'] },
+  { name: 'x-circle', keywords: ['失败', '错误', '关闭', '拒绝', 'error', 'fail', 'wrong', 'close'] },
+  { name: 'alert-triangle', keywords: ['警告', '风险', '注意', '问题', '告警', '三角警告', 'warning', 'risk', 'alert', 'caution', 'danger'] },
+  { name: 'alert-circle', keywords: ['提示', '信息警告', 'info-warning'] },
+  { name: 'info', keywords: ['信息', '说明', '帮助', 'info', 'information', 'help'] },
+  { name: 'help-circle', keywords: ['帮助', '疑问', '支持', 'help', 'question', 'support', 'faq'] },
+  { name: 'book-open', keywords: ['文档', '学习', '知识', '手册', '教程', '阅读', 'book', 'docs', 'documentation', 'learning', 'read'] },
+  { name: 'book', keywords: ['书籍', '手册', 'book', 'manual', 'guide'] },
+  { name: 'library', keywords: ['库', '资料库', '资源中心', 'library', 'repository'] },
+  { name: 'file-text', keywords: ['文件', '文档', '文本', '报告', 'file', 'document', 'text', 'report'] },
+  { name: 'file-code', keywords: ['代码文件', '源文件', 'code-file', 'source-file'] },
+  { name: 'file-check', keywords: ['文件验证', '审核通过', 'file-verified'] },
+  { name: 'folder', keywords: ['文件夹', '目录', 'folder', 'directory'] },
+  { name: 'folder-git', keywords: ['代码仓库', 'git仓库', 'repo', 'repository'] },
+  { name: 'folder-open', keywords: ['打开文件夹', '浏览目录'] },
+  { name: 'bookmark', keywords: ['收藏', '书签', '保存', 'bookmark', 'save', 'favorite'] },
+  { name: 'tag', keywords: ['标签', '标记', '分类', 'tag', 'label', 'category'] },
+  { name: 'tags', keywords: ['多标签', '标签组', 'tags', 'labels'] },
+  { name: 'flag', keywords: ['里程碑', '标记', '旗帜', 'flag', 'milestone', 'mark'] },
+  { name: 'award', keywords: ['获奖', '成就', '荣誉', '奖章', 'award', 'medal', 'honor', 'prize'] },
+  { name: 'trophy', keywords: ['冠军', '第一', '奖杯', 'trophy', 'champion', 'winner', 'first-place'] },
+  { name: 'medal', keywords: ['奖牌', '勋章', 'medal'] },
+  { name: 'star', keywords: ['收藏', '推荐', '星标', '重点', '评分', 'star', 'favorite', 'recommend', 'focus', 'rating'] },
+  { name: 'heart', keywords: ['喜欢', '热爱', '关怀', '用户体验', '爱心', 'heart', 'love', 'care', 'passion'] },
+  { name: 'thumbs-up', keywords: ['赞', '好评', '认可', 'thumbs-up', 'like', 'approve'] },
+  { name: 'handshake', keywords: ['合作', '伙伴', '协议', '握手', 'handshake', 'partnership', 'cooperation'] },
+  { name: 'gem', keywords: ['钻石', '精品', '珍贵', '宝石', 'gem', 'diamond', 'premium', 'precious'] },
+  { name: 'crown', keywords: ['皇冠', 'VIP', '顶级', 'crown', 'premium', 'top', 'king'] },
+  { name: 'gift', keywords: ['礼物', '奖励', '福利', '礼品', 'gift', 'reward', 'bonus', 'present'] },
+  { name: 'palette', keywords: ['设计', '美学', '视觉', '品牌', '艺术', '配色', 'design', 'palette', 'branding', 'visual', 'art'] },
+  { name: 'paintbrush', keywords: ['绘画', '创作', '画笔', 'paintbrush', 'paint', 'art'] },
+  { name: 'image', keywords: ['图片', '图像', '照片', 'image', 'picture', 'photo'] },
+  { name: 'images', keywords: ['相册', '多图', 'images', 'gallery', 'photos'] },
+  { name: 'camera', keywords: ['拍照', '相机', '截图', 'camera', 'photo', 'screenshot'] },
+  { name: 'video', keywords: ['视频', '影像', 'video', 'movie', 'film'] },
+  { name: 'film', keywords: ['电影', '影片', '胶片', 'film', 'cinema'] },
+  { name: 'music', keywords: ['音乐', '音频', 'music', 'audio', 'sound'] },
+  { name: 'headphones', keywords: ['耳机', '音频', '聆听', 'headphones', 'audio', 'listen'] },
+  { name: 'mic', keywords: ['麦克风', '语音', '录音', 'mic', 'microphone', 'voice', 'record'] },
+  { name: 'play', keywords: ['播放', '开始', '执行', 'play', 'start', 'run'] },
+  { name: 'play-circle', keywords: ['播放按钮', '开始演示', 'play-button'] },
+  { name: 'pause', keywords: ['暂停', 'pause'] },
+  { name: 'square', keywords: ['停止', '方块', 'square', 'stop'] },
+  { name: 'circle', keywords: ['圆形', '圆点', 'circle', 'dot'] },
+  { name: 'triangle', keywords: ['三角', '三角形', 'triangle'] },
+  { name: 'hexagon', keywords: ['六边形', '蜂巢', 'hexagon', 'hex'] },
+  { name: 'diamond', keywords: ['菱形', '钻石', 'diamond'] },
+  { name: 'arrow-right', keywords: ['下一步', '进入', '跳转', '前往', '向右', 'next', 'arrow', 'continue', 'enter'] },
+  { name: 'arrow-left', keywords: ['上一步', '返回', 'back', 'previous'] },
+  { name: 'arrow-up', keywords: ['向上', '上升', 'up', 'upward'] },
+  { name: 'arrow-down', keywords: ['向下', '下降', 'down', 'downward'] },
+  { name: 'chevron-right', keywords: ['展开', '右箭头', 'chevron-right'] },
+  { name: 'chevron-down', keywords: ['下拉', '展开', 'chevron-down'] },
+  { name: 'external-link', keywords: ['外部链接', '跳转', '外链', 'external-link', 'external'] },
+  { name: 'link', keywords: ['链接', '关联', 'link', 'url'] },
+  { name: 'link-2', keywords: ['连接', '关联', 'connect'] },
+  { name: 'share-2', keywords: ['分享', '共享', 'share', 'distribute'] },
+  { name: 'copy', keywords: ['复制', '拷贝', 'copy', 'duplicate'] },
+  { name: 'clipboard', keywords: ['剪贴板', '复制', '粘贴', 'clipboard', 'paste'] },
+  { name: 'clipboard-check', keywords: ['任务完成', '已复制', 'clipboard-done'] },
+  { name: 'clipboard-list', keywords: ['任务列表', '清单', 'clipboard-list', 'todo'] },
+  { name: 'list', keywords: ['列表', '清单', 'list'] },
+  { name: 'list-checks', keywords: ['检查清单', '待办', 'checklist', 'todo-list'] },
+  { name: 'list-todo', keywords: ['待办事项', 'todo', 'task-list'] },
+  { name: 'list-ordered', keywords: ['有序列表', '编号', 'ordered-list', 'numbered'] },
+  { name: 'check-square', keywords: ['复选框', '已选', 'check-square', 'checkbox'] },
+  { name: 'minus-square', keywords: ['减号方块', 'minus-square'] },
+  { name: 'plus-square', keywords: ['加号方块', '新增', 'add-square'] },
+  { name: 'plus', keywords: ['加', '新增', '添加', 'plus', 'add', 'new'] },
+  { name: 'minus', keywords: ['减', '移除', 'minus', 'remove'] },
+  { name: 'x', keywords: ['关闭', '删除', 'x', 'close', 'delete'] },
+  { name: 'edit', keywords: ['编辑', '修改', '铅笔', 'edit', 'pencil', 'modify'] },
+  { name: 'edit-3', keywords: ['编辑工具', '注释', 'annotate'] },
+  { name: 'pen-tool', keywords: ['钢笔工具', '设计', 'pen-tool', 'pen'] },
+  { name: 'trash-2', keywords: ['删除', '垃圾桶', 'trash', 'delete', 'remove'] },
+  { name: 'download', keywords: ['下载', '导出', 'download', 'export'] },
+  { name: 'upload', keywords: ['上传', '导入', 'upload', 'import'] },
+  { name: 'refresh-cw', keywords: ['刷新', '重试', '同步', 'refresh', 'reload', 'sync', 'renew'] },
+  { name: 'rotate-cw', keywords: ['旋转', '重试', 'rotate'] },
+  { name: 'loader', keywords: ['加载中', '等待', 'loader', 'loading', 'spinner'] },
+  { name: 'loader-2', keywords: ['加载动画', 'processing'] },
+  { name: 'power', keywords: ['电源', '开关', '启动', 'power', 'on-off'] },
+  { name: 'log-in', keywords: ['登录', '登入', 'login', 'sign-in'] },
+  { name: 'log-out', keywords: ['登出', '退出', 'logout', 'sign-out'] },
+  { name: 'home', keywords: ['首页', '主页', 'home', 'house'] },
+  { name: 'menu', keywords: ['菜单', '导航', 'menu', 'navigation'] },
+  { name: 'grid-3x3', keywords: ['网格', '应用', '九宫格', 'grid', 'apps'] },
+  { name: 'layout', keywords: ['布局', '排版', 'layout', 'arrangement'] },
+  { name: 'layout-grid', keywords: ['网格布局', 'dashboard布局'] },
+  { name: 'columns-3', keywords: ['三栏', '列布局', 'columns'] },
+  { name: 'sidebar', keywords: ['侧边栏', 'sidebar', 'side-panel'] },
+  { name: 'maximize-2', keywords: ['最大化', '全屏', 'maximize', 'fullscreen'] },
+  { name: 'minimize-2', keywords: ['最小化', 'minimize'] },
+  { name: 'zoom-in', keywords: ['放大', 'zoom-in'] },
+  { name: 'zoom-out', keywords: ['缩小', 'zoom-out'] },
+  { name: 'sun', keywords: ['太阳', '日间模式', '明亮', 'sun', 'light-mode', 'bright'] },
+  { name: 'moon', keywords: ['月亮', '夜间模式', '暗色', 'moon', 'dark-mode', 'night'] },
+  { name: 'flame', keywords: ['热门', '火爆', '高人气', '紧急', '火焰', 'hot', 'fire', 'popular', 'trending'] },
+  { name: 'droplets', keywords: ['水滴', '液体', 'droplets', 'water'] },
+  { name: 'wind', keywords: ['风', '空气', 'wind', 'air'] },
+  { name: 'thermometer', keywords: ['温度', '温度计', 'thermometer', 'temperature'] },
+  { name: 'leaf', keywords: ['环保', '绿色', '自然', 'leaf', 'green', 'eco', 'nature'] },
+  { name: 'recycle', keywords: ['回收', '循环', 'recycle', 'recycling'] },
+  { name: 'tree-pine', keywords: ['树', '森林', 'tree', 'forest'] },
+  { name: 'mountain', keywords: ['山', '挑战', '高峰', 'mountain', 'peak', 'challenge'] },
+  { name: 'map-pinned', keywords: ['已标记位置', '固定地点'] },
+  { name: 'send', keywords: ['发送', '提交', 'send', 'submit'] },
+  { name: 'inbox', keywords: ['收件箱', '消息', 'inbox', 'incoming'] },
+  { name: 'archive', keywords: ['归档', '存档', 'archive', 'archived'] },
+  { name: 'save', keywords: ['保存', '存储', 'save', 'store'] },
+  { name: 'database-backup', keywords: ['备份', '灾备', 'backup', 'disaster-recovery'] },
+  { name: 'hard-drive', keywords: ['硬盘', '存储', 'hard-drive', 'storage-drive'] },
+  { name: 'usb', keywords: ['usb', '接口', 'usb', 'port'] },
+  { name: 'wifi', keywords: ['无线网络', 'wifi', 'wireless'] },
+  { name: 'bluetooth', keywords: ['蓝牙', 'bluetooth'] },
+  { name: 'battery-charging', keywords: ['充电', '电量', 'battery-charging'] },
+  { name: 'battery-full', keywords: ['满电', '电量充足', 'battery-full'] },
+  { name: 'plug', keywords: ['插件', '连接', 'plug', 'plugin'] },
+  { name: 'plug-zap', keywords: ['快速连接', '通电'] },
+  { name: 'radio', keywords: ['广播', '电台', 'radio', 'broadcast'] },
+  { name: 'satellite', keywords: ['卫星', 'satellite'] },
+  { name: 'antenna', keywords: ['天线', '信号', 'antenna', 'signal'] },
+  { name: 'rss', keywords: ['订阅', 'rss', 'feed', 'subscribe'] },
+  { name: 'at-sign', keywords: ['艾特', '提及', '@', 'at-sign', 'mention'] },
+  { name: 'hash', keywords: ['话题', '标签', '井号', 'hash', 'hashtag'] },
+  { name: 'percent', keywords: ['百分比', '折扣', 'percent', 'percentage', 'discount'] },
+  { name: 'calculator', keywords: ['计算器', '计算', 'calculator', 'calculate'] },
+  { name: 'abacus', keywords: ['算盘', '计算工具', 'abacus'] },
+  { name: 'scale', keywords: ['天平', '公平', '权衡', 'scale', 'balance'] },
+  { name: 'ruler', keywords: ['尺子', '测量', 'ruler', 'measure'] },
+  { name: 'scissors', keywords: ['剪刀', '裁剪', 'scissors', 'cut'] },
+  { name: 'paperclip', keywords: ['附件', '回形针', 'paperclip', 'attachment'] },
+  { name: 'telescope', keywords: ['望远镜', '远景', '展望', 'telescope', 'vision'] },
+  { name: 'microscope', keywords: ['显微镜', '微观分析', 'microscope', 'analysis'] },
+  { name: 'flask-conical', keywords: ['实验', '化学', '科学', 'flask', 'experiment', 'science', 'chemistry'] },
+  { name: 'atom', keywords: ['原子', '物理', '科学', 'atom', 'physics', 'science'] },
+  { name: 'dna', keywords: ['基因', '生物', 'dna', 'genetics', 'biology'] },
+  { name: 'fingerprint', keywords: ['指纹', '生物识别', 'fingerprint', 'biometric'] },
+  { name: 'scan', keywords: ['扫描', '识别', 'scan', 'scanner'] },
+  { name: 'qr-code', keywords: ['二维码', 'qr', 'qr-code'] },
+  { name: 'barcode', keywords: ['条形码', 'barcode'] },
+  { name: 'credit-card', keywords: ['信用卡', '支付', 'credit-card', 'payment', 'pay'] },
+  { name: 'banknote', keywords: ['钞票', '现金', 'money', 'banknote', 'cash', 'currency'] },
+  { name: 'wallet', keywords: ['钱包', 'wallet', 'purse'] },
+  { name: 'receipt', keywords: ['收据', '发票', 'receipt', 'invoice'] },
+  { name: 'shopping-cart', keywords: ['购物车', '购买', 'shopping-cart', 'cart', 'purchase'] },
+  { name: 'shopping-bag', keywords: ['购物袋', '商品', 'shopping-bag'] },
+  { name: 'store', keywords: ['商店', '店铺', 'store', 'shop'] },
+  { name: 'dollar-sign', keywords: ['美元', '金钱', 'dollar', 'money', 'currency'] },
+  { name: 'euro', keywords: ['欧元', 'euro'] },
+  { name: 'bitcoin', keywords: ['比特币', '加密货币', 'bitcoin', 'crypto'] },
+  { name: 'coins', keywords: ['硬币', '钱币', 'coins'] },
+  { name: 'trending-up', keywords: ['增长', '上升', '趋势', '提升', '涨幅', '上行', 'growth', 'trend', 'increase', 'upward'] },
+  { name: 'piggy-bank', keywords: ['储蓄', '存钱', 'piggy-bank', 'savings'] },
+  { name: 'landmark', keywords: ['银行', '机构', '政府', 'landmark', 'bank', 'institution'] },
+  { name: 'graduation-cap', keywords: ['教育', '毕业', '学术', '学习', 'graduation', 'education', 'academic', 'cap'] },
+  { name: 'school', keywords: ['学校', '学院', 'school', 'academy'] },
+  { name: 'book-marked', keywords: ['书签', '标记阅读', 'bookmarked'] },
+  { name: 'pencil', keywords: ['铅笔', '写作', '草稿', 'pencil', 'write', 'draft'] },
+  { name: 'pen-line', keywords: ['签字', '笔', 'pen', 'sign'] },
+  { name: 'highlighter', keywords: ['荧光笔', '标注', 'highlight'] },
+  { name: 'eraser', keywords: ['橡皮擦', '擦除', 'eraser'] },
+  { name: 'sticky-note', keywords: ['便签', '备忘', 'sticky-note', 'note', 'memo'] },
+  { name: 'notebook-pen', keywords: ['笔记本', '笔记', 'notebook'] },
+  { name: 'presentation', keywords: ['演示', 'PPT', '幻灯片', 'presentation', 'slides', 'deck'] },
+  { name: 'projector', keywords: ['投影', '放映', 'projector'] },
+  { name: 'kanban', keywords: ['看板', '任务板', '敏捷', 'kanban', 'board', 'scrum'] },
+  { name: 'trello', keywords: ['trello', '看板'] },
+  { name: 'table', keywords: ['表格', 'table'] },
+  { name: 'table-2', keywords: ['数据表', 'data-table'] },
+  { name: 'sheet', keywords: ['表单', '电子表格', 'sheet', 'spreadsheet'] },
+  { name: 'form-input', keywords: ['表单输入', 'form', 'input'] },
+  { name: 'text-cursor', keywords: ['光标', '文本输入', 'text-cursor', 'cursor'] },
+  { name: 'type', keywords: ['打字', '输入', 'type', 'typing'] },
+  { name: 'keyboard', keywords: ['键盘', '输入', 'keyboard'] },
+  { name: 'mouse', keywords: ['鼠标', 'mouse'] },
+  { name: 'mouse-pointer-click', keywords: ['点击', '指针', 'click', 'pointer'] },
+  { name: 'hand', keywords: ['手', '选择', 'hand', 'grab'] },
+  { name: 'move', keywords: ['移动', '拖拽', 'move', 'drag'] },
+  { name: 'move-3d', keywords: ['3d移动', '三维'] },
+  { name: 'maximize', keywords: ['最大化', 'maximize'] },
+  { name: 'crop', keywords: ['裁剪', 'crop'] },
+  { name: 'expand', keywords: ['展开', '扩展', 'expand'] },
+  { name: 'shrink', keywords: ['收缩', 'shrink'] },
+  { name: 'corner-down-right', keywords: ['右下拐角', 'corner'] },
+  { name: 'corner-up-right', keywords: ['右上拐角'] },
+  { name: 'corner-left-up', keywords: ['左上拐角'] },
+  { name: 'corner-left-down', keywords: ['左下拐角'] },
+  { name: 'move-horizontal', keywords: ['水平移动'] },
+  { name: 'move-vertical', keywords: ['垂直移动'] },
+  { name: 'arrows-up-to-line', keywords: ['合并到顶部'] },
+  { name: 'arrows-down-to-line', keywords: ['合并到底部'] },
+  { name: 'split', keywords: ['拆分', '分割', 'split', 'divide'] },
+  { name: 'combine', keywords: ['合并', '组合', 'combine', 'merge'] },
+  { name: 'shuffle', keywords: ['随机', '打乱', 'shuffle', 'random'] },
+  { name: 'git-compare', keywords: ['对比', 'diff', 'compare'] },
+  { name: 'diff', keywords: ['差异', '对比', 'diff'] },
+  { name: 'file-diff', keywords: ['文件对比', 'file-diff'] },
+  { name: 'history', keywords: ['历史', '版本历史', 'history', 'changelog'] },
+  { name: 'undo-2', keywords: ['撤销', 'undo'] },
+  { name: 'redo-2', keywords: ['重做', 'redo'] },
+  { name: 'rotate-ccw', keywords: ['逆时针旋转', 'rotate-ccw'] },
+  { name: 'flip-horizontal', keywords: ['水平翻转', 'flip-horizontal'] },
+  { name: 'flip-vertical', keywords: ['垂直翻转', 'flip-vertical'] },
+  { name: 'bring-to-front', keywords: ['置于顶层', 'bring-to-front'] },
+  { name: 'send-to-back', keywords: ['置于底层', 'send-to-back'] },
+  { name: 'group', keywords: ['组合', '分组', 'group'] },
+  { name: 'ungroup', keywords: ['取消组合', 'ungroup'] },
+  { name: 'lock-open', keywords: ['解锁', '打开锁', 'unlock'] },
+  { name: 'shield-alert', keywords: ['安全警告', '安全风险', 'security-alert'] },
+  { name: 'shield-off', keywords: ['不安全', '无保护', 'unprotected'] },
+  { name: 'ban', keywords: ['禁止', '阻止', '封禁', 'ban', 'block', 'forbid'] },
+  { name: 'slash', keywords: ['禁止符号', '不可用', 'slash', 'no'] },
+  { name: 'eye-off', keywords: ['隐藏', '不可见', 'hide'] },
+  { name: 'user-x', keywords: ['移除用户', '用户封禁', 'remove-user'] },
+  { name: 'user-minus', keywords: ['删除用户', 'user-minus'] },
+  { name: 'user-plus', keywords: ['添加用户', '注册', 'add-user', 'register'] },
+  { name: 'log-in', keywords: ['登录', '登入', 'login'] },
+  { name: 'log-out', keywords: ['登出', '退出', 'logout'] },
+  { name: 'key-square', keywords: ['密钥管理', 'key-square'] },
+  { name: 'fingerprint', keywords: ['指纹识别', '生物认证'] },
+  { name: 'scan-face', keywords: ['人脸识别', '面部识别', 'face-id'] },
+  { name: 'scan-line', keywords: ['扫描线', 'line-scan'] },
+  { name: 'shield-half', keywords: ['半防护', '部分安全'] },
+  { name: 'file-lock-2', keywords: ['文件加密', 'encrypted-file'] },
+  { name: 'folder-lock', keywords: ['文件夹加密', 'secure-folder'] },
+  { name: 'vault', keywords: ['保险库', 'vault', 'secure-storage'] },
+  { name: 'bug', keywords: ['bug', '缺陷', '漏洞', '错误', 'bug', 'defect', 'issue', 'error'] },
+  { name: 'bug-off', keywords: ['修复bug', '无缺陷', 'bug-fixed'] },
+  { name: 'debug', keywords: ['调试', 'debug'] },
+  { name: 'ladybug', keywords: ['瓢虫', '小bug'] },
+  { name: 'shield-x', keywords: ['安全漏洞', 'security-issue'] },
+  { name: 'alert-octagon', keywords: ['八边形警告', '严重警告', 'critical-alert'] },
+  { name: 'siren', keywords: ['警报', '紧急', 'siren', 'emergency'] },
+  { name: 'radiation', keywords: ['辐射', '核', 'radiation'] },
+  { name: 'biohazard', keywords: ['生物危害', 'biohazard'] },
+  { name: 'skull', keywords: ['骷髅', '危险', 'skull', 'danger'] },
+  { name: 'sword', keywords: ['剑', '战斗', 'sword'] },
+  { name: 'shield-question', keywords: ['安全疑问', 'security-question'] },
+  { name: 'life-buoy', keywords: ['救生圈', '支持', '求助', 'life-buoy', 'lifesaver', 'support'] },
+  { name: 'first-aid-kit', keywords: ['急救', '医疗', 'first-aid', 'medical'] },
+  { name: 'heart-pulse', keywords: ['心跳', '生命体征', 'heart-pulse', 'vital'] },
+  { name: 'activity', keywords: ['活跃度', '活动指标'] },
+  { name: 'pulse', keywords: ['脉冲', 'pulse'] },
+  { name: 'stethoscope', keywords: ['听诊器', '医生', 'stethoscope', 'doctor'] },
+  { name: 'pill', keywords: ['药片', '药物', 'pill', 'medicine'] },
+  { name: 'syringe', keywords: ['注射器', '疫苗', 'syringe', 'vaccine'] },
+  { name: 'microscope', keywords: ['显微镜', '微观'] },
+  { name: 'flask-round', keywords: ['烧瓶', '化学实验'] },
+  { name: 'test-tube', keywords: ['试管', '测试', 'test-tube', 'testing'] },
+  { name: 'test-tubes', keywords: ['多试管', '批量测试'] },
+  { name: 'beaker', keywords: ['烧杯', 'beaker'] },
+  { name: 'graduation-cap', keywords: ['学位帽', '毕业'] },
+  { name: 'library-big', keywords: ['大图书馆', 'library-big'] },
+  { name: 'book-open-check', keywords: ['已读书籍', '阅读完成'] },
+  { name: 'book-open-text', keywords: ['阅读', '学习', 'reading'] },
+  { name: 'book-copy', keywords: ['复印书籍', '副本'] },
+  { name: 'book-a', keywords: ['书籍a', '字典'] },
+  { name: 'book-text', keywords: ['语文书', '教材'] },
+  { name: 'book-type', keywords: ['字体书', '排版'] },
+  { name: 'book-image', keywords: ['图画书', '绘本'] },
+  { name: 'book-marked', keywords: ['书签书'] },
+  { name: 'book-headphones', keywords: ['有声书', 'audio-book'] },
+  { name: 'book-user', keywords: ['个人书籍', '我的书'] },
+  { name: 'book-lock', keywords: ['加密书籍', '机密文档'] },
+  { name: 'book-key', keywords: ['密钥书籍', '访问受限文档'] },
+  { name: 'book-minus', keywords: ['移除书籍'] },
+  { name: 'book-plus', keywords: ['添加书籍'] },
+  { name: 'book-up-2', keywords: ['上传书籍'] },
+  { name: 'book-down', keywords: ['下载书籍'] },
+  { name: 'book-x', keywords: ['删除书籍'] },
+  { name: 'newspaper', keywords: ['报纸', '新闻', 'news', 'newspaper'] },
+  { name: 'rss', keywords: ['rss订阅'] },
+  { name: 'scroll-text', keywords: ['卷轴', '长文', 'scroll'] },
+  { name: 'scroll', keywords: ['滚动', '卷轴'] },
+  { name: 'file-badge', keywords: ['证书文件', '认证', 'file-badge', 'certificate'] },
+  { name: 'badge-check', keywords: ['认证徽章', '已验证', 'verified-badge'] },
+  { name: 'badge-info', keywords: ['信息徽章'] },
+  { name: 'badge-alert', keywords: ['警告徽章'] },
+  { name: 'badge-plus', keywords: ['新增徽章'] },
+  { name: 'badge-minus', keywords: ['移除徽章'] },
+  { name: 'badge-x', keywords: ['删除徽章'] },
+  { name: 'badge-percent', keywords: ['折扣徽章'] },
+  { name: 'badge-dollar-sign', keywords: ['美元徽章'] },
+  { name: 'badge-euro', keywords: ['欧元徽章'] },
+  { name: 'badge-indian-rupee', keywords: ['卢比徽章'] },
+  { name: 'badge-japanese-yen', keywords: ['日元徽章'] },
+  { name: 'badge-pound-sterling', keywords: ['英镑徽章'] },
+  { name: 'badge-russian-ruble', keywords: ['卢布徽章'] },
+  { name: 'badge-swiss-franc', keywords: ['瑞郎徽章'] },
+  { name: 'badge-turkish-lira', keywords: ['里拉徽章'] },
+  { name: 'award', keywords: ['奖项'] },
+  { name: 'medal', keywords: ['奖牌'] },
+  { name: 'trophy', keywords: ['奖杯'] },
+  { name: 'crown', keywords: ['皇冠'] },
+  { name: 'gem', keywords: ['宝石'] },
+  { name: 'diamond', keywords: ['钻石'] },
+  { name: 'rings', keywords: ['戒指', 'rings'] },
+  { name: 'gift', keywords: ['礼物'] },
+  { name: 'party-popper', keywords: ['庆祝', '派对', 'party', 'celebration'] },
+  { name: 'cake', keywords: ['蛋糕', '生日', 'cake', 'birthday'] },
+  { name: 'cake-slice', keywords: ['一块蛋糕'] },
+  { name: 'balloon', keywords: ['气球', 'balloon'] },
+  { name: 'confetti', keywords: ['彩纸', '庆祝', 'confetti'] },
+  { name: 'sparkle', keywords: ['闪光', 'sparkle'] },
+  { name: 'stars', keywords: ['繁星', 'stars'] },
+  { name: 'star-off', keywords: ['未收藏', 'star-off'] },
+  { name: 'star-half', keywords: ['半星', '评分一半', 'half-star'] },
+  { name: 'thumbs-down', keywords: ['差评', '不喜欢', 'thumbs-down', 'dislike'] },
+  { name: 'meh', keywords: ['一般', 'meh', 'neutral'] },
+  { name: 'frown', keywords: ['不满', 'frown', 'sad'] },
+  { name: 'smile', keywords: ['开心', 'smile', 'happy'] },
+  { name: 'smile-plus', keywords: ['非常开心'] },
+  { name: 'laugh', keywords: ['大笑', 'laugh'] },
+  { name: 'wink', keywords: ['眨眼', 'wink'] },
+  { name: 'angry', keywords: ['生气', 'angry'] },
+  { name: 'annoyed', keywords: ['恼怒', 'annoyed'] },
+  { name: 'expressionless', keywords: ['无表情', 'expressionless'] },
+];
+
+const ICON_NAME_SET = new Set(CURATED_ICONS.map(e => e.name));
+
+const KEYWORD_INDEX: Map<string, string> = new Map();
+for (const entry of CURATED_ICONS) {
+  for (const kw of entry.keywords) {
+    KEYWORD_INDEX.set(kw.toLowerCase(), entry.name);
+  }
+}
+
+const FALLBACK_ORDER: string[] = [
+  'target', 'zap', 'shield', 'lightbulb', 'rocket', 'code', 'users',
+  'bar-chart-3', 'settings', 'globe', 'database', 'cloud', 'cpu',
+  'layers', 'git-branch', 'workflow', 'check-circle-2', 'star',
+  'package', 'terminal', 'key', 'lock', 'search', 'bell',
+  'book-open', 'calendar', 'mail', 'message-square', 'phone',
+  'eye', 'clock', 'trending-up', 'award', 'heart', 'flag',
+];
+
+export function getAllIconNames(): string[] {
+  return CURATED_ICONS.map(e => e.name);
+}
+
+export function isKnownIconName(name: string): boolean {
+  if (!name) return false;
+  const normalized = normalizeName(name);
+  if (ICON_NAME_SET.has(normalized)) return true;
+  return normalized in LUCIDE_ICONS;
+}
+
+export function normalizeName(name: string): string {
+  return name.trim().toLowerCase().replace(/[\s_]+/g, '-');
+}
+
+export function resolveIconByName(name: string): string | null {
+  if (!name) return null;
+  const normalized = normalizeName(name);
+  if (ICON_NAME_SET.has(normalized)) return normalized;
+  if (normalized in LUCIDE_ICONS) return normalized;
+  const pascal = toPascalCase(normalized);
+  if (pascal in LUCIDE_ICONS) return normalized;
+  return null;
+}
+
+export function resolveIconByText(text: string): string | null {
+  if (!text) return null;
+  const lower = text.toLowerCase();
+  let best: { name: string; len: number } | null = null;
+  for (const [kw, name] of KEYWORD_INDEX) {
+    if (lower.includes(kw)) {
+      if (!best || kw.length > best.len) {
+        best = { name, len: kw.length };
+      }
+    }
+  }
+  return best ? best.name : null;
+}
+
+export function resolveIconByIndex(idx: number): string {
+  return FALLBACK_ORDER[((idx % FALLBACK_ORDER.length) + FALLBACK_ORDER.length) % FALLBACK_ORDER.length];
+}
+
+export interface ResolveOptions {
+  name?: string;
+  textHint?: string;
+  index?: number;
+}
+
+export function resolveIcon(opts: ResolveOptions = {}): string {
+  if (opts.name) {
+    const byName = resolveIconByName(opts.name);
+    if (byName) return byName;
+  }
+  if (opts.textHint) {
+    const byText = resolveIconByText(opts.textHint);
+    if (byText) return byText;
+  }
+  if (typeof opts.index === 'number') {
+    return resolveIconByIndex(opts.index);
+  }
+  return 'check';
+}
+
+export function getLucideSvgRaw(name: string): string | null {
+  const normalized = normalizeName(name);
+  if (normalized in LUCIDE_ICONS) return LUCIDE_ICONS[normalized];
+  const pascal = toPascalCase(normalized);
+  if (pascal in LUCIDE_ICONS) return LUCIDE_ICONS[pascal];
+  return null;
+}
+
+export function extractLucideInner(svgString: string): string {
+  const match = svgString.match(/<svg[^>]*>([\s\S]*?)<\/svg>/i);
+  return match ? match[1].trim() : '';
+}
+
+function toPascalCase(kebab: string): string {
+  return kebab
+    .split('-')
+    .filter(Boolean)
+    .map(s => s.charAt(0).toUpperCase() + s.slice(1))
+    .join('');
+}
