@@ -3,7 +3,8 @@ export interface VisualHrvResult {
   deltas: number[];
   overloadCount: number;
   score: number;
-  interpretation: 'flatline' | 'healthy_pulse' | 'transitional' | 'strobe_light' | 'insufficient_data';
+  interpretation:
+    'flatline' | 'healthy_pulse' | 'transitional' | 'strobe_light' | 'insufficient_data';
   normalizedScores: number[];
 }
 
@@ -21,11 +22,7 @@ export function calculateRmssd(values: number[]): number {
   return Math.sqrt(sumSq / (values.length - 1));
 }
 
-function countOverload(
-  values: number[],
-  window: number,
-  threshold: number,
-): number {
+function countOverload(values: number[], window: number, threshold: number): number {
   if (window < 1 || values.length < window) return 0;
   let count = 0;
   for (let i = 0; i <= values.length - window; i++) {
@@ -69,7 +66,7 @@ export function computeVisualHrv(
     };
   }
 
-  const normalized = complexities.map(v => {
+  const normalized = complexities.map((v) => {
     const s = sigmoidNormalize(v, mu, k);
     return Math.max(0, Math.min(1, s));
   });
@@ -82,9 +79,10 @@ export function computeVisualHrv(
   const rmssd = calculateRmssd(normalized);
   const overloadCount = countOverload(normalized, overloadWindow, overloadThreshold);
 
-  const baseScore = targetHalfwidth > 0
-    ? 100 * (1 - Math.min(1, Math.abs(rmssd - targetRmssd) / targetHalfwidth))
-    : 0;
+  const baseScore =
+    targetHalfwidth > 0
+      ? 100 * (1 - Math.min(1, Math.abs(rmssd - targetRmssd) / targetHalfwidth))
+      : 0;
   const score = Math.max(0, Math.min(100, baseScore - overloadPenalty * overloadCount));
 
   let interpretation: VisualHrvResult['interpretation'];

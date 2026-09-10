@@ -53,7 +53,10 @@ const LEFT_CARD_ANCHOR = {
 // comparison-deep-dive 骨架（方便插入/不插入右栏图片）
 // 注意：data-layout 路由要求"HTML 以 <div/section/article>"开头，不能有前置空白，
 // 因为 normalizeAISlide 的布局识别正则锚定在 ^ 开头。
-const buildComparisonDeepDive = (rightBetweenH3AndUl: string, leftBetweenH3AndUl: string = ''): string =>
+const buildComparisonDeepDive = (
+  rightBetweenH3AndUl: string,
+  leftBetweenH3AndUl: string = '',
+): string =>
   `<div style="width:100%;height:100%;padding:48px 64px;display:flex;flex-direction:column;box-sizing:border-box;" data-layout="comparison-deep-dive">
   <h2 style="font-size:50px;font-weight:700;margin:0 0 32px 0;line-height:1.25;">厄尔尼诺年份与正常年份的全球气候及生态差异显著</h2>
   <div style="pointer-events:none;display:flex;gap:24px;align-items:center;justify-content:center;margin-bottom:24px;min-width:0;">

@@ -2,7 +2,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mkdtempSync, rmSync, existsSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { sanitizeScopeSegment, createScopedStorage, StorageService, getStorageService } from './storage.service';
+import {
+  sanitizeScopeSegment,
+  createScopedStorage,
+  StorageService,
+  getStorageService,
+} from './storage.service';
 import { McpError } from './mcp-errors';
 
 /**
@@ -64,9 +69,21 @@ describe('M1 StorageService 作用域化', () => {
     it('作用域目录落在 data/tenants/{t}/users/{u}/workspace', () => {
       const s = createScopedStorage('tenants', 'default', 'users', 'alice');
       expect(s.getScope()).toEqual(['tenants', 'default', 'users', 'alice']);
-      expect(s.getWorkspaceDir()).toBe(join(tmpRoot, 'data', 'tenants', 'default', 'users', 'alice', 'workspace'));
+      expect(s.getWorkspaceDir()).toBe(
+        join(tmpRoot, 'data', 'tenants', 'default', 'users', 'alice', 'workspace'),
+      );
       expect(s.getPresentationDir('x')).toBe(
-        join(tmpRoot, 'data', 'tenants', 'default', 'users', 'alice', 'workspace', 'presentations', 'x'),
+        join(
+          tmpRoot,
+          'data',
+          'tenants',
+          'default',
+          'users',
+          'alice',
+          'workspace',
+          'presentations',
+          'x',
+        ),
       );
       expect(s.getPublicBase()).toBe('/data/tenants/default/users/alice/workspace');
     });
@@ -77,8 +94,12 @@ describe('M1 StorageService 作用域化', () => {
       expect(s.getBaseDir()).toBe(join(tmpRoot, 'data'));
       expect(s.getWorkspaceDir()).toBe(join(tmpRoot, 'data', 'workspace'));
       expect(s.getPublicBase()).toBe('/data/workspace');
-      expect(s.getPresentationDir('p1')).toBe(join(tmpRoot, 'data', 'workspace', 'presentations', 'p1'));
-      expect(s.getImagesDir('p1')).toBe(join(tmpRoot, 'data', 'workspace', 'presentations', 'p1', 'assets', 'images'));
+      expect(s.getPresentationDir('p1')).toBe(
+        join(tmpRoot, 'data', 'workspace', 'presentations', 'p1'),
+      );
+      expect(s.getImagesDir('p1')).toBe(
+        join(tmpRoot, 'data', 'workspace', 'presentations', 'p1', 'assets', 'images'),
+      );
     });
 
     it('不同用户的作用域目录互相独立', () => {
@@ -90,7 +111,9 @@ describe('M1 StorageService 作用域化', () => {
     it('作用域化后资源 URL 前缀随作用域变化', async () => {
       const s = createScopedStorage('tenants', 't1', 'users', 'u1');
       const url = await s.saveImageFromUrl('p1', 'data:image/png;base64,iVBORw0KGgo=');
-      expect(url.startsWith('/data/tenants/t1/users/u1/workspace/presentations/p1/assets/images/')).toBe(true);
+      expect(
+        url.startsWith('/data/tenants/t1/users/u1/workspace/presentations/p1/assets/images/'),
+      ).toBe(true);
     });
 
     it('无作用域时资源 URL 前缀保持 /data/workspace（回归红线）', async () => {

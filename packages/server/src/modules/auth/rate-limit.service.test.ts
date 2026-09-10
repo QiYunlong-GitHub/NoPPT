@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { RateLimitService, resolveRateLimitConfig } from './rate-limit.service';
-import { enforceRateLimit, RATE_LIMITED_TOOLS, RateLimit, rateLimitScopeKey } from './rate-limit.guard';
+import {
+  enforceRateLimit,
+  RATE_LIMITED_TOOLS,
+  RateLimit,
+  rateLimitScopeKey,
+} from './rate-limit.guard';
 import type { ApiKeyRecord } from './api-key.service';
 import type { McpAuth } from './api-key.guard';
 import { McpError } from '../../common/mcp-errors';
@@ -12,11 +17,24 @@ import { McpError } from '../../common/mcp-errors';
 describe('M3 限流', () => {
   let service: RateLimitService;
 
-  const makeAuth = (keyId: string, userKey: string, record: Partial<ApiKeyRecord> = {}): McpAuth => ({
+  const makeAuth = (
+    keyId: string,
+    userKey: string,
+    record: Partial<ApiKeyRecord> = {},
+  ): McpAuth => ({
     keyId,
     userKey,
     tenantId: 'default',
-    record: { id: keyId, name: 'n', tenantId: 'default', userKey, enabled: true, keyHash: 'sha256:x', createdAt: 0, ...record } as ApiKeyRecord,
+    record: {
+      id: keyId,
+      name: 'n',
+      tenantId: 'default',
+      userKey,
+      enabled: true,
+      keyHash: 'sha256:x',
+      createdAt: 0,
+      ...record,
+    } as ApiKeyRecord,
   });
 
   beforeEach(() => {
@@ -71,7 +89,9 @@ describe('M3 限流', () => {
     it('generate 与 edit 双桶互不消耗', () => {
       const auth = makeAuth('k1', 'alice');
       service.consume('generate', rateLimitScopeKey(auth), 1, 60_000, 0);
-      expect(service.consume('generate', rateLimitScopeKey(auth), 1, 60_000, 0).allowed).toBe(false);
+      expect(service.consume('generate', rateLimitScopeKey(auth), 1, 60_000, 0).allowed).toBe(
+        false,
+      );
       expect(service.consume('edit', rateLimitScopeKey(auth), 1, 60_000, 0).allowed).toBe(true);
       expect(service.consume('edit', rateLimitScopeKey(auth), 1, 60_000, 0).allowed).toBe(false);
     });
@@ -96,7 +116,9 @@ describe('M3 限流', () => {
 
   describe('TC-105 配额优先级', () => {
     it('Key 记录优先于环境变量', () => {
-      const cfg = resolveRateLimitConfig('generate', { rateLimit: { generate: { limit: 2, windowMs: 30_000 } } } as ApiKeyRecord);
+      const cfg = resolveRateLimitConfig('generate', {
+        rateLimit: { generate: { limit: 2, windowMs: 30_000 } },
+      } as ApiKeyRecord);
       expect(cfg).toEqual({ limit: 2, windowMs: 30_000, source: 'key' });
     });
 
@@ -124,7 +146,9 @@ describe('M3 限流', () => {
     });
 
     it('enforceRateLimit 超限时抛出带 retryAfterMs 的 McpError', () => {
-      const auth = makeAuth('k1', 'alice', { rateLimit: { generate: { limit: 1, windowMs: 60_000 } } });
+      const auth = makeAuth('k1', 'alice', {
+        rateLimit: { generate: { limit: 1, windowMs: 60_000 } },
+      });
       expect(() => enforceRateLimit(service, 'generate', auth)).not.toThrow();
       try {
         enforceRateLimit(service, 'generate', auth);
@@ -145,7 +169,9 @@ describe('M3 限流', () => {
           return 'ok';
         }
       }
-      const auth = makeAuth('k9', 'carol', { rateLimit: { generate: { limit: 1, windowMs: 60_000 } } });
+      const auth = makeAuth('k9', 'carol', {
+        rateLimit: { generate: { limit: 1, windowMs: 60_000 } },
+      });
       const target = new Target(service);
       await expect(target.generate({}, auth)).resolves.toBe('ok');
       await expect(target.generate({}, auth)).rejects.toMatchObject({ code: 'E2001' });

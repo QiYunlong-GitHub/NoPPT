@@ -14,7 +14,9 @@ function mkRva(opts: {
   withStyle?: boolean;
   imageOnly?: boolean;
 }): ReferenceVisualAttributes {
-  const style = opts.withStyle ? { primaryColor: '#123456', style: 'tech' } as ReferenceStyleAttrs : undefined;
+  const style = opts.withStyle
+    ? ({ primaryColor: '#123456', style: 'tech' } as ReferenceStyleAttrs)
+    : undefined;
   const contentStyle = opts.imageOnly ? undefined : style;
   return {
     global: mkCat(!!opts.global, opts.global ? style : undefined),

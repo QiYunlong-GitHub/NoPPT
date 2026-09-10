@@ -15,7 +15,8 @@ loadServerEnvFile();
  * 保留 `/data` → `data/` 挂载以兼容既有 Web 的 `/data/workspace/...` 资源 URL，
  * 仅拦截凭据与演示元数据，放行 assets 图片/视频。
  */
-const SENSITIVE_FILE_RE = /(^|\/)(apikeys\.json|config\.json|presentation\.json|chat-history\.json|[^/]*\.jsonl)$/i;
+const SENSITIVE_FILE_RE =
+  /(^|\/)(apikeys\.json|config\.json|presentation\.json|chat-history\.json|[^/]*\.jsonl)$/i;
 const SENSITIVE_DIR_RE = /(^|\/)(reference-attrs|reference-originals)(\/|$)/i;
 
 function isSensitiveDataPath(url: string): boolean {
@@ -55,13 +56,22 @@ async function bootstrap() {
   const allowedOrigins = buildCorsOrigins(env.webUrl);
   app.enableCors({
     // 无 Origin 的请求（Hermes CLI / curl / 服务端调用）不受 CORS 限制
-    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
       if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) return callback(null, true);
       return callback(null, false);
     },
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Admin-Key', 'X-NoPPT-Lang', 'Accept-Language'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Admin-Key',
+      'X-NoPPT-Lang',
+      'Accept-Language',
+    ],
   });
 
   app.setGlobalPrefix('api');
@@ -84,7 +94,7 @@ async function bootstrap() {
   console.log(`NoPPT Server is running on http://localhost:${port}`);
 }
 
-bootstrap().catch(err => {
+bootstrap().catch((err) => {
   console.error('Failed to start server:', err);
   process.exit(1);
 });

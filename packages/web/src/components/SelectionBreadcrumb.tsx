@@ -119,7 +119,9 @@ export default function SelectionBreadcrumb({
           if (onSelectSlide) {
             onSelectSlide();
           } else {
-            const slideContent = selectedElement.closest('[data-slide-content="true"]') as HTMLElement | null;
+            const slideContent = selectedElement.closest(
+              '[data-slide-content="true"]',
+            ) as HTMLElement | null;
             if (slideContent) {
               onSelectElement(slideContent);
             }

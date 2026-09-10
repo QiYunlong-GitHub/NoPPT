@@ -2,7 +2,16 @@ import type { ID } from '../types';
 
 export interface SlideElement {
   id: string;
-  type: 'heading' | 'paragraph' | 'list' | 'image' | 'card' | 'decoration' | 'table' | 'button' | 'other';
+  type:
+    | 'heading'
+    | 'paragraph'
+    | 'list'
+    | 'image'
+    | 'card'
+    | 'decoration'
+    | 'table'
+    | 'button'
+    | 'other';
   tag: string;
   label: string;
   selector?: string;

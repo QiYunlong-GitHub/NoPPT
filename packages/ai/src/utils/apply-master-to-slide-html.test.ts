@@ -70,8 +70,13 @@ describe('applyMasterToSlideHtml (FR-3 母版注入 · Task5)', () => {
     const m: ReferenceMaster = {
       logo: {
         src: '/data/reference-originals/cover-x.png',
-        x: 0.6, y: 0.1, w: 0.2, h: 0.15, position: 'top-right',
-        refW: 2560, refH: 1440,
+        x: 0.6,
+        y: 0.1,
+        w: 0.2,
+        h: 0.15,
+        position: 'top-right',
+        refW: 2560,
+        refH: 1440,
       },
     };
     const out = applyMasterToSlideHtml(BASE, m);
@@ -113,8 +118,15 @@ describe('applyMasterToSlideHtml (FR-3 母版注入 · Task5)', () => {
 describe('applyMasterToSlideHtml · hero 整页背景三级条件注入 (FR-0)', () => {
   const heroMaster: ReferenceMaster = {
     logo: {
-      src: '/data/reference-originals/cover.png', position: 'top-left', colorHex: '#111111',
-      x: 0.03, y: 0.04, w: 0.38, h: 0.12, refW: 2560, refH: 1440,
+      src: '/data/reference-originals/cover.png',
+      position: 'top-left',
+      colorHex: '#111111',
+      x: 0.03,
+      y: 0.04,
+      w: 0.38,
+      h: 0.12,
+      refW: 2560,
+      refH: 1440,
     },
     heroImage: { src: 'data:image/png;base64,AAAA', x: 0, y: 0.32, w: 1, h: 0.37 },
   };
@@ -135,7 +147,13 @@ describe('applyMasterToSlideHtml · hero 整页背景三级条件注入 (FR-0)',
   });
 
   it('无参考 heroImage → 不注入 hero 背景', () => {
-    const noHero: ReferenceMaster = { logo: { src: '/data/reference-originals/cover.png', position: 'top-left', colorHex: '#111111' } };
+    const noHero: ReferenceMaster = {
+      logo: {
+        src: '/data/reference-originals/cover.png',
+        position: 'top-left',
+        colorHex: '#111111',
+      },
+    };
     const out = applyMasterToSlideHtml(BASE, noHero);
     expect(out).not.toContain('noppt-hero');
     expect(out).toContain('data-master-logo');

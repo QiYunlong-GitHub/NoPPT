@@ -41,7 +41,9 @@ describe('M2 KeysController', () => {
   });
 
   it('缺少 x-admin-key → 401', async () => {
-    await expect(controller.create(undefined, { name: 'x' })).rejects.toMatchObject({ status: 401 });
+    await expect(controller.create(undefined, { name: 'x' })).rejects.toMatchObject({
+      status: 401,
+    });
     expect(() => controller.list(undefined)).toThrow(expect.objectContaining({ status: 401 }));
   });
 
@@ -51,7 +53,11 @@ describe('M2 KeysController', () => {
   });
 
   it('POST 返回明文 key（仅此一次）且列表脱敏', async () => {
-    const res = await controller.create(ADMIN, { name: 'hermes-prod', tenantId: 't1', userKey: 'alice' });
+    const res = await controller.create(ADMIN, {
+      name: 'hermes-prod',
+      tenantId: 't1',
+      userKey: 'alice',
+    });
     expect(isPlainKeyFormat(res.key)).toBe(true);
     expect(res.record.name).toBe('hermes-prod');
     expect(res.record.tenantId).toBe('t1');

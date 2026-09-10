@@ -45,11 +45,11 @@ export const noNeonCyberCliche: LayoutRule = {
       let hasNeonGlow = false;
       if (textShadowMatch) {
         const shadowColors = extractShadowColors(textShadowMatch[1]);
-        hasNeonGlow = shadowColors.some(c => isNeonBrightColor(c));
+        hasNeonGlow = shadowColors.some((c) => isNeonBrightColor(c));
       }
       if (!hasNeonGlow && boxShadowMatch) {
         const shadowColors = extractShadowColors(boxShadowMatch[1]);
-        hasNeonGlow = shadowColors.some(c => isNeonBrightColor(c));
+        hasNeonGlow = shadowColors.some((c) => isNeonBrightColor(c));
       }
 
       if (hasNeonGlow) {

@@ -22,7 +22,11 @@ function parseColor(input: string): [number, number, number] | null {
   const hex = s.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/);
   if (hex) {
     let h = hex[1];
-    if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+    if (h.length === 3)
+      h = h
+        .split('')
+        .map((c) => c + c)
+        .join('');
     const n = parseInt(h, 16);
     return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
   }

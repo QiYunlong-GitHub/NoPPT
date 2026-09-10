@@ -37,10 +37,16 @@ export class KeysController {
       });
     }
     if (!adminKey) {
-      throw new UnauthorizedException({ error: 'missing_admin_key', message: translate('缺少 x-admin-key 请求头', locale) });
+      throw new UnauthorizedException({
+        error: 'missing_admin_key',
+        message: translate('缺少 x-admin-key 请求头', locale),
+      });
     }
     if (adminKey !== expected) {
-      throw new ForbiddenException({ error: 'admin_key_mismatch', message: translate('x-admin-key 不匹配', locale) });
+      throw new ForbiddenException({
+        error: 'admin_key_mismatch',
+        message: translate('x-admin-key 不匹配', locale),
+      });
     }
   }
 
@@ -83,7 +89,9 @@ export class KeysController {
     return { success: true };
   }
 
-  private normalizeRateLimit(input: ApiKeyRecord['rateLimit']): ApiKeyRecord['rateLimit'] | undefined {
+  private normalizeRateLimit(
+    input: ApiKeyRecord['rateLimit'],
+  ): ApiKeyRecord['rateLimit'] | undefined {
     if (!input) return undefined;
     const out: ApiKeyRecord['rateLimit'] = {};
     for (const bucket of ['generate', 'edit'] as const) {
@@ -92,7 +100,10 @@ export class KeysController {
       const limit = Number(cfg.limit);
       const windowMs = Number(cfg.windowMs);
       if (!Number.isFinite(limit) || limit <= 0) continue;
-      out[bucket] = { limit: Math.floor(limit), windowMs: Number.isFinite(windowMs) && windowMs > 0 ? Math.floor(windowMs) : 60000 };
+      out[bucket] = {
+        limit: Math.floor(limit),
+        windowMs: Number.isFinite(windowMs) && windowMs > 0 ? Math.floor(windowMs) : 60000,
+      };
     }
     return Object.keys(out).length ? out : undefined;
   }

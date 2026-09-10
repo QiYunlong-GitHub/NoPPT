@@ -56,7 +56,7 @@ function getFFMatchRegex(): RegExp {
 function buildHtmlWithOuterFF(
   fontStack: string,
   extraProps: string = '',
-  inner: string = `<h2>示例标题</h2><ul><li>要点一</li><li>要点二</li></ul>`
+  inner: string = `<h2>示例标题</h2><ul><li>要点一</li><li>要点二</li></ul>`,
 ): string {
   const baseStyle =
     'width:100%;height:100%;overflow:hidden;position:relative;box-sizing:border-box;' +
@@ -70,22 +70,27 @@ function buildHtmlWithOuterFF(
 // 常量声明
 // ================================================================
 // agent 层 DEFAULT_HARDCODED_SANS 精确值（老默认 sans 占位）
-const FF_OLD_SANS = "system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif";
+const FF_OLD_SANS =
+  "system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif";
 
 // agent 层 DEFAULT_HARDCODED_MONO_LEGACY 精确值（老遗留 6 项 mono）
-const FF_OLD_MONO = "'JetBrains Mono', ui-monospace, 'Cascadia Code', Consolas, 'Noto Sans Mono CJK SC', monospace";
+const FF_OLD_MONO =
+  "'JetBrains Mono', ui-monospace, 'Cascadia Code', Consolas, 'Noto Sans Mono CJK SC', monospace";
 
 // 新 10 项 mono 栈（agent getFontStack('mono')）
-const FF_NEW_MONO = "'JetBrains Mono', ui-monospace, 'Cascadia Code', Consolas, 'PingFang SC', 'Microsoft YaHei', '微软雅黑', 'Noto Sans SC', 'Noto Sans Mono CJK SC', monospace";
+const FF_NEW_MONO =
+  "'JetBrains Mono', ui-monospace, 'Cascadia Code', Consolas, 'PingFang SC', 'Microsoft YaHei', '微软雅黑', 'Noto Sans SC', 'Noto Sans Mono CJK SC', monospace";
 
 // agent getFontStack('sans') 新 sans 栈
-const FF_NEW_SANS = "system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif";
+const FF_NEW_SANS =
+  "system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif";
 
 // 真实定制 serif 栈
 const FF_CUSTOM_SERIF = "Georgia, 'Times New Roman', 'Noto Serif SC', 'SimSun', serif";
 
 // 用户自加 PingFang 额外项的定制 mono（6 项遗留 + PingFang SC 追加）
-const FF_NEW_MONO_PLUS_PINGFANG_EXTRA = "'JetBrains Mono', ui-monospace, 'Cascadia Code', Consolas, 'Noto Sans Mono CJK SC', monospace, 'PingFang SC'";
+const FF_NEW_MONO_PLUS_PINGFANG_EXTRA =
+  "'JetBrains Mono', ui-monospace, 'Cascadia Code', Consolas, 'Noto Sans Mono CJK SC', monospace, 'PingFang SC'";
 
 // ================================================================
 // Test Suite
@@ -218,18 +223,14 @@ describe('Task 4: 占位值升级 + 遗留 mono CJK 化验证', () => {
   }
 
   // 尝试读取 slides 目录，没有则用合成
-  function loadOrSynthSlides(
-    folderName: string,
-    synthTitles: string[]
-  ): string[] {
-    const folderPath = path.resolve(
-      `D:/TraeSOLO/NoPPT/scripts/output/${folderName}/slides`
-    );
+  function loadOrSynthSlides(folderName: string, synthTitles: string[]): string[] {
+    const folderPath = path.resolve(`D:/TraeSOLO/NoPPT/scripts/output/${folderName}/slides`);
     let results: string[] = [];
     try {
       if (fs.existsSync(folderPath)) {
-        const files = fs.readdirSync(folderPath)
-          .filter(f => /^slide-.*\.html$/i.test(f))
+        const files = fs
+          .readdirSync(folderPath)
+          .filter((f) => /^slide-.*\.html$/i.test(f))
           .sort()
           .slice(0, 8);
         for (const f of files) {
@@ -244,14 +245,16 @@ describe('Task 4: 占位值升级 + 遗留 mono CJK 化验证', () => {
                 ? `${cleaned};font-family:${FF_OLD_MONO}`
                 : `font-family:${FF_OLD_MONO}`;
               return `${prefix}${withOldMono}${suffix}`;
-            }
+            },
           );
           results.push(stripped);
         }
       }
-    } catch (_e) { results = []; }
+    } catch (_e) {
+      results = [];
+    }
     if (results.length < 8) {
-      results = synthTitles.map(t => buildOldMonoSlide(t));
+      results = synthTitles.map((t) => buildOldMonoSlide(t));
     }
     return results.slice(0, 8);
   }
@@ -282,9 +285,7 @@ describe('Task 4: 占位值升级 + 遗留 mono CJK 化验证', () => {
   describe('⑩ 演示 pres_mtgp2u3n_xmbr2ae：8 张 FF_OLD_MONO → ensureOuterContainer(mono)', () => {
     for (let i = 0; i < 8; i++) {
       it(`10-${i + 1} Slide #${i + 1}：外层 ff 含 CJK 关键字（PingFang / Microsoft YaHei / Noto Sans SC 至少其一）`, () => {
-        const out = (agent as any).ensureOuterContainer(
-          pres1[i], 1280, 720, 'mono'
-        ) as string;
+        const out = (agent as any).ensureOuterContainer(pres1[i], 1280, 720, 'mono') as string;
         const ff = getOuterFontFamily(out);
         expect(ff).toMatch(/PingFang|Microsoft YaHei|Noto Sans SC/);
       });
@@ -295,9 +296,7 @@ describe('Task 4: 占位值升级 + 遗留 mono CJK 化验证', () => {
   describe('⑪ 演示 pres_mtgmr5up_x67l77j：8 张 FF_OLD_MONO → ensureOuterContainer(mono)', () => {
     for (let i = 0; i < 8; i++) {
       it(`11-${i + 1} Slide #${i + 1}：外层 ff 含 CJK 关键字（PingFang / Microsoft YaHei / Noto Sans SC 至少其一）`, () => {
-        const out = (agent as any).ensureOuterContainer(
-          pres2[i], 1280, 720, 'mono'
-        ) as string;
+        const out = (agent as any).ensureOuterContainer(pres2[i], 1280, 720, 'mono') as string;
         const ff = getOuterFontFamily(out);
         expect(ff).toMatch(/PingFang|Microsoft YaHei|Noto Sans SC/);
       });
@@ -312,9 +311,9 @@ describe('Task 4: 占位值升级 + 遗留 mono CJK 化验证', () => {
     // 使用 FF_OLD_SANS 子集但不带单引号（parseStyleDeclarations 解析时引号会污染值）
     // 各项：system-ui,-apple-system,Segoe UI,Roboto,Helvetica Neue,Arial,Noto Sans SC,PingFang SC,Microsoft YaHei,sans-serif
     //   每一项 normalizeName 后都在 DEFAULT_HARDCODED_SANS 的白名单里 → isDefaultSansPlaceholder=true → 允许升级
-    const FF_OLD_SANS_NO_QUOTES = "system-ui,-apple-system,Segoe UI,Roboto,Helvetica Neue,Arial,Noto Sans SC,PingFang SC,Microsoft YaHei,sans-serif";
-    const styleWith8MissingOne =
-      `width:100%;height:100%;overflow:hidden;box-sizing:border-box;padding:48px 64px;display:flex;flex-direction:column;background-color:#fff;font-family:${FF_OLD_SANS_NO_QUOTES}`;
+    const FF_OLD_SANS_NO_QUOTES =
+      'system-ui,-apple-system,Segoe UI,Roboto,Helvetica Neue,Arial,Noto Sans SC,PingFang SC,Microsoft YaHei,sans-serif';
+    const styleWith8MissingOne = `width:100%;height:100%;overflow:hidden;box-sizing:border-box;padding:48px 64px;display:flex;flex-direction:column;background-color:#fff;font-family:${FF_OLD_SANS_NO_QUOTES}`;
     const html = `<div style="${styleWith8MissingOne}"><h2>Map 分支</h2><p>缺 position</p></div>`;
     const out = (agent as any).ensureOuterContainer(html, 1280, 720, 'mono') as string;
     const ff = getOuterFontFamily(out);
@@ -331,8 +330,7 @@ describe('Task 4: 占位值升级 + 遗留 mono CJK 化验证', () => {
     //   existingStyle 非空、parsed.length>0 但 display 缺失
     //   ok8 也不满足（缺 position + 缺 display）
     //   → 走 parseFailed 回退分支，用正则补 font-family（命中占位时升级）
-    const brokenStyleNoDisplay =
-      `width:100%;height:100%;overflow:hidden;box-sizing:border-box;padding:48px 64px;flex-direction:column;background-color:#fff;font-family:${FF_OLD_MONO}`;
+    const brokenStyleNoDisplay = `width:100%;height:100%;overflow:hidden;box-sizing:border-box;padding:48px 64px;flex-direction:column;background-color:#fff;font-family:${FF_OLD_MONO}`;
     const html = `<div style="${brokenStyleNoDisplay}"><h2>parseFailed 分支</h2><p>无 display</p></div>`;
     const out = (agent as any).ensureOuterContainer(html, 1280, 720, 'mono') as string;
     const ff = getOuterFontFamily(out);

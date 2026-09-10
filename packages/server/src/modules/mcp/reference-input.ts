@@ -21,7 +21,8 @@ export interface NormalizedReferenceInput {
  */
 export function truncateReferenceText(text: unknown, maxChars: number): NormalizedReferenceInput {
   // 空串与纯空白一律视为「无素材」
-  if (typeof text !== 'string' || !text.trim()) return { referenceText: undefined, truncated: false };
+  if (typeof text !== 'string' || !text.trim())
+    return { referenceText: undefined, truncated: false };
   if (!Number.isFinite(maxChars) || maxChars <= 0) return { referenceText: text, truncated: false };
   if (text.length <= maxChars) return { referenceText: text, truncated: false };
   return { referenceText: text.slice(0, maxChars), truncated: true };
@@ -42,8 +43,14 @@ export function byteLength(s: string): number {
  * 素材大小校验：超限抛 E3003 / E3004。
  * 远程 http(s) 图片无法预知体积，交由下游 `saveImageFromUrl` 处理。
  */
-export function assertReferenceSizes(input: { referenceHtml?: unknown; referenceImage?: unknown }, env: McpEnv): void {
-  if (typeof input.referenceHtml === 'string' && byteLength(input.referenceHtml) > MAX_REFERENCE_HTML_BYTES) {
+export function assertReferenceSizes(
+  input: { referenceHtml?: unknown; referenceImage?: unknown },
+  env: McpEnv,
+): void {
+  if (
+    typeof input.referenceHtml === 'string' &&
+    byteLength(input.referenceHtml) > MAX_REFERENCE_HTML_BYTES
+  ) {
     throw new McpError('E3003');
   }
   if (typeof input.referenceImage === 'string' && input.referenceImage.startsWith('data:')) {

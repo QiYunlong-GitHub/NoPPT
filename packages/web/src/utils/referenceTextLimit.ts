@@ -20,5 +20,8 @@ export function referenceTextLimit(slideCount?: number): number {
     typeof slideCount === 'number' && Number.isFinite(slideCount) && slideCount > 0
       ? Math.trunc(slideCount)
       : DEFAULT_SLIDE_COUNT;
-  return Math.min(Math.max(REFERENCE_CHARS_PER_SLIDE * slides, REFERENCE_TEXT_MIN_CHARS), REFERENCE_TEXT_MAX_CHARS);
+  return Math.min(
+    Math.max(REFERENCE_CHARS_PER_SLIDE * slides, REFERENCE_TEXT_MIN_CHARS),
+    REFERENCE_TEXT_MAX_CHARS,
+  );
 }

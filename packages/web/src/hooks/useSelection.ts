@@ -52,7 +52,10 @@ interface UseSelectionParams {
   stopTextEditingRef: React.MutableRefObject<() => void>;
   handlePasteAtPositionRef: React.MutableRefObject<(clientX: number, clientY: number) => void>;
   handleFormatBrushApplyRef: React.MutableRefObject<(element: HTMLElement) => void>;
-  findSelectableElement: (target: HTMLElement, mode?: 'inner' | 'outer' | 'deep' | 'parent') => HTMLElement | null;
+  findSelectableElement: (
+    target: HTMLElement,
+    mode?: 'inner' | 'outer' | 'deep' | 'parent',
+  ) => HTMLElement | null;
   isTextElement: (element: HTMLElement) => boolean;
   normalizeWhitespaceTextNodes: () => void;
   ensureElementIds: () => void;
@@ -93,20 +96,33 @@ export function useSelection({
 }: UseSelectionParams) {
   const [selectedElements, setSelectedElements] = useState<HTMLElement[]>([]);
   const isSelectingRef = useRef(false);
-  const [selectionBox, setSelectionBox] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const [selectionBox, setSelectionBox] = useState<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null>(null);
   const selectionStartRef = useRef<{ x: number; y: number } | null>(null);
   const selectedElementsRef = useRef<HTMLElement[]>([]);
   const selectedElementPathsRef = useRef<string[]>([]);
   const isRestoringSelectionRef = useRef(false);
-  const [resizeBox, setResizeBox] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const [resizeBox, setResizeBox] = useState<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null>(null);
   const [guides, setGuides] = useState<GuideLine[]>([]);
   const draggerRef = useRef<Dragger | null>(null);
   const resizerRef = useRef<ResizeGesture | null>(null);
 
-  const isSlideRootWrapper = (element: HTMLElement, innerDiv: HTMLElement): boolean => _isSlideRootWrapper(element, innerDiv);
+  const isSlideRootWrapper = (element: HTMLElement, innerDiv: HTMLElement): boolean =>
+    _isSlideRootWrapper(element, innerDiv);
   const isTextContent = (element: HTMLElement): boolean => _isTextContent(element);
   const isVisualContainer = (element: HTMLElement, excludeElement?: HTMLElement): boolean => {
-    const ___iv = slideContainerRef.current?.querySelector('[data-slide-content="true"]') as HTMLElement | null;
+    const ___iv = slideContainerRef.current?.querySelector(
+      '[data-slide-content="true"]',
+    ) as HTMLElement | null;
     return _isVisualContainer(element, ___iv, excludeElement);
   };
   const isLayoutContainer = (element: HTMLElement): boolean => _isLayoutContainer(element);
@@ -125,7 +141,10 @@ export function useSelection({
     const containerRect = innerDiv.getBoundingClientRect();
     const zoom = presentationZoom;
 
-    let minLeft = Infinity, minTop = Infinity, maxRight = -Infinity, maxBottom = -Infinity;
+    let minLeft = Infinity,
+      minTop = Infinity,
+      maxRight = -Infinity,
+      maxBottom = -Infinity;
 
     elements.forEach((el) => {
       const rect = el.getBoundingClientRect();
@@ -148,7 +167,9 @@ export function useSelection({
   };
 
   const getElementSlideRect = (el: HTMLElement): ElementRect => {
-    const innerDiv = slideContainerRef.current?.querySelector('[data-slide-content="true"]') as HTMLElement | null;
+    const innerDiv = slideContainerRef.current?.querySelector(
+      '[data-slide-content="true"]',
+    ) as HTMLElement | null;
     if (!innerDiv) return { left: 0, top: 0, width: 0, height: 0 };
     const containerRect = innerDiv.getBoundingClientRect();
     const z = presentationZoom;
@@ -162,7 +183,9 @@ export function useSelection({
   };
 
   const collectOtherRects = (excludeEls: HTMLElement[]): ElementRect[] => {
-    const innerDiv = slideContainerRef.current?.querySelector('[data-slide-content="true"]') as HTMLElement | null;
+    const innerDiv = slideContainerRef.current?.querySelector(
+      '[data-slide-content="true"]',
+    ) as HTMLElement | null;
     if (!innerDiv) return [];
 
     const allElements = Array.from(innerDiv.querySelectorAll('*')).filter(
@@ -231,12 +254,16 @@ export function useSelection({
   }, []);
 
   const getElementPath = (element: HTMLElement): string => {
-    const innerDiv = slideContainerRef.current?.querySelector('[data-slide-content="true"]') as HTMLElement | null;
+    const innerDiv = slideContainerRef.current?.querySelector(
+      '[data-slide-content="true"]',
+    ) as HTMLElement | null;
     return _getElementPath(element, innerDiv);
   };
 
   const getElementByPath = (path: string): HTMLElement | null => {
-    const innerDiv = slideContainerRef.current?.querySelector('[data-slide-content="true"]') as HTMLElement | null;
+    const innerDiv = slideContainerRef.current?.querySelector(
+      '[data-slide-content="true"]',
+    ) as HTMLElement | null;
     return _getElementByPath(path, innerDiv);
   };
 
@@ -288,7 +315,8 @@ export function useSelection({
     options: { markUnsaved?: boolean; clearClipboard?: boolean } = {},
   ) => {
     if (!newElements || newElements.length === 0) return;
-    const { markUnsaved: shouldMarkUnsaved = false, clearClipboard: shouldClearClipboard = false } = options;
+    const { markUnsaved: shouldMarkUnsaved = false, clearClipboard: shouldClearClipboard = false } =
+      options;
 
     normalizeWhitespaceTextNodes();
     ensureElementIds();
@@ -410,7 +438,8 @@ export function useSelection({
       const el = selectedElementsRef.current[0];
 
       const transformMatch = el.style.transform.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
-      let tx = 0, ty = 0;
+      let tx = 0,
+        ty = 0;
       if (transformMatch) {
         tx = parseFloat(transformMatch[1]);
         ty = parseFloat(transformMatch[2]);
@@ -440,7 +469,9 @@ export function useSelection({
       }
 
       const isGroup = el.getAttribute('data-element-type') === 'group';
-      const contentWrapper = isGroup ? (el.querySelector('.noppt-group-content') as HTMLElement | null) : null;
+      const contentWrapper = isGroup
+        ? (el.querySelector('.noppt-group-content') as HTMLElement | null)
+        : null;
       const initialScaleX = isGroup ? parseFloat(el.getAttribute('data-group-scale-x') || '1') : 1;
       const initialScaleY = isGroup ? parseFloat(el.getAttribute('data-group-scale-y') || '1') : 1;
       const originalGroupScaleX = el.getAttribute('data-group-scale-x');
@@ -492,9 +523,11 @@ export function useSelection({
             el.style.transform = originalTransform;
             if (isGroup && contentWrapper) {
               contentWrapper.style.transform = originalContentTransform;
-              if (originalGroupScaleX !== null) el.setAttribute('data-group-scale-x', originalGroupScaleX);
+              if (originalGroupScaleX !== null)
+                el.setAttribute('data-group-scale-x', originalGroupScaleX);
               else el.removeAttribute('data-group-scale-x');
-              if (originalGroupScaleY !== null) el.setAttribute('data-group-scale-y', originalGroupScaleY);
+              if (originalGroupScaleY !== null)
+                el.setAttribute('data-group-scale-y', originalGroupScaleY);
               else el.removeAttribute('data-group-scale-y');
             }
             updateResizeBox();
@@ -534,7 +567,7 @@ export function useSelection({
       e.preventDefault();
 
       const actualSelected = Array.from(
-        innerDiv.querySelectorAll('.noppt-selected')
+        innerDiv.querySelectorAll('.noppt-selected'),
       ) as HTMLElement[];
       if (actualSelected.length > 0) {
         updateSelectedElements(actualSelected);
@@ -542,8 +575,12 @@ export function useSelection({
 
       const elementPositions = selectedElementsRef.current.map((el) => {
         const match = el.style.transform.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
-        let tx = 0, ty = 0;
-        if (match) { tx = parseFloat(match[1]); ty = parseFloat(match[2]); }
+        let tx = 0,
+          ty = 0;
+        if (match) {
+          tx = parseFloat(match[1]);
+          ty = parseFloat(match[2]);
+        }
         return { el, tx, ty, originalTransform: el.style.transform };
       });
 
@@ -600,16 +637,24 @@ export function useSelection({
 
       const tag = element.tagName.toLowerCase();
       if (['span', 'strong', 'em', 'b', 'i', 'u', 'a', 'sup', 'sub'].includes(tag)) {
-        const parentStyle = element.parentElement ? window.getComputedStyle(element.parentElement) : null;
-        const parentIsLayout = parentStyle && (parentStyle.display.includes('flex') || parentStyle.display.includes('grid'));
+        const parentStyle = element.parentElement
+          ? window.getComputedStyle(element.parentElement)
+          : null;
+        const parentIsLayout =
+          parentStyle &&
+          (parentStyle.display.includes('flex') || parentStyle.display.includes('grid'));
         if (!parentIsLayout) {
           element.style.display = 'inline-block';
         }
       }
 
       const match = element.style.transform.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
-      let tx = 0, ty = 0;
-      if (match) { tx = parseFloat(match[1]); ty = parseFloat(match[2]); }
+      let tx = 0,
+        ty = 0;
+      if (match) {
+        tx = parseFloat(match[1]);
+        ty = parseFloat(match[2]);
+      }
       const originalTransform = element.style.transform;
       const elementPositions = [{ el: element, tx, ty, originalTransform }];
 
@@ -694,7 +739,9 @@ export function useSelection({
 
     setSelectionBox({ x, y, width, height });
 
-    const allElements = Array.from(innerDiv.querySelectorAll('*')).filter((el) => el instanceof HTMLElement) as HTMLElement[];
+    const allElements = Array.from(innerDiv.querySelectorAll('*')).filter(
+      (el) => el instanceof HTMLElement,
+    ) as HTMLElement[];
     const allCandidates = allElements.filter((el) => {
       if (isSlideRootWrapper(el, innerDiv)) return false;
       return (
@@ -710,12 +757,17 @@ export function useSelection({
       let parent = element.parentElement as HTMLElement | null;
       let hasSelectableAncestor = false;
       while (parent && parent !== innerDiv) {
-        if (!isSlideRootWrapper(parent, innerDiv) &&
-            (isTextContent(parent) || isVisualContainer(parent, innerDiv))) {
+        if (
+          !isSlideRootWrapper(parent, innerDiv) &&
+          (isTextContent(parent) || isVisualContainer(parent, innerDiv))
+        ) {
           hasSelectableAncestor = true;
           break;
         }
-        if (parent.classList.contains('noppt-group-element') || parent.classList.contains('noppt-slide-image-element')) {
+        if (
+          parent.classList.contains('noppt-group-element') ||
+          parent.classList.contains('noppt-slide-image-element')
+        ) {
           hasSelectableAncestor = true;
           break;
         }

@@ -1,13 +1,19 @@
 import { describe, it, expect, vi } from 'vitest';
 import { HTMLPresentationAgent } from './html-presentation-agent';
-import type { ReferenceVisualAttributes, CategoryReference } from '../utils/reference-attribute-resolver';
+import type {
+  ReferenceVisualAttributes,
+  CategoryReference,
+} from '../utils/reference-attribute-resolver';
 
 function buildAgent(): HTMLPresentationAgent {
   const dummy = {
     name: 'stub',
     config: {},
     supportsStreaming: false,
-    chat: async () => ({ content: '', usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 } }),
+    chat: async () => ({
+      content: '',
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    }),
   } as any;
   return new HTMLPresentationAgent(dummy);
 }
@@ -31,16 +37,26 @@ describe('regenerateSingleSlide 透传 pageIndexInCategory（防重生成路径�
       .mockImplementation(async () => '<div>stub</div>');
 
     const plan: any = {
-      slides: [
-        { pageType: 'cover' },
-        { pageType: 'content-cards' },
-        { pageType: 'content-cards' },
-      ],
+      slides: [{ pageType: 'cover' }, { pageType: 'content-cards' }, { pageType: 'content-cards' }],
     };
-    const design: any = { density: 'normal', iconStyle: 'bullet', fontFamily: 'serif', colorTheme: 'light' };
+    const design: any = {
+      density: 'normal',
+      iconStyle: 'bullet',
+      fontFamily: 'serif',
+      colorTheme: 'light',
+    };
     const options: any = { referenceVisualAttributes: makeRva('<div class="ref"></div>') };
 
-    await agent.regenerateSingleSlide('topic', plan, design, 2, options, undefined, undefined, 'placeholder');
+    await agent.regenerateSingleSlide(
+      'topic',
+      plan,
+      design,
+      2,
+      options,
+      undefined,
+      undefined,
+      'placeholder',
+    );
 
     expect(spy).toHaveBeenCalled();
     const lastCall = spy.mock.calls[spy.mock.calls.length - 1];

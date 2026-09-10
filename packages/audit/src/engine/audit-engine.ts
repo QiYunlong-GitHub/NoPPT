@@ -3,8 +3,14 @@ import type { PresentationPlan, ReferenceContext } from '@noppt/ai';
 import { detectBlackBlockTitle, resolveReferenceComposition } from '@noppt/ai';
 import { generateId } from '@noppt/core';
 import type {
-  AuditConfig, AuditContext, AuditReport, AuditReportMetadata,
-  AuditEngineResult, AuditIssue, AuditEngineType, FixSummary,
+  AuditConfig,
+  AuditContext,
+  AuditReport,
+  AuditReportMetadata,
+  AuditEngineResult,
+  AuditIssue,
+  AuditEngineType,
+  FixSummary,
 } from '../types';
 import { DEFAULT_AUDIT_CONFIG, mergeConfig } from '../config/default-config';
 import { AutoFixer } from '../fix/auto-fixer';
@@ -72,7 +78,13 @@ export class AuditEngine {
       referenceContext,
     };
 
-    const engineOrder: AuditEngineType[] = ['layout', 'visual', 'content', 'fidelity', 'sanitization'];
+    const engineOrder: AuditEngineType[] = [
+      'layout',
+      'visual',
+      'content',
+      'fidelity',
+      'sanitization',
+    ];
     const engineResults: AuditEngineResult[] = [];
     const allIssues: AuditIssue[] = [];
 
@@ -118,7 +130,10 @@ export class AuditEngine {
         });
       }
       const pageType = context.plan?.slides?.[i]?.pageType ?? '';
-      const comp = resolveReferenceComposition((referenceContext as any)?.visualAttributes, pageType);
+      const comp = resolveReferenceComposition(
+        (referenceContext as any)?.visualAttributes,
+        pageType,
+      );
       if (comp === 'left-aligned' && rootContainerCentered(slide.html)) {
         allIssues.push({
           ruleId: 'layout.composition-mismatch',
@@ -138,7 +153,7 @@ export class AuditEngine {
     let fixSummary: FixSummary | undefined;
 
     if (this.config.autoFix) {
-      const fixableIssues = allIssues.filter(i => i.fixable && i.severity !== 'off');
+      const fixableIssues = allIssues.filter((i) => i.fixable && i.severity !== 'off');
       if (fixableIssues.length > 0) {
         const fixResult = this.autoFixer.fixAll(presentation.slides, allIssues);
 
@@ -159,24 +174,23 @@ export class AuditEngine {
           const layoutResult = await this.layoutEngine.audit(reverifyContext);
           layoutResult.durationMs = Date.now() - layoutStart;
 
-          const layoutIdx = engineResults.findIndex(r => r.engine === 'layout');
+          const layoutIdx = engineResults.findIndex((r) => r.engine === 'layout');
           if (layoutIdx >= 0) {
             engineResults[layoutIdx] = layoutResult;
           } else {
             engineResults.unshift(layoutResult);
           }
 
-          const nonLayoutIssues = allIssues.filter(i => i.engine !== 'layout');
+          const nonLayoutIssues = allIssues.filter((i) => i.engine !== 'layout');
           allIssues.length = 0;
           allIssues.push(...nonLayoutIssues, ...layoutResult.issues);
-        } catch {
-        }
+        } catch {}
       }
     }
 
     const overallScore = this.calculateOverallScore(engineResults);
     const overallResult = this.determineOverallResult(overallScore);
-    const errorCount = allIssues.filter(i => i.severity === 'error').length;
+    const errorCount = allIssues.filter((i) => i.severity === 'error').length;
     const regenerationRequired = errorCount > 0;
 
     const metadata: AuditReportMetadata = {
@@ -264,7 +278,7 @@ export class AuditEngine {
       engineResults: [engineResult],
       issues: engineResult.issues,
       screenshots: [],
-      regenerationRequired: engineResult.issues.some(i => i.severity === 'error'),
+      regenerationRequired: engineResult.issues.some((i) => i.severity === 'error'),
     };
   }
 
@@ -277,7 +291,12 @@ export class AuditEngine {
     const originalAutoFix = this.config.autoFix;
     this.config.autoFix = true;
     try {
-      const report = await this.auditPresentation(presentation, plan, designContext, referenceContext);
+      const report = await this.auditPresentation(
+        presentation,
+        plan,
+        designContext,
+        referenceContext,
+      );
       return { report, fixedPresentation: presentation };
     } finally {
       this.config.autoFix = originalAutoFix;
@@ -285,7 +304,7 @@ export class AuditEngine {
   }
 
   private calculateOverallScore(results: AuditEngineResult[]): number {
-    const validResults = results.filter(r => r.status !== 'error' && r.score > 0);
+    const validResults = results.filter((r) => r.status !== 'error' && r.score > 0);
     if (validResults.length === 0) return 0;
 
     let totalWeight = 0;

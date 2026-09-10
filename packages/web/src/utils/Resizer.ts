@@ -38,7 +38,16 @@ export class Resizer {
   }
 
   update(dx: number, dy: number): ResizeResult {
-    const { left: startLeft, top: startTop, width: startWidth, height: startHeight, direction, keepAspectRatio, minWidth = 10, minHeight = 10 } = this.state;
+    const {
+      left: startLeft,
+      top: startTop,
+      width: startWidth,
+      height: startHeight,
+      direction,
+      keepAspectRatio,
+      minWidth = 10,
+      minHeight = 10,
+    } = this.state;
     const aspectRatio = this.state.aspectRatio;
 
     let newLeft = startLeft;
@@ -66,7 +75,12 @@ export class Resizer {
         newHeight = newWidth / aspectRatio;
       } else if (direction === 'n' || direction === 's') {
         newWidth = newHeight * aspectRatio;
-      } else if (direction === 'nw' || direction === 'ne' || direction === 'sw' || direction === 'se') {
+      } else if (
+        direction === 'nw' ||
+        direction === 'ne' ||
+        direction === 'sw' ||
+        direction === 'se'
+      ) {
         if (Math.abs(newWidth - startWidth) > Math.abs(newHeight - startHeight)) {
           newHeight = newWidth / aspectRatio;
           if (direction.includes('n')) {

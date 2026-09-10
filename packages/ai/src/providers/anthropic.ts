@@ -1,5 +1,12 @@
 import { BaseProvider, formatMessages, truncate } from './base';
-import type { ChatMessage, ChatOptions, ChatResponse, ModelConfig, ImageGenerationOptions, GeneratedImage } from '../types';
+import type {
+  ChatMessage,
+  ChatOptions,
+  ChatResponse,
+  ModelConfig,
+  ImageGenerationOptions,
+  GeneratedImage,
+} from '../types';
 
 export class AnthropicProvider extends BaseProvider {
   name = 'anthropic';
@@ -316,7 +323,9 @@ export class AnthropicProvider extends BaseProvider {
   }
 
   async getModels(): Promise<string[]> {
-    this.logRequest('getModels', { note: 'Anthropic does not provide a models API endpoint, returning static list' });
+    this.logRequest('getModels', {
+      note: 'Anthropic does not provide a models API endpoint, returning static list',
+    });
     try {
       const models = [
         'claude-3-opus-20240229',
@@ -335,7 +344,10 @@ export class AnthropicProvider extends BaseProvider {
     }
   }
 
-  async generateImage(prompt: string, _options?: ImageGenerationOptions): Promise<GeneratedImage[]> {
+  async generateImage(
+    prompt: string,
+    _options?: ImageGenerationOptions,
+  ): Promise<GeneratedImage[]> {
     this.logRequest('generateImage', {
       prompt: truncate(prompt, 300),
       supported: false,

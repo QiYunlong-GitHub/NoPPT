@@ -86,7 +86,9 @@ describe('FR-参考克隆 · 孟菲斯封面 / 左文右图内容 / 孟菲斯总
   });
 
   it('内容（左文右图）: 分栏构图 + imageSide=right（不镜像）+ 有图槽', () => {
-    const r = extractReferenceHtmlAttributes(loadTpl('content/slide-content-04-text-left-image-right.html'));
+    const r = extractReferenceHtmlAttributes(
+      loadTpl('content/slide-content-04-text-left-image-right.html'),
+    );
     expect(r.uploaded).toBe(true);
     expect(r.layout!.single).toBe('text-left-image-right'); // 旧 bug: 误判 flowchart
     expect(r.visual!.composition).toBe('split');

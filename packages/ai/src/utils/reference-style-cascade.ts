@@ -146,7 +146,12 @@ function specificityOf(selectors: string[]): number {
   return max;
 }
 
-function parseRule(pre: string, body: string, outRules: CascadeRule[], vars: Record<string, string>): void {
+function parseRule(
+  pre: string,
+  body: string,
+  outRules: CascadeRule[],
+  vars: Record<string, string>,
+): void {
   const selectors = pre
     .split(',')
     .map((s) => s.trim())
@@ -231,14 +236,17 @@ function resolveVars(value: string, vars: Record<string, string>): string {
   let v = value;
   for (let i = 0; i < 5; i++) {
     let changed = false;
-    v = v.replace(/var\(\s*(--[\w-]+)\s*(?:,\s*([^)]*))?\)/g, (_m, name: string, fallback?: string) => {
-      if (vars[name] != null) {
+    v = v.replace(
+      /var\(\s*(--[\w-]+)\s*(?:,\s*([^)]*))?\)/g,
+      (_m, name: string, fallback?: string) => {
+        if (vars[name] != null) {
+          changed = true;
+          return vars[name];
+        }
         changed = true;
-        return vars[name];
-      }
-      changed = true;
-      return fallback != null ? fallback : '';
-    });
+        return fallback != null ? fallback : '';
+      },
+    );
     if (!changed) break;
   }
   return v;

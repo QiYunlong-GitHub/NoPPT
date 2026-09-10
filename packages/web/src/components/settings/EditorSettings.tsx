@@ -10,14 +10,18 @@ export default function EditorSettings() {
     <section className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
       <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
         <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{t('编辑器设置')}</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t('调整编辑器的工作方式')}</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          {t('调整编辑器的工作方式')}
+        </p>
       </div>
       <div className="p-6 space-y-6">
         {/* 自动保存 */}
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-slate-900 dark:text-white">{t('自动保存')}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">{t('定期自动保存您的工作')}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {t('定期自动保存您的工作')}
+            </p>
           </div>
           <button
             onClick={() =>
@@ -31,9 +35,7 @@ export default function EditorSettings() {
           >
             <span
               className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                settings.editorSettings.autoSave
-                  ? 'translate-x-6'
-                  : 'translate-x-1'
+                settings.editorSettings.autoSave ? 'translate-x-6' : 'translate-x-1'
               }`}
             />
           </button>
@@ -87,7 +89,9 @@ export default function EditorSettings() {
           </label>
           <div className="flex gap-4 items-center">
             <div className="flex-1">
-              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">{t('宽度 (px)')}</label>
+              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">
+                {t('宽度 (px)')}
+              </label>
               <input
                 type="number"
                 value={settings.editorSettings.defaultSlideWidth}
@@ -101,7 +105,9 @@ export default function EditorSettings() {
             </div>
             <span className="text-slate-400 dark:text-slate-500 pt-5">×</span>
             <div className="flex-1">
-              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">{t('高度 (px)')}</label>
+              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">
+                {t('高度 (px)')}
+              </label>
               <input
                 type="number"
                 value={settings.editorSettings.defaultSlideHeight}

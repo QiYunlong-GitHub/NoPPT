@@ -56,16 +56,22 @@ export class AssetsService {
     return assets.sort((a, b) => b.createdAt - a.createdAt);
   }
 
-  upload(presentationId: string, type: 'image' | 'video', originalName: string, buffer: Buffer): AssetInfo {
+  upload(
+    presentationId: string,
+    type: 'image' | 'video',
+    originalName: string,
+    buffer: Buffer,
+  ): AssetInfo {
     this.storage.ensurePresentationDir(presentationId);
-    
+
     const ext = originalName.split('.').pop() || 'png';
     const id = `${this.storage.generateId()}.${ext}`;
-    
-    const dir = type === 'image' 
-      ? this.storage.getImagesDir(presentationId)
-      : this.storage.getVideosDir(presentationId);
-    
+
+    const dir =
+      type === 'image'
+        ? this.storage.getImagesDir(presentationId)
+        : this.storage.getVideosDir(presentationId);
+
     const filePath = join(dir, id);
     writeFileSync(filePath, buffer);
 
@@ -83,10 +89,11 @@ export class AssetsService {
   }
 
   delete(presentationId: string, type: 'image' | 'video', filename: string): boolean {
-    const dir = type === 'image' 
-      ? this.storage.getImagesDir(presentationId)
-      : this.storage.getVideosDir(presentationId);
-    
+    const dir =
+      type === 'image'
+        ? this.storage.getImagesDir(presentationId)
+        : this.storage.getVideosDir(presentationId);
+
     const filePath = join(dir, filename);
     if (existsSync(filePath)) {
       require('fs').unlinkSync(filePath);

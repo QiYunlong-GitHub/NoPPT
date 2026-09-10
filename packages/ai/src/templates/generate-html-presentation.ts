@@ -1195,22 +1195,44 @@ function roundTo8(n: number): number {
 }
 
 function computePadding(slideWidth: number, slideHeight: number): { x: number; y: number } {
-  const baseX = 64, baseY = 48;
+  const baseX = 64,
+    baseY = 48;
   const scale = Math.min(slideWidth / 1280, slideHeight / 720);
   return { x: roundTo8(Math.max(32, baseX * scale)), y: roundTo8(Math.max(24, baseY * scale)) };
 }
 
-const GRAD_TEXT = 'background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;';
+const GRAD_TEXT =
+  'background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;';
 
 /**
  * 线性/面性图标按索引循环使用的语义 key 序列。
  * 顺序经过设计，覆盖 B 端技术场景最常见的概念，相邻图标语义不重复。
  */
 const SEMANTIC_ICON_SEQUENCE: SemanticIconKey[] = [
-  'target', 'code', 'zap', 'shield', 'bulb', 'users',
-  'rocket', 'chart', 'layers', 'cloud', 'database', 'tool',
-  'globe', 'search', 'sparkle', 'key', 'cpu', 'branch',
-  'package', 'terminal', 'check', 'settings', 'eye', 'clock',
+  'target',
+  'code',
+  'zap',
+  'shield',
+  'bulb',
+  'users',
+  'rocket',
+  'chart',
+  'layers',
+  'cloud',
+  'database',
+  'tool',
+  'globe',
+  'search',
+  'sparkle',
+  'key',
+  'cpu',
+  'branch',
+  'package',
+  'terminal',
+  'check',
+  'settings',
+  'eye',
+  'clock',
 ];
 
 function getSemanticIconByIndex(idx: number): SemanticIconKey {
@@ -1223,7 +1245,28 @@ function getIcons(iconStyle: string, idx: number, primary: string, darker: strin
   const letter = String.fromCharCode(65 + (idx % 26));
 
   // Emoji池，按索引循环使用
-  const emojiPool = ['🎯','📊','⚡','🛡️','💡','🤝','🚀','📈','🔍','✨','🔥','⭐','🏆','🎨','💎','🌐','🔑','📱','💻','🔧'];
+  const emojiPool = [
+    '🎯',
+    '📊',
+    '⚡',
+    '🛡️',
+    '💡',
+    '🤝',
+    '🚀',
+    '📈',
+    '🔍',
+    '✨',
+    '🔥',
+    '⭐',
+    '🏆',
+    '🎨',
+    '💎',
+    '🌐',
+    '🔑',
+    '📱',
+    '💻',
+    '🔧',
+  ];
   const emoji = emojiPool[idx % emojiPool.length];
 
   switch (iconStyle) {
@@ -1275,7 +1318,28 @@ function getIcons(iconStyle: string, idx: number, primary: string, darker: strin
  * @param primary 主色
  */
 function getEmojiBigIcon(size: number, emojiSize: number, idx: number, primary: string): string {
-  const emojiPool = ['🎯','📊','⚡','🛡️','💡','🤝','🚀','📈','🔍','✨','🔥','⭐','🏆','🎨','💎','🌐','🔑','📱','💻','🔧'];
+  const emojiPool = [
+    '🎯',
+    '📊',
+    '⚡',
+    '🛡️',
+    '💡',
+    '🤝',
+    '🚀',
+    '📈',
+    '🔍',
+    '✨',
+    '🔥',
+    '⭐',
+    '🏆',
+    '🎨',
+    '💎',
+    '🌐',
+    '🔑',
+    '📱',
+    '💻',
+    '🔧',
+  ];
   const emoji = emojiPool[idx % emojiPool.length];
   // 大图标默认使用圆角矩形背景
   const radius = Math.round(size / 4);
@@ -1285,7 +1349,15 @@ function getEmojiBigIcon(size: number, emojiSize: number, idx: number, primary: 
 /**
  * 生成纯emoji图标（无背景版本，用于标题前点缀等）
  */
-function getCircleIcon(size: number, fontSize: number, num: number, primary: string, darker: string, fontWeight: number = 700, shadowAlpha: string = '30'): string {
+function getCircleIcon(
+  size: number,
+  fontSize: number,
+  num: number,
+  primary: string,
+  darker: string,
+  fontWeight: number = 700,
+  shadowAlpha: string = '30',
+): string {
   const grad = `linear-gradient(135deg,${primary},${darker})`;
   const shadow = `0 ${size > 44 ? 4 : 3}px ${size > 44 ? 16 : 12}px ${primary}${shadowAlpha}`;
   return `<span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:${size}px;height:${size}px;border-radius:50%;background:${grad};box-shadow:${shadow};color:#fff;font-size:${fontSize}px;font-weight:${fontWeight};">${num}</span>`;
@@ -1308,9 +1380,15 @@ function buildLi(icon: string, text: string): string {
   return `<li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;">${icon}<span style="line-height:1.4;flex:1;">${text}</span></li>`;
 }
 
-function getPageTemplates(slideWidth: number = 1280, slideHeight: number = 720, iconStyle: string = 'auto', fontFamily: 'sans' | 'serif' | 'mono' = 'sans'): string {
+function getPageTemplates(
+  slideWidth: number = 1280,
+  slideHeight: number = 720,
+  iconStyle: string = 'auto',
+  fontFamily: 'sans' | 'serif' | 'mono' = 'sans',
+): string {
   const pad = computePadding(slideWidth, slideHeight);
-  const PX = pad.x, PY = pad.y;
+  const PX = pad.x,
+    PY = pad.y;
   const P = '{{PRIMARY_COLOR}}';
   const PD = '{{PRIMARY_COLOR_DARKER}}';
   const FONT_STACK_ACTIVE = getFontStackLocal(fontFamily);
@@ -1400,7 +1478,7 @@ function getPageTemplates(slideWidth: number = 1280, slideHeight: number = 720, 
   <h1 style="${GRAD_H1}">主标题文字</h1>
   <div style="width:180px;height:8px;background:linear-gradient(90deg,${P},${PD});border-radius:4px;margin:0 0 32px 0;box-shadow:0 4px 20px ${P}45;"></div>
   <!-- 副标题分层：第1行加粗+主色渐变，第2~3行深灰，最后胶囊badge -->
-  <p style="font-size:32px;font-weight:700;line-height:1.4;margin:0 0 16px 0;overflow-wrap:break-word;word-break:break-word;${GRAD_TEXT.replace(/background:linear/, 'background:linear').slice(0,-1)};">副标题·核心定位（加粗渐变大字）</p>
+  <p style="font-size:32px;font-weight:700;line-height:1.4;margin:0 0 16px 0;overflow-wrap:break-word;word-break:break-word;${GRAD_TEXT.replace(/background:linear/, 'background:linear').slice(0, -1)};">副标题·核心定位（加粗渐变大字）</p>
   <p style="font-size:24px;color:#1F2937;font-weight:600;margin:0 0 8px 0;line-height:1.5;overflow-wrap:break-word;word-break:break-word;">副标题第二行·亮点描述</p>
   <p style="font-size:24px;color:#1F2937;font-weight:600;margin:0 0 32px 0;line-height:1.5;overflow-wrap:break-word;word-break:break-word;">副标题第三行·延伸信息</p>
   <!-- 胶囊 badge -->
@@ -2208,7 +2286,11 @@ export function getPageTemplatesByPageType(
   const extracted = extractSections(all, headings);
   if (extracted.length === 0) {
     // 已知页型但模板区无匹配 section（如 content-quote 暂无专属段）：同样走最小集，避免全量回归
-    console.warn('[TEMPLATE] 页型"' + pageType + '"在模板区无匹配 section，已注入最小模板集，请在 baseTypes 补充对应模板段');
+    console.warn(
+      '[TEMPLATE] 页型"' +
+        pageType +
+        '"在模板区无匹配 section，已注入最小模板集，请在 baseTypes 补充对应模板段',
+    );
     return MINIMAL_TEMPLATE_KIT;
   }
 
@@ -2216,7 +2298,10 @@ export function getPageTemplatesByPageType(
   if (!['cover', 'toc', 'summary'].includes(normalized)) {
     const coverSections = extractSections(all, ['cover']);
     if (coverSections.length) {
-      extracted.push('【封面装饰参考 · 仅参考其装饰性元素/版式手法，勿整页照搬，正文遵守其他红线】\n' + coverSections.join('\n\n'));
+      extracted.push(
+        '【封面装饰参考 · 仅参考其装饰性元素/版式手法，勿整页照搬，正文遵守其他红线】\n' +
+          coverSections.join('\n\n'),
+      );
     }
   }
   return extracted.join('\n\n');
@@ -2229,7 +2314,10 @@ export function getPageTemplatesByPageType(
 function extractSections(all: string, headings: string[]): string[] {
   const collected: Array<{ index: number; text: string }> = [];
   for (const tag of headings) {
-    const re = new RegExp(`(###\\s+\\*?\\*?.*?${escapeReg(tag)}[\\s\\S]*?)(?=\\n###\\s|\\n\`\`\`\\s*$|$)`, 'gi');
+    const re = new RegExp(
+      `(###\\s+\\*?\\*?.*?${escapeReg(tag)}[\\s\\S]*?)(?=\\n###\\s|\\n\`\`\`\\s*$|$)`,
+      'gi',
+    );
     let m: RegExpExecArray | null;
     while ((m = re.exec(all)) !== null) {
       collected.push({ index: m.index, text: m[0] });

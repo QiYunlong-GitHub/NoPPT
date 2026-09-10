@@ -89,7 +89,8 @@ ${ROOT_CAUSE_DESC}
 }
 没有问题时 issues 返回空数组。宁可少报也不要编造截图中不存在的问题。`;
 
-const REFERENCE_RELAX_CLAUSE = `\n\n【参考豁免条款】本页已遵循用户提供的参考（HTML/图片）的视觉意图。` +
+const REFERENCE_RELAX_CLAUSE =
+  `\n\n【参考豁免条款】本页已遵循用户提供的参考（HTML/图片）的视觉意图。` +
   `除非存在 L0 级无障碍底线问题（正文对比度 < 4.5:1、正文字号 < 12px、装饰遮挡正文、文字被裁切不可读），` +
   `否则不应以通用字号/间距/配色规范（如正文 16-20px、8pt 网格、颜色 ≤3-4、字体 ≤2）为由判 fatal。` +
   `此类偏差应记为 important/minor 建议，不触发重生成。`;
@@ -174,7 +175,7 @@ const IMAGE_NOT_RECEIVED_PATTERNS = [
 
 function looksLikeImageNotReceived(text: string): boolean {
   if (!text) return false;
-  return IMAGE_NOT_RECEIVED_PATTERNS.some(p => p.test(text));
+  return IMAGE_NOT_RECEIVED_PATTERNS.some((p) => p.test(text));
 }
 
 // L0 无障碍底线（参考不可覆盖）：对比度 / 字号 / 可读性 / 遮挡 / 裁切。命中则即使有参考也保留 fatal。
@@ -188,7 +189,7 @@ const L0_ACCESSIBILITY_PATTERNS = [
 
 function isL0AccessibilityIssue(text: string): boolean {
   if (!text) return false;
-  return L0_ACCESSIBILITY_PATTERNS.some(p => p.test(text));
+  return L0_ACCESSIBILITY_PATTERNS.some((p) => p.test(text));
 }
 
 export async function runVlmCritique(
@@ -205,7 +206,9 @@ export async function runVlmCritique(
 
   const imageBuffer = fs.readFileSync(screenshotPath);
   if (imageBuffer.length < 1024) {
-    console.warn(`[VLM] 第 ${slideIndex + 1} 页截图文件异常（仅 ${imageBuffer.length} 字节），跳过视觉评审`);
+    console.warn(
+      `[VLM] 第 ${slideIndex + 1} 页截图文件异常（仅 ${imageBuffer.length} 字节），跳过视觉评审`,
+    );
     return { issues: [], score: 0 };
   }
 
@@ -235,7 +238,11 @@ export async function runVlmCritique(
   try {
     // VLM 请求超时保护：模型/网关无响应时不再无限等待，降级为"跳过该页继续"（避免整个生成卡死）
     const timeoutMs = 180_000;
-    type VlmChatSettled = { ok: boolean; v?: Awaited<ReturnType<typeof provider.chat>>; e?: unknown };
+    type VlmChatSettled = {
+      ok: boolean;
+      v?: Awaited<ReturnType<typeof provider.chat>>;
+      e?: unknown;
+    };
     const chatSettled = await Promise.race<VlmChatSettled>([
       provider.chat(messages, { temperature: 0.2, maxTokens: 8192 }).then(
         (v): VlmChatSettled => ({ ok: true, v }),
@@ -243,7 +250,13 @@ export async function runVlmCritique(
       ),
       new Promise<VlmChatSettled>((resolve) =>
         setTimeout(
-          () => resolve({ ok: false, e: new Error(`VLM 请求超时（>${timeoutMs / 1000}s），模型：${provider.config.model}，已降级跳过该页`) }),
+          () =>
+            resolve({
+              ok: false,
+              e: new Error(
+                `VLM 请求超时（>${timeoutMs / 1000}s），模型：${provider.config.model}，已降级跳过该页`,
+              ),
+            }),
           timeoutMs,
         ),
       ),
@@ -261,7 +274,7 @@ export async function runVlmCritique(
   if (looksLikeImageNotReceived(response.content)) {
     console.warn(
       `[VLM] 第 ${slideIndex + 1} 页：模型返回"未收到截图"。这通常意味着 auditVlm 路由配置的模型「${provider.config.model}」不支持图片输入，` +
-      `或 API 网关/中间件剥离了多模态图片数据。请在「设置 → AI 模型设置 → 模型路由」中将 auditVlm 改为支持视觉的多模态模型（如 GPT-4o、Qwen-VL、Claude 3.5 Sonnet 等）。`,
+        `或 API 网关/中间件剥离了多模态图片数据。请在「设置 → AI 模型设置 → 模型路由」中将 auditVlm 改为支持视觉的多模态模型（如 GPT-4o、Qwen-VL、Claude 3.5 Sonnet 等）。`,
     );
     return { issues: [], score: 0 };
   }
@@ -269,7 +282,7 @@ export async function runVlmCritique(
   if (response.usage && response.usage.promptTokens < 500 && base64.length > 10000) {
     console.warn(
       `[VLM] 第 ${slideIndex + 1} 页：promptTokens=${response.usage.promptTokens} 异常偏低（截图 base64 长度=${base64.length}），` +
-      `图片数据大概率未被模型接收。请确认 auditVlm 路由配置的是视觉多模态模型，而非纯文本模型。`,
+        `图片数据大概率未被模型接收。请确认 auditVlm 路由配置的是视觉多模态模型，而非纯文本模型。`,
     );
   }
 
@@ -278,7 +291,7 @@ export async function runVlmCritique(
     return { issues: [], score: 0 };
   }
 
-  const issues: AuditIssue[] = parsed.issues.map(issue => {
+  const issues: AuditIssue[] = parsed.issues.map((issue) => {
     const rootCause = normalizeRootCause(issue.rootCause, mode);
     let severity = mapSeverity(issue.severity);
     const isFatal = severity === 'error';

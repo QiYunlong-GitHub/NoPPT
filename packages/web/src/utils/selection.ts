@@ -34,10 +34,12 @@ function isIdTargetElement(el: HTMLElement, innerDiv: HTMLElement): boolean {
   const tag = el.tagName;
   if (tag === 'IMG' || tag === 'VIDEO' || tag === 'TABLE') return true;
 
-  if (el.classList.contains('noppt-text-element') ||
-      el.classList.contains('noppt-slide-image-element') ||
-      el.classList.contains('noppt-group-element') ||
-      el.classList.contains('noppt-table-element')) {
+  if (
+    el.classList.contains('noppt-text-element') ||
+    el.classList.contains('noppt-slide-image-element') ||
+    el.classList.contains('noppt-group-element') ||
+    el.classList.contains('noppt-table-element')
+  ) {
     return true;
   }
 
@@ -67,7 +69,10 @@ export function ensureElementIds(innerDiv: HTMLElement | null | undefined): void
 /**
  * 通过 data-noppt-id 直接查找元素。
  */
-export function getElementById(id: string, innerDiv: HTMLElement | null | undefined): HTMLElement | null {
+export function getElementById(
+  id: string,
+  innerDiv: HTMLElement | null | undefined,
+): HTMLElement | null {
   if (!innerDiv || !id) return null;
   try {
     return innerDiv.querySelector<HTMLElement>(`[data-noppt-id="${id}"]`);
@@ -92,7 +97,10 @@ const NOPPT_ID_PREFIX = '[data-noppt-id=';
  * 这一唯一选择器，不再依赖父链，DOM 结构变化也能稳定恢复。
  * 没有 ID 的元素仍回退到 nth-child 路径，保证向后兼容。
  */
-export function getElementPath(element: HTMLElement, innerDiv: HTMLElement | null | undefined): string {
+export function getElementPath(
+  element: HTMLElement,
+  innerDiv: HTMLElement | null | undefined,
+): string {
   if (!innerDiv) return '';
   if (element === innerDiv) return '';
 
@@ -151,7 +159,10 @@ export function normalizeWhitespaceTextNodes(innerDiv: HTMLElement | null | unde
  * - 若路径以 `[data-noppt-id=` 开头，说明是稳定 ID 选择器，直接 querySelector。
  * - 否则按原有 nth-child 路径处理。
  */
-export function getElementByPath(path: string, innerDiv: HTMLElement | null | undefined): HTMLElement | null {
+export function getElementByPath(
+  path: string,
+  innerDiv: HTMLElement | null | undefined,
+): HTMLElement | null {
   if (!innerDiv || !path) return null;
 
   try {
@@ -165,9 +176,21 @@ export function getElementByPath(path: string, innerDiv: HTMLElement | null | un
 }
 
 export function isLayoutContainer(element: HTMLElement): boolean {
-  if (element.tagName !== 'DIV' && element.tagName !== 'SECTION' && element.tagName !== 'ARTICLE' && element.tagName !== 'UL' && element.tagName !== 'OL') return false;
+  if (
+    element.tagName !== 'DIV' &&
+    element.tagName !== 'SECTION' &&
+    element.tagName !== 'ARTICLE' &&
+    element.tagName !== 'UL' &&
+    element.tagName !== 'OL'
+  )
+    return false;
   const style = window.getComputedStyle(element);
-  return style.display === 'flex' || style.display === 'inline-flex' || style.display === 'grid' || style.display === 'inline-grid';
+  return (
+    style.display === 'flex' ||
+    style.display === 'inline-flex' ||
+    style.display === 'grid' ||
+    style.display === 'inline-grid'
+  );
 }
 
 /**
@@ -176,8 +199,13 @@ export function isLayoutContainer(element: HTMLElement): boolean {
  * @param innerDiv data-slide-content 容器，用于做「全屏包装容器」过滤
  * @param excludeElement 可选，排除自己（防止自包含判定）
  */
-export function isVisualContainer(element: HTMLElement, innerDiv: HTMLElement | null | undefined, excludeElement?: HTMLElement): boolean {
-  if (element.tagName !== 'DIV' && element.tagName !== 'SECTION' && element.tagName !== 'ARTICLE') return false;
+export function isVisualContainer(
+  element: HTMLElement,
+  innerDiv: HTMLElement | null | undefined,
+  excludeElement?: HTMLElement,
+): boolean {
+  if (element.tagName !== 'DIV' && element.tagName !== 'SECTION' && element.tagName !== 'ARTICLE')
+    return false;
   if (element === excludeElement) return false;
   if (innerDiv && element === innerDiv) return false;
 
@@ -205,16 +233,44 @@ export function isVisualContainer(element: HTMLElement, innerDiv: HTMLElement | 
 }
 
 export function isTextContent(element: HTMLElement): boolean {
-  if (['H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'P', 'LI', 'BUTTON', 'INPUT', 'LABEL', 'TABLE', 'UL', 'OL', 'TR', 'TD', 'TH', 'THEAD', 'TBODY', 'FIGCAPTION'].includes(element.tagName)) {
+  if (
+    [
+      'H1',
+      'H2',
+      'H3',
+      'H4',
+      'H5',
+      'H6',
+      'P',
+      'LI',
+      'BUTTON',
+      'INPUT',
+      'LABEL',
+      'TABLE',
+      'UL',
+      'OL',
+      'TR',
+      'TD',
+      'TH',
+      'THEAD',
+      'TBODY',
+      'FIGCAPTION',
+    ].includes(element.tagName)
+  ) {
     return true;
   }
-  if (element.tagName === 'IMG' || element.tagName === 'VIDEO' || element.tagName === 'FIGURE') return true;
+  if (element.tagName === 'IMG' || element.tagName === 'VIDEO' || element.tagName === 'FIGURE')
+    return true;
   if (['SPAN', 'STRONG', 'EM', 'B', 'I', 'U', 'A', 'SUP', 'SUB'].includes(element.tagName)) {
     return true;
   }
   if (isLayoutContainer(element)) return false;
-  if (element.tagName !== 'DIV' && element.tagName !== 'SECTION' && element.tagName !== 'ARTICLE') return false;
-  if (isVisualContainer(element, element.closest('[data-slide-content="true"]') as HTMLElement | null)) return false;
+  if (element.tagName !== 'DIV' && element.tagName !== 'SECTION' && element.tagName !== 'ARTICLE')
+    return false;
+  if (
+    isVisualContainer(element, element.closest('[data-slide-content="true"]') as HTMLElement | null)
+  )
+    return false;
 
   const text = element.innerText?.trim() || '';
   if (!text || text.length === 0) return false;
@@ -237,8 +293,11 @@ export function isTextElement(element: HTMLElement): boolean {
     }
     const textChildren = Array.from(element.children).filter((child) => {
       const childTag = child.tagName.toLowerCase();
-      return ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span', 'strong', 'em', 'br'].includes(childTag) ||
-        (child as HTMLElement).classList?.contains('noppt-text-element');
+      return (
+        ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span', 'strong', 'em', 'br'].includes(
+          childTag,
+        ) || (child as HTMLElement).classList?.contains('noppt-text-element')
+      );
     });
     return textChildren.length === childCount;
   }
@@ -249,14 +308,21 @@ export function isTextElement(element: HTMLElement): boolean {
  * 判定一个元素是否是「最外层充满整个幻灯片的全屏包装容器」。
  * 如果命中，该元素不允许被选中。
  */
-export function isSlideRootWrapper(element: HTMLElement, innerDiv: HTMLElement | null | undefined): boolean {
+export function isSlideRootWrapper(
+  element: HTMLElement,
+  innerDiv: HTMLElement | null | undefined,
+): boolean {
   if (!element || !innerDiv) return false;
   if (!innerDiv.contains(element)) return false;
   if (element === innerDiv) return false;
-  if (element.tagName !== 'DIV' && element.tagName !== 'SECTION' && element.tagName !== 'ARTICLE') return false;
-  if (element.classList.contains('noppt-text-element') ||
-      element.classList.contains('noppt-slide-image-element') ||
-      element.classList.contains('noppt-group-element')) return false;
+  if (element.tagName !== 'DIV' && element.tagName !== 'SECTION' && element.tagName !== 'ARTICLE')
+    return false;
+  if (
+    element.classList.contains('noppt-text-element') ||
+    element.classList.contains('noppt-slide-image-element') ||
+    element.classList.contains('noppt-group-element')
+  )
+    return false;
   const style = window.getComputedStyle(element);
   if (style.position === 'absolute' || style.position === 'fixed') return false;
 
@@ -269,10 +335,14 @@ export function isSlideRootWrapper(element: HTMLElement, innerDiv: HTMLElement |
     (rs.height === '100%' || style.height === '100%');
   const hasTypicalRootStructure =
     (style.overflow === 'hidden' || rs.overflow === 'hidden') &&
-    ((style.position === 'relative' || rs.position === 'relative')) &&
+    (style.position === 'relative' || rs.position === 'relative') &&
     (style.boxSizing === 'border-box' || rs.boxSizing === 'border-box');
 
-  if (isDirectChild && hasFullSizeStyle && (hasTypicalRootStructure || style.display.includes('flex') || style.display.includes('grid'))) {
+  if (
+    isDirectChild &&
+    hasFullSizeStyle &&
+    (hasTypicalRootStructure || style.display.includes('flex') || style.display.includes('grid'))
+  ) {
     return true;
   }
 
@@ -315,7 +385,25 @@ export function wrapTextInVisualContainers(innerDiv: HTMLElement | null | undefi
         hasText = true;
       } else if (child.nodeType === Node.ELEMENT_NODE) {
         const childEl = child as HTMLElement;
-        if (['DIV', 'SECTION', 'ARTICLE', 'P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'UL', 'OL', 'LI', 'IMG', 'TABLE'].includes(childEl.tagName)) {
+        if (
+          [
+            'DIV',
+            'SECTION',
+            'ARTICLE',
+            'P',
+            'H1',
+            'H2',
+            'H3',
+            'H4',
+            'H5',
+            'H6',
+            'UL',
+            'OL',
+            'LI',
+            'IMG',
+            'TABLE',
+          ].includes(childEl.tagName)
+        ) {
           hasBlockElement = true;
         }
       }
@@ -382,7 +470,11 @@ export function findSelectableElement(
       candidates.push(element);
       break;
     }
-    if (isTextContent(element) || isVisualContainer(element, innerDiv) || isLayoutContainer(element)) {
+    if (
+      isTextContent(element) ||
+      isVisualContainer(element, innerDiv) ||
+      isLayoutContainer(element)
+    ) {
       if (!isSlideRootWrapper(element, innerDiv)) {
         candidates.push(element);
       }

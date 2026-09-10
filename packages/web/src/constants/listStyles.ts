@@ -14,9 +14,15 @@ export const BULLET_STYLES: Record<string, { symbol: string; label: string }> = 
   none: { symbol: '', label: '无' },
 };
 
-export const NUMBER_STYLES: Record<string, { formatter: (index: number) => string; label: string }> = {
+export const NUMBER_STYLES: Record<
+  string,
+  { formatter: (index: number) => string; label: string }
+> = {
   decimal: { formatter: (i) => `${i}.`, label: '1. 2. 3.' },
-  'decimal-leading-zero': { formatter: (i) => `${i.toString().padStart(2, '0')}.`, label: '01. 02.' },
+  'decimal-leading-zero': {
+    formatter: (i) => `${i.toString().padStart(2, '0')}.`,
+    label: '01. 02.',
+  },
   'upper-roman': { formatter: (i) => toRoman(i) + '.', label: 'I. II. III.' },
   'lower-roman': { formatter: (i) => toRoman(i).toLowerCase() + '.', label: 'i. ii. iii.' },
   'upper-alpha': { formatter: (i) => `${String.fromCharCode(64 + i)}.`, label: 'A. B. C.' },
@@ -36,9 +42,19 @@ function circledNumber(num: number): string {
 
 function toRoman(num: number): string {
   const romanNumerals: [number, string][] = [
-    [1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'],
-    [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'],
-    [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'],
+    [1000, 'M'],
+    [900, 'CM'],
+    [500, 'D'],
+    [400, 'CD'],
+    [100, 'C'],
+    [90, 'XC'],
+    [50, 'L'],
+    [40, 'XL'],
+    [10, 'X'],
+    [9, 'IX'],
+    [5, 'V'],
+    [4, 'IV'],
+    [1, 'I'],
   ];
   let result = '';
   for (const [value, symbol] of romanNumerals) {

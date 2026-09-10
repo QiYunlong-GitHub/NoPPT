@@ -56,7 +56,12 @@ export class SanitizationAuditEngine {
       const marker = s?._sanitizationFallbackApplied as SanitizationFallbackMarker | undefined;
       if (!marker || !marker.fallbackApplied) continue;
       matched++;
-      const bd = marker.breakdown || { neutralFont22_29: 0, neutralPxSticky: 0, colorViolations: 0, total: marker.remain || 0 };
+      const bd = marker.breakdown || {
+        neutralFont22_29: 0,
+        neutralPxSticky: 0,
+        colorViolations: 0,
+        total: marker.remain || 0,
+      };
       const detailParts: string[] = [];
       detailParts.push(
         `三分量越权合计=${marker.remain ?? bd.total ?? 0}`,
@@ -93,7 +98,7 @@ export class SanitizationAuditEngine {
     // 评分：无标记 = 100 pass；有标记按匹配页数扣分（10 页 1 页扣 10 → 90，但因为 severity=error 仍会 fail 总评）
     const total = Math.max(1, slides.length);
     const score = Math.max(0, Math.round(100 * (1 - matched / total)));
-    const hasError = issues.some(x => x.severity === 'error');
+    const hasError = issues.some((x) => x.severity === 'error');
     const status: AuditEngineResult['status'] = hasError ? 'fail' : matched > 0 ? 'warn' : 'passed';
 
     return {

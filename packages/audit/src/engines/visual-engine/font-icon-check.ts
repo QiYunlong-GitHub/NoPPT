@@ -35,15 +35,19 @@ export async function checkFontAndIcons(page: Page): Promise<FontIconCheckResult
         if (!Number.isNaN(px)) fontSizeSet.add(Math.round(px * 10) / 10);
       }
 
-      const classNames = (el.className && typeof el.className === 'string') ? el.className : '';
-      const hasIconClass = /(^|[\s-])icon(s)?([\s-]|$)/i.test(classNames) ||
+      const classNames = el.className && typeof el.className === 'string' ? el.className : '';
+      const hasIconClass =
+        /(^|[\s-])icon(s)?([\s-]|$)/i.test(classNames) ||
         /\bfa[srbldc]?\b/.test(classNames) ||
         /\bmaterial-icons\b/.test(classNames) ||
         /\blucide\b/.test(classNames) ||
         /\bbi\b/.test(classNames);
       const hasDataIcon = el.hasAttribute('data-icon');
       const isSvg = el.tagName.toLowerCase() === 'svg';
-      const isEmoji = el.textContent && /\p{Emoji_Presentation}/u.test(el.textContent) && el.textContent.trim().length <= 4;
+      const isEmoji =
+        el.textContent &&
+        /\p{Emoji_Presentation}/u.test(el.textContent) &&
+        el.textContent.trim().length <= 4;
 
       if (hasIconClass || hasDataIcon || isSvg || isEmoji) {
         const explicit = el.getAttribute('data-icon-style');
@@ -60,7 +64,8 @@ export async function checkFontAndIcons(page: Page): Promise<FontIconCheckResult
           iconStyleSet.add('emoji');
         } else if (classNames) {
           if (/\b(solid|fas|filled)\b/.test(classNames)) iconStyleSet.add('solid');
-          else if (/\b(regular|far|line|linear|outline|outlined)\b/.test(classNames)) iconStyleSet.add('linear');
+          else if (/\b(regular|far|line|linear|outline|outlined)\b/.test(classNames))
+            iconStyleSet.add('linear');
           else iconStyleSet.add('solid');
         }
       }

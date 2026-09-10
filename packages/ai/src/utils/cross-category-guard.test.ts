@@ -85,7 +85,9 @@ describe('分类显式上传：结构层正常生效', () => {
     } as CategoryReference;
     const rva = makeRva({ cover: coverRef, global: contentRef });
     expect(resolveStructureSource(rva, 'cover').kind).toBe('explicit');
-    expect(formatReferenceOverrideForPage(rva, 'cover', 0)).toContain('布局骨架(layout)：hero-centered');
+    expect(formatReferenceOverrideForPage(rva, 'cover', 0)).toContain(
+      '布局骨架(layout)：hero-centered',
+    );
   });
 });
 

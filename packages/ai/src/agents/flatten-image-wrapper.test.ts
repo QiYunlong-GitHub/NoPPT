@@ -14,7 +14,9 @@ import { LayoutEngine } from '../../../core/src/engine/layout-engine';
 function makeAgent(): HTMLPresentationAgent {
   const dummy: AIModelProvider = {
     name: 'dummy',
-    async chat() { return { role: 'assistant', content: '' }; },
+    async chat() {
+      return { role: 'assistant', content: '' };
+    },
     supportsStreaming: false,
   } as unknown as AIModelProvider;
   return new HTMLPresentationAgent(dummy);
@@ -22,13 +24,21 @@ function makeAgent(): HTMLPresentationAgent {
 
 // 绕过 private：TypeScript private 只在编译期生效，JS 下标可访问
 function callFlatten(agent: HTMLPresentationAgent, html: string): string {
-  return (agent as unknown as Record<string, (h: string) => string>).flattenMeaninglessNesting.call(agent, html);
+  return (agent as unknown as Record<string, (h: string) => string>).flattenMeaninglessNesting.call(
+    agent,
+    html,
+  );
 }
 function callEnsureWrapper(agent: HTMLPresentationAgent, html: string): string {
-  return (agent as unknown as Record<string, (h: string) => string>).ensureImageProperWrapper.call(agent, html);
+  return (agent as unknown as Record<string, (h: string) => string>).ensureImageProperWrapper.call(
+    agent,
+    html,
+  );
 }
 function callEnforceTextContainerStyles(agent: HTMLPresentationAgent, html: string): string {
-  return (agent as unknown as Record<string, (h: string) => string>).enforceTextContainerStyles.call(agent, html);
+  return (
+    agent as unknown as Record<string, (h: string) => string>
+  ).enforceTextContainerStyles.call(agent, html);
 }
 
 // =====================================================================
@@ -76,10 +86,10 @@ describe('FR-1 flattenMeaninglessNesting 图片包裹保护（RC-1 修复）', (
   // UW-4：嵌套两层 div 包裹 img —— 内层保留，外层按约束判定
   it('UW-4 双层嵌套 div > div > img，内层 img 包裹层始终保留', () => {
     const input =
-      '<div>' +  // 外层：style 空 但 只有 1 个子 div（原本会被剥！）
-        '<div style="margin-top:32px;">' +  // 内层：有 margin-top，应留
-          '<img src="ph">' +
-        '</div>' +
+      '<div>' + // 外层：style 空 但 只有 1 个子 div（原本会被剥！）
+      '<div style="margin-top:32px;">' + // 内层：有 margin-top，应留
+      '<img src="ph">' +
+      '</div>' +
       '</div>';
     const out = callFlatten(agent, input);
     // 内层 margin-top 必须在
@@ -113,7 +123,8 @@ describe('FR-2 enforceImageStyles height/aspect-ratio 默认值修复（RC-2 修
 
   // UW-6：ratio=4:3 裸 img，得到 aspect-ratio: 4 / 3 + height:auto + object-fit:cover
   it('UW-6 data-image-ratio=4:3 时注入 aspect-ratio:4/3 + height:auto', () => {
-    const input = '<img src="abc.png" data-image-ratio="4:3" style="width:100%;max-width:100%;max-height:100%;display:block;">';
+    const input =
+      '<img src="abc.png" data-image-ratio="4:3" style="width:100%;max-width:100%;max-height:100%;display:block;">';
     const out = enforceImageStyles(input, { borderRadius: '12px' });
     expect(out).toContain('aspect-ratio:4 / 3');
     expect(out).toContain('height:auto');
@@ -173,7 +184,7 @@ describe('FR-3 enforceTextContainerStyles grid/data-layout 豁免 + overflow:cli
   it('带 data-layout=content-stats-highlight（白名单版式）豁免 overflow', () => {
     const input =
       '<div data-layout="content-stats-highlight" style="width:100%;height:100%;padding:48px 64px;display:flex;flex-direction:column;">' +
-        '<div style="flex:1;">x</div>' +
+      '<div style="flex:1;">x</div>' +
       '</div>';
     const out = callEnforceTextContainerStyles(agent, input);
     // 内部 flex:1 div 被外层 data-layout 覆盖豁免吗？正则匹配的是内层 div。
@@ -204,14 +215,15 @@ describe('FR-4 ensureImageProperWrapper 末尾 img 包裹兜底', () => {
   it('末尾裸 img（块级关闭标签 → img → </div>）被重包一层', () => {
     const input =
       '<div style="width:100%;height:100%;padding:48px 64px;display:flex;flex-direction:column;">' +
-        '<h2>hi</h2>' +
-        '<div style="flex:1;">grid here</div>' +
-        '<img src="x" data-image-ratio="4:3" style="width:100%;">' +
+      '<h2>hi</h2>' +
+      '<div style="flex:1;">grid here</div>' +
+      '<img src="x" data-image-ratio="4:3" style="width:100%;">' +
       '</div>';
     const out = callEnsureWrapper(agent, input);
     // 被重包：<div style="margin-top:24px;overflow:hidden;display:flex;..."><img>
     expect(out).toMatch(
-      /<div\b[^>]*margin-top:24px[^>]*overflow:hidden[^>]*display:flex[^>]*>\s*<img/i);
+      /<div\b[^>]*margin-top:24px[^>]*overflow:hidden[^>]*display:flex[^>]*>\s*<img/i,
+    );
     // 且 flex:0 0 auto 不扩张
     expect(out).toContain('flex:0 0 auto');
   });
@@ -219,17 +231,17 @@ describe('FR-4 ensureImageProperWrapper 末尾 img 包裹兜底', () => {
   it('已被包裹的 img（原包裹是 margin-top:32px div）—— 不重复包裹（幂等）', () => {
     const input =
       '<div style="width:100%;height:100%;padding:48px 64px;display:flex;flex-direction:column;">' +
-        '<h2>hi</h2>' +
-        '<div style="flex:1;">grid here</div>' +
-        '<div style="margin-top:32px;overflow:hidden;display:flex;align-items:stretch;">' +
-          '<img src="x" data-image-ratio="4:3">' +
-        '</div>' +
+      '<h2>hi</h2>' +
+      '<div style="flex:1;">grid here</div>' +
+      '<div style="margin-top:32px;overflow:hidden;display:flex;align-items:stretch;">' +
+      '<img src="x" data-image-ratio="4:3">' +
+      '</div>' +
       '</div>';
     const before = input;
     const after = callEnsureWrapper(agent, input);
     // 包裹前后 div>img 对数不增加
     const beforeCount = (before.match(/<img/gi) || []).length;
-    const afterCount  = (after.match(/<img/gi)  || []).length;
+    const afterCount = (after.match(/<img/gi) || []).length;
     expect(afterCount).toBe(beforeCount); // 不重复产生 img 标签（不是插入，只是包裹个数可增）
     // 检查：margin-top:24px 没出现第二次（即新包裹没有被加）—— 正则仅匹配 "</div>\s*<img>" 的情况，现有包裹不会触发
     const wrapsCount = (after.match(/margin-top:24px;overflow:hidden;display:flex/gi) || []).length;
@@ -246,26 +258,31 @@ describe('FR-5 preventContentImageTopOverflow stats-grid-bottom-image', () => {
   it('UW-9 卡片 grid 4列 + 底部图 → 保留4列，imgWrap 32% + mt=24px', () => {
     const input =
       '<div style="width:100%;height:100%;overflow:hidden;position:relative;padding:48px 64px;display:flex;flex-direction:column;background-color:#fff;" data-layout="content-stats-highlight">' +
-        '<h2 style="font-size:50px;font-weight:700;margin:0 0 32px 0;line-height:1.25;">农业减产与供应链中断导致全球直接经济损失超千亿美元</h2>' +
-        '<div style="flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:24px;min-height:0;align-content:stretch;min-width:0;">' +
-          '<div style="padding:24px 20px;border-radius:16px;background:#ea580c12;display:flex;flex-direction:column;gap:12px;height:100%;">' +
-            '<span>-23%</span><h3>卡片1</h3>' +
-          '</div>' +
-          '<div style="padding:24px 20px;border-radius:16px;background:#ea580c10;display:flex;flex-direction:column;gap:12px;height:100%;">' +
-            '<span>+18%</span><h3>卡片2</h3>' +
-          '</div>' +
-          '<div style="padding:24px 20px;border-radius:16px;background:#ea580c10;display:flex;flex-direction:column;gap:12px;height:100%;">' +
-            '<span>-3.2%</span><h3>卡片3</h3>' +
-          '</div>' +
-          '<div style="padding:24px 20px;border-radius:16px;background:#ea580c12;display:flex;flex-direction:column;gap:12px;height:100%;">' +
-            '<span>+12天</span><h3>卡片4</h3>' +
-          '</div>' +
-        '</div>' +
-        '<div style="margin-top:32px;overflow:hidden;display:flex;align-items:stretch;">' +
-          '<img src="https://NOPPT_IMAGE_PLACEHOLDER" data-image-ratio="4:3" style="width:100%;height:100%;object-fit:cover;border-radius:16px;">' +
-        '</div>' +
+      '<h2 style="font-size:50px;font-weight:700;margin:0 0 32px 0;line-height:1.25;">农业减产与供应链中断导致全球直接经济损失超千亿美元</h2>' +
+      '<div style="flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:24px;min-height:0;align-content:stretch;min-width:0;">' +
+      '<div style="padding:24px 20px;border-radius:16px;background:#ea580c12;display:flex;flex-direction:column;gap:12px;height:100%;">' +
+      '<span>-23%</span><h3>卡片1</h3>' +
+      '</div>' +
+      '<div style="padding:24px 20px;border-radius:16px;background:#ea580c10;display:flex;flex-direction:column;gap:12px;height:100%;">' +
+      '<span>+18%</span><h3>卡片2</h3>' +
+      '</div>' +
+      '<div style="padding:24px 20px;border-radius:16px;background:#ea580c10;display:flex;flex-direction:column;gap:12px;height:100%;">' +
+      '<span>-3.2%</span><h3>卡片3</h3>' +
+      '</div>' +
+      '<div style="padding:24px 20px;border-radius:16px;background:#ea580c12;display:flex;flex-direction:column;gap:12px;height:100%;">' +
+      '<span>+12天</span><h3>卡片4</h3>' +
+      '</div>' +
+      '</div>' +
+      '<div style="margin-top:32px;overflow:hidden;display:flex;align-items:stretch;">' +
+      '<img src="https://NOPPT_IMAGE_PLACEHOLDER" data-image-ratio="4:3" style="width:100%;height:100%;object-fit:cover;border-radius:16px;">' +
+      '</div>' +
       '</div>';
-    const out = LayoutEngine.normalizeAISlide({ id: 'u9', createdAt: 0, updatedAt: 0, html: input }).html;
+    const out = LayoutEngine.normalizeAISlide({
+      id: 'u9',
+      createdAt: 0,
+      updatedAt: 0,
+      html: input,
+    }).html;
     // Step 1 保护：卡片 grid 仍为 repeat(4,1fr)，不能被改为 repeat(2,1fr)
     expect(out).toContain('grid-template-columns:repeat(4,1fr)');
     expect(out).not.toContain('grid-template-columns:repeat(2,1fr)');
@@ -285,17 +302,22 @@ describe('FR-5 preventContentImageTopOverflow stats-grid-bottom-image', () => {
   it('UW-10 UL/OL li=4 + 底部图 → 仍走老路径，UL 被转双列 grid，imgWrap 35%', () => {
     const input =
       '<div style="width:100%;height:100%;padding:48px 64px;display:flex;flex-direction:column;">' +
-        '<h2>主题</h2>' +
-        '<div style="flex:1;min-height:0;display:flex;flex-direction:column;">' +
-          '<ul style="display:flex;flex-direction:column;gap:12px;min-height:0;">' +
-            '<li>条目1</li><li>条目2</li><li>条目3</li><li>条目4</li>' +
-          '</ul>' +
-        '</div>' +
-        '<div style="margin-top:20px;flex:0 0 48%;display:flex;align-items:stretch;overflow:hidden;">' +
-          '<img src="ph" style="width:100%;height:100%;object-fit:cover;">' +
-        '</div>' +
+      '<h2>主题</h2>' +
+      '<div style="flex:1;min-height:0;display:flex;flex-direction:column;">' +
+      '<ul style="display:flex;flex-direction:column;gap:12px;min-height:0;">' +
+      '<li>条目1</li><li>条目2</li><li>条目3</li><li>条目4</li>' +
+      '</ul>' +
+      '</div>' +
+      '<div style="margin-top:20px;flex:0 0 48%;display:flex;align-items:stretch;overflow:hidden;">' +
+      '<img src="ph" style="width:100%;height:100%;object-fit:cover;">' +
+      '</div>' +
       '</div>';
-    const out = LayoutEngine.normalizeAISlide({ id: 'u10', createdAt: 0, updatedAt: 0, html: input }).html;
+    const out = LayoutEngine.normalizeAISlide({
+      id: 'u10',
+      createdAt: 0,
+      updatedAt: 0,
+      html: input,
+    }).html;
     // Step 1：UL 转成 repeat(2,1fr)
     expect(out).toContain('grid-template-columns:repeat(2,1fr)');
     // Step 2：imgWrap 被压缩到 35%（li=4 阶梯）

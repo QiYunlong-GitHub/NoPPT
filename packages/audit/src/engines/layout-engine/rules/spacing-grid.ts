@@ -3,8 +3,16 @@ import type { AuditIssue } from '../../../types';
 import { extractPxValues, getStyleFromAttrs, isOn8Grid } from '../utils';
 
 const SPACING_PROPS = [
-  'padding', 'padding-top', 'padding-bottom', 'padding-left', 'padding-right',
-  'margin', 'margin-top', 'margin-bottom', 'margin-left', 'margin-right',
+  'padding',
+  'padding-top',
+  'padding-bottom',
+  'padding-left',
+  'padding-right',
+  'margin',
+  'margin-top',
+  'margin-bottom',
+  'margin-left',
+  'margin-right',
 ];
 
 export const spacingGrid: LayoutRule = {
@@ -41,14 +49,18 @@ export const spacingGrid: LayoutRule = {
     }
 
     if (violations.length > 0) {
-      const samples = violations.slice(0, 5).map(v => `${v.prop}:${v.value}px`).join(', ');
+      const samples = violations
+        .slice(0, 5)
+        .map((v) => `${v.prop}:${v.value}px`)
+        .join(', ');
       issues.push({
         ruleId: this.id,
         severity: this.defaultSeverity,
         engine: 'layout',
         slideIndex: ctx.slideIndex,
         message: `发现 ${violations.length} 处间距值不符合 8px 网格系统（容差±2px），例如: ${samples}`,
-        fixSuggestion: '将 padding/margin 值调整为最近的 8 的倍数（如 8px、16px、24px、32px），以保持视觉节奏一致',
+        fixSuggestion:
+          '将 padding/margin 值调整为最近的 8 的倍数（如 8px、16px、24px、32px），以保持视觉节奏一致',
         fixable: false,
         metadata: { violationCount: violations.length, violations: violations.slice(0, 10) },
       });

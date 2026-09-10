@@ -4,8 +4,21 @@ import type { OverlapRecord } from './types';
 export async function detectOverlap(page: Page): Promise<OverlapRecord[]> {
   return page.evaluate(() => {
     const BLOCK_TAGS = new Set([
-      'div', 'section', 'article', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-      'ul', 'ol', 'li', 'img', 'table',
+      'div',
+      'section',
+      'article',
+      'p',
+      'h1',
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
+      'ul',
+      'ol',
+      'li',
+      'img',
+      'table',
     ]);
     const DECORATIVE_PATTERN = /(decoration|decorative|ornament|bg|background)/i;
 

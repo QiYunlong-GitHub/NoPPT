@@ -7,11 +7,7 @@
  * 配合 white-space: pre-wrap，多行文本通过 \n 分隔。
  * 纯文本计算逻辑委托给 listFormatting.ts。
  */
-import {
-  buildListReplacementText,
-  buildStyleSwapText,
-  type ListType,
-} from './listFormatting';
+import { buildListReplacementText, buildStyleSwapText, type ListType } from './listFormatting';
 
 export type { ListType };
 
@@ -45,10 +41,7 @@ function replaceRangeText(range: Range, newText: string): void {
   const startNode = range.startContainer;
   const endNode = range.endContainer;
 
-  if (
-    startNode === endNode &&
-    startNode.nodeType === Node.TEXT_NODE
-  ) {
+  if (startNode === endNode && startNode.nodeType === Node.TEXT_NODE) {
     const textNode = startNode as Text;
     const start = range.startOffset;
     const end = range.endOffset;

@@ -35,7 +35,11 @@ type ToolResult = {
   isError?: boolean;
 };
 
-type ToolHandler = (args: Record<string, unknown>, auth: McpAuth, ctx: McpContext) => Promise<Record<string, unknown>>;
+type ToolHandler = (
+  args: Record<string, unknown>,
+  auth: McpAuth,
+  ctx: McpContext,
+) => Promise<Record<string, unknown>>;
 
 const STYLE_ENUM = ['business', 'tech', 'academic', 'creative'] as const;
 const COLOR_THEME_ENUM = ['blue', 'purple', 'green', 'orange', 'teal', 'gray'] as const;
@@ -127,12 +131,18 @@ function fromZod(err: z.ZodError): McpError {
     return new McpError('E3001');
   }
   if (code === 'invalid_type' && !first?.message?.includes('undefined')) {
-    return new McpError('E3005', undefined, { detail: `${field || 'body'} ${first?.message || ''}`.trim() });
+    return new McpError('E3005', undefined, {
+      detail: `${field || 'body'} ${first?.message || ''}`.trim(),
+    });
   }
   if (code === 'too_big' || code === 'too_small' || code === 'invalid_value') {
-    return new McpError('E3002', undefined, { detail: `${field || 'body'} ${first?.message || ''}`.trim() });
+    return new McpError('E3002', undefined, {
+      detail: `${field || 'body'} ${first?.message || ''}`.trim(),
+    });
   }
-  return new McpError('E3005', undefined, { detail: `${field || 'body'} ${first?.message || ''}`.trim() });
+  return new McpError('E3005', undefined, {
+    detail: `${field || 'body'} ${first?.message || ''}`.trim(),
+  });
 }
 
 function parseArgs<T extends z.ZodTypeAny>(schema: T, raw: unknown): z.infer<T> {
@@ -140,8 +150,6 @@ function parseArgs<T extends z.ZodTypeAny>(schema: T, raw: unknown): z.infer<T> 
   if (!res.success) throw fromZod(res.error);
   return res.data;
 }
-
-
 
 @Injectable()
 @Controller('mcp')
@@ -194,17 +202,25 @@ export class McpController {
     try {
       await server.connect(transport);
       // SDK 期望 Node 原生 IncomingMessage；Express 的 Request 在结构上兼容
-      await transport.handleRequest(req as unknown as IncomingMessage, res as unknown as ServerResponse);
+      await transport.handleRequest(
+        req as unknown as IncomingMessage,
+        res as unknown as ServerResponse,
+      );
     } catch (e) {
       this.logger.error(`MCP 请求处理失败：${e instanceof Error ? e.message : String(e)}`);
       if (!res.headersSent)
-        res.status(500).json({ error: 'internal_error', message: translate('MCP 请求处理失败', locale) });
+        res
+          .status(500)
+          .json({ error: 'internal_error', message: translate('MCP 请求处理失败', locale) });
     }
   }
 
   /** 组装每请求的 MCP Server 与 8 个工具。 */
   private createServer(auth: McpAuth, ctx: McpContext, locale: Locale): Server {
-    const server = new Server({ name: 'noppt-mcp', version: '1.0.0' }, { capabilities: { tools: {} } });
+    const server = new Server(
+      { name: 'noppt-mcp', version: '1.0.0' },
+      { capabilities: { tools: {} } },
+    );
 
     const handlers: Record<string, { bucket?: 'generate' | 'edit'; run: ToolHandler }> = {
       noppt_generate: { bucket: 'generate', run: (args) => this.generate(args, auth, ctx) },
@@ -217,7 +233,9 @@ export class McpController {
       noppt_prepare_outline_draft: { run: (args) => this.prepareOutlineDraft(args, ctx) },
     };
 
-    server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: this.toolDefinitions() }));
+    server.setRequestHandler(ListToolsRequestSchema, async () => ({
+      tools: this.toolDefinitions(),
+    }));
 
     server.setRequestHandler(CallToolRequestSchema, async (request): Promise<ToolResult> => {
       const name = String(request.params?.name || '');
@@ -255,9 +273,20 @@ export class McpController {
           type: 'object',
           required: ['topic'],
           properties: {
-            topic: { type: 'string', maxLength: 500, description: '演示主题（仅主题，不含素材全文）' },
-            referenceText: { type: 'string', maxLength: 20000, description: 'RAG 文本素材（知识库/文件/搜索整理稿）' },
-            referenceHtml: { type: 'string', description: '版式/视觉参考 HTML（内联），非内容素材' },
+            topic: {
+              type: 'string',
+              maxLength: 500,
+              description: '演示主题（仅主题，不含素材全文）',
+            },
+            referenceText: {
+              type: 'string',
+              maxLength: 20000,
+              description: 'RAG 文本素材（知识库/文件/搜索整理稿）',
+            },
+            referenceHtml: {
+              type: 'string',
+              description: '版式/视觉参考 HTML（内联），非内容素材',
+            },
             referenceImage: { type: 'string', description: '参考图 data URL 或 http(s) URL' },
             slideCount: { type: 'integer', minimum: 1, maximum: MAX_SLIDES },
             style: { type: 'string', enum: [...STYLE_ENUM] },
@@ -271,7 +300,8 @@ export class McpController {
       },
       {
         name: 'noppt_get_presentation',
-        description: '轮询异步任务状态（generate / edit_slide / edit_element / edit_global 通用）。',
+        description:
+          '轮询异步任务状态（generate / edit_slide / edit_element / edit_global 通用）。',
         inputSchema: {
           type: 'object',
           required: ['jobId'],
@@ -299,7 +329,8 @@ export class McpController {
       },
       {
         name: 'noppt_edit_element',
-        description: '按 elements[elementIndex].selector 定位并编辑单个元素。selector 缺失或匹配失败直接报错且不做任何写操作。',
+        description:
+          '按 elements[elementIndex].selector 定位并编辑单个元素。selector 缺失或匹配失败直接报错且不做任何写操作。',
         inputSchema: {
           type: 'object',
           required: ['presentationId', 'slideIndex', 'elementIndex', 'userRequest'],
@@ -329,7 +360,11 @@ export class McpController {
       {
         name: 'noppt_export_html',
         description: '导出自包含 HTML（资源内联 data URL，可离线打开）。',
-        inputSchema: { type: 'object', required: ['presentationId'], properties: { presentationId: { type: 'string' } } },
+        inputSchema: {
+          type: 'object',
+          required: ['presentationId'],
+          properties: { presentationId: { type: 'string' } },
+        },
       },
       {
         name: 'noppt_list_templates',
@@ -351,14 +386,23 @@ export class McpController {
           properties: {
             topic: { type: 'string', maxLength: 500, description: '自拟的演示主题（≤500 字）' },
             referenceText: { type: 'string', description: 'RAG / 对话上下文整理出的权威素材文本' },
-            referenceSource: { type: 'string', maxLength: 100, description: '素材来源标识，如「企业知识库 / RAG」，仅前端展示' },
+            referenceSource: {
+              type: 'string',
+              maxLength: 100,
+              description: '素材来源标识，如「企业知识库 / RAG」，仅前端展示',
+            },
             slideCount: { type: 'integer', minimum: 1, maximum: MAX_SLIDES },
             style: { type: 'string', enum: [...STYLE_ENUM] },
             audience: { type: 'string', maxLength: 200 },
             colorTheme: { type: 'string', enum: [...COLOR_THEME_ENUM] },
             fontFamily: { type: 'string', enum: ['sans', 'serif', 'mono'] },
             iconStyle: { type: 'string', maxLength: 50 },
-            mode: { type: 'string', enum: ['auto', 'guided'], default: 'auto', description: '配置页预选的生成模式，默认全自动' },
+            mode: {
+              type: 'string',
+              enum: ['auto', 'guided'],
+              default: 'auto',
+              description: '配置页预选的生成模式，默认全自动',
+            },
           },
         },
       },
@@ -367,19 +411,34 @@ export class McpController {
 
   // ——————————————————————————— 工具实现 ———————————————————————————
 
-  private async generate(rawArgs: Record<string, unknown>, auth: McpAuth, ctx: McpContext): Promise<Record<string, unknown>> {
+  private async generate(
+    rawArgs: Record<string, unknown>,
+    auth: McpAuth,
+    ctx: McpContext,
+  ): Promise<Record<string, unknown>> {
     const args = parseArgs(GenerateArgsSchema, rawArgs);
     const env = readMcpEnv();
 
     // 素材大小校验 + referenceText 硬截断（规格 2.5.8）
-    assertReferenceSizes({ referenceHtml: args.referenceHtml, referenceImage: args.referenceImage }, env);
-    const { referenceText, truncated } = truncateReferenceText(args.referenceText, env.maxRefTextChars);
+    assertReferenceSizes(
+      { referenceHtml: args.referenceHtml, referenceImage: args.referenceImage },
+      env,
+    );
+    const { referenceText, truncated } = truncateReferenceText(
+      args.referenceText,
+      env.maxRefTextChars,
+    );
 
-    const jobId = this.queue.enqueue('generate', ctx, {
-      ...args,
-      referenceText,
-      truncated,
-    }, async (jobCtx, jobArgs, jobIdInQueue) => this.runGenerate(jobCtx, jobArgs, jobIdInQueue));
+    const jobId = this.queue.enqueue(
+      'generate',
+      ctx,
+      {
+        ...args,
+        referenceText,
+        truncated,
+      },
+      async (jobCtx, jobArgs, jobIdInQueue) => this.runGenerate(jobCtx, jobArgs, jobIdInQueue),
+    );
 
     const base = { jobId, tool: 'generate' as const, truncated };
     if (args.wait) {
@@ -390,7 +449,11 @@ export class McpController {
   }
 
   /** 生成任务主体：解析模型配置 → 调 AiService（scoped）→ 写审计。 */
-  private async runGenerate(ctx: McpContext, args: Record<string, unknown>, jobId: string): Promise<Record<string, unknown>> {
+  private async runGenerate(
+    ctx: McpContext,
+    args: Record<string, unknown>,
+    jobId: string,
+  ): Promise<Record<string, unknown>> {
     const startedAt = Date.now();
     const tool = 'generate';
     const referenceText = typeof args.referenceText === 'string' ? args.referenceText : undefined;
@@ -412,7 +475,10 @@ export class McpController {
 
     try {
       const modelConfigs = await this.resolveStageModelConfigs(ctx);
-      const { imageConfig, imagePreference, degraded } = await this.resolveImageConfig(ctx, args.imageEnabled !== false);
+      const { imageConfig, imagePreference, degraded } = await this.resolveImageConfig(
+        ctx,
+        args.imageEnabled !== false,
+      );
       // M8：`referenceText` 由 `GeneratePresentationRequest` 新增字段承载（见 ai.service.ts）。
       const generateRequest: GeneratePresentationRequest & { referenceText?: string } = {
         topic: String(args.topic),
@@ -438,10 +504,14 @@ export class McpController {
         // 轮询结果同样回传截断标记（规格 2.5.8：超长截断需对调用方可见）
         truncated: !!args.truncated,
       };
-      await this.auditFinish(ctx, jobId, tool, startedAt, 'done', { presentationId: presentation.id });
+      await this.auditFinish(ctx, jobId, tool, startedAt, 'done', {
+        presentationId: presentation.id,
+      });
       return result;
     } catch (e) {
-      await this.auditFinish(ctx, jobId, tool, startedAt, 'failed', { error: toMcpError(e).toBody().error });
+      await this.auditFinish(ctx, jobId, tool, startedAt, 'failed', {
+        error: toMcpError(e).toBody().error,
+      });
       throw e;
     }
   }
@@ -450,7 +520,10 @@ export class McpController {
    * `noppt_prepare_outline_draft`：只落草稿并返回深链，**绝不触发 LLM、不生成演示**。
    * 返回的 `note` 明确提示「仅备料，未生成」，避免模型误判为已产出成片。
    */
-  private async prepareOutlineDraft(rawArgs: Record<string, unknown>, ctx: McpContext): Promise<Record<string, unknown>> {
+  private async prepareOutlineDraft(
+    rawArgs: Record<string, unknown>,
+    ctx: McpContext,
+  ): Promise<Record<string, unknown>> {
     const args = parseArgs(PrepareDraftArgsSchema, rawArgs);
     const startedAt = Date.now();
 
@@ -501,7 +574,11 @@ export class McpController {
     };
   }
 
-  private async getPresentation(rawArgs: Record<string, unknown>, _auth: McpAuth, _ctx: McpContext): Promise<Record<string, unknown>> {
+  private async getPresentation(
+    rawArgs: Record<string, unknown>,
+    _auth: McpAuth,
+    _ctx: McpContext,
+  ): Promise<Record<string, unknown>> {
     const args = parseArgs(GetArgsSchema, rawArgs);
     let job = this.queue.get(args.jobId as string);
     if (!job) throw new McpError('E5006', undefined, { jobId: String(args.jobId) });
@@ -560,26 +637,47 @@ export class McpController {
 
   // ——————————————————————————— 编辑工具（M6） ———————————————————————————
 
-  private async editSlide(rawArgs: Record<string, unknown>, auth: McpAuth, ctx: McpContext): Promise<Record<string, unknown>> {
+  private async editSlide(
+    rawArgs: Record<string, unknown>,
+    auth: McpAuth,
+    ctx: McpContext,
+  ): Promise<Record<string, unknown>> {
     const args = parseArgs(EditSlideArgsSchema, rawArgs);
-    const jobId = this.queue.enqueue('edit_slide', ctx, args as Record<string, unknown>, async (jobCtx, jobArgs, id) =>
-      this.runEdit('edit_slide', jobCtx, jobArgs, id),
+    const jobId = this.queue.enqueue(
+      'edit_slide',
+      ctx,
+      args as Record<string, unknown>,
+      async (jobCtx, jobArgs, id) => this.runEdit('edit_slide', jobCtx, jobArgs, id),
     );
     return await this.finishOrQueue(jobId, args.wait !== false);
   }
 
-  private async editElement(rawArgs: Record<string, unknown>, auth: McpAuth, ctx: McpContext): Promise<Record<string, unknown>> {
+  private async editElement(
+    rawArgs: Record<string, unknown>,
+    auth: McpAuth,
+    ctx: McpContext,
+  ): Promise<Record<string, unknown>> {
     const args = parseArgs(EditElementArgsSchema, rawArgs);
-    const jobId = this.queue.enqueue('edit_element', ctx, args as Record<string, unknown>, async (jobCtx, jobArgs, id) =>
-      this.runEdit('edit_element', jobCtx, jobArgs, id),
+    const jobId = this.queue.enqueue(
+      'edit_element',
+      ctx,
+      args as Record<string, unknown>,
+      async (jobCtx, jobArgs, id) => this.runEdit('edit_element', jobCtx, jobArgs, id),
     );
     return await this.finishOrQueue(jobId, args.wait !== false);
   }
 
-  private async editGlobal(rawArgs: Record<string, unknown>, auth: McpAuth, ctx: McpContext): Promise<Record<string, unknown>> {
+  private async editGlobal(
+    rawArgs: Record<string, unknown>,
+    auth: McpAuth,
+    ctx: McpContext,
+  ): Promise<Record<string, unknown>> {
     const args = parseArgs(EditGlobalArgsSchema, rawArgs);
-    const jobId = this.queue.enqueue('edit_global', ctx, args as Record<string, unknown>, async (jobCtx, jobArgs, id) =>
-      this.runEdit('edit_global', jobCtx, jobArgs, id),
+    const jobId = this.queue.enqueue(
+      'edit_global',
+      ctx,
+      args as Record<string, unknown>,
+      async (jobCtx, jobArgs, id) => this.runEdit('edit_global', jobCtx, jobArgs, id),
     );
     return await this.finishOrQueue(jobId, args.wait !== false);
   }
@@ -590,12 +688,23 @@ export class McpController {
     return this.jobPayload(job);
   }
 
-  private async runEdit(tool: McpJobTool, ctx: McpContext, args: Record<string, unknown>, jobId: string): Promise<Record<string, unknown>> {
+  private async runEdit(
+    tool: McpJobTool,
+    ctx: McpContext,
+    args: Record<string, unknown>,
+    jobId: string,
+  ): Promise<Record<string, unknown>> {
     const startedAt = Date.now();
     const presentationId = String(args.presentationId);
     await ctx.audit({
-      keyId: ctx.keyId, tenantId: ctx.tenantId, userKey: ctx.userKey, jobId, tool,
-      startedAt, status: 'running', presentationId,
+      keyId: ctx.keyId,
+      tenantId: ctx.tenantId,
+      userKey: ctx.userKey,
+      jobId,
+      tool,
+      startedAt,
+      status: 'running',
+      presentationId,
     });
 
     try {
@@ -652,7 +761,11 @@ export class McpController {
       } else {
         const htmlPresentation: HTMLPresentation = {
           title: presentation.title,
-          slides: presentation.slides.map((s) => ({ title: s.title, html: s.html, notes: s.notes })),
+          slides: presentation.slides.map((s) => ({
+            title: s.title,
+            html: s.html,
+            notes: s.notes,
+          })),
           width: presentation.width,
           height: presentation.height,
         };
@@ -688,7 +801,11 @@ export class McpController {
           presentationId,
           editResult: {
             slideCount: presentation.slides.length,
-            slides: presentation.slides.map((s, i) => ({ index: i, title: s.title, htmlLength: s.html.length })),
+            slides: presentation.slides.map((s, i) => ({
+              index: i,
+              title: s.title,
+              htmlLength: s.html.length,
+            })),
           },
         };
       }
@@ -696,7 +813,10 @@ export class McpController {
       await this.auditFinish(ctx, jobId, tool, startedAt, 'done', { presentationId });
       return result;
     } catch (e) {
-      await this.auditFinish(ctx, jobId, tool, startedAt, 'failed', { presentationId, error: toMcpError(e).toBody().error });
+      await this.auditFinish(ctx, jobId, tool, startedAt, 'failed', {
+        presentationId,
+        error: toMcpError(e).toBody().error,
+      });
       throw e;
     }
   }
@@ -708,7 +828,10 @@ export class McpController {
    * 读不到一律按「不属于当前作用域」处理（E4001）——presentationId 为 uuid，
    * 作用域目录天然隔离，无需额外比对（规格 2.6 / E4001）。
    */
-  private async loadScopedPresentation(ctx: McpContext, presentationId: string): Promise<Presentation> {
+  private async loadScopedPresentation(
+    ctx: McpContext,
+    presentationId: string,
+  ): Promise<Presentation> {
     const presentation = await ctx.presentationService.get(presentationId);
     if (!presentation) {
       throw new McpError('E4001', undefined, { id: presentationId });
@@ -720,7 +843,10 @@ export class McpController {
     if (typeof requested === 'number' && Number.isFinite(requested)) {
       if (requested < 0 || requested >= presentation.slides.length) {
         // 动态文案（含页数），保留原始中文（en 环境回退中文）
-        throw new McpError('E5002', `slideIndex ${requested} 越界（共 ${presentation.slides.length} 页）`);
+        throw new McpError(
+          'E5002',
+          `slideIndex ${requested} 越界（共 ${presentation.slides.length} 页）`,
+        );
       }
       return requested;
     }
@@ -756,14 +882,22 @@ export class McpController {
     imageEnabled: boolean,
   ): Promise<{ imageConfig: Record<string, unknown>; imagePreference: string; degraded: boolean }> {
     if (!imageEnabled) {
-      return { imageConfig: { enabled: false, useDefaultProvider: true }, imagePreference: 'none', degraded: false };
+      return {
+        imageConfig: { enabled: false, useDefaultProvider: true },
+        imagePreference: 'none',
+        degraded: false,
+      };
     }
     const config = await ctx.configService.getConfig();
     const ig = config?.imageGeneration;
     const providerConfig = ig?.providers?.[ig.activeProvider];
     const model = providerConfig?.models?.[0];
     if (!ig?.enabled || !providerConfig || !model) {
-      return { imageConfig: { enabled: false, useDefaultProvider: true }, imagePreference: 'none', degraded: true };
+      return {
+        imageConfig: { enabled: false, useDefaultProvider: true },
+        imagePreference: 'none',
+        degraded: true,
+      };
     }
     const size = model.sizes?.[0];
     return {
@@ -773,7 +907,11 @@ export class McpController {
         provider: ig.activeProvider,
         model: model.modelName,
         size: size ? (`${size.width}x${size.height}` as ImageSize) : undefined,
-        modelConfig: { provider: ig.activeProvider, apiKey: providerConfig.apiKey || '', baseUrl: providerConfig.baseUrl || '' },
+        modelConfig: {
+          provider: ig.activeProvider,
+          apiKey: providerConfig.apiKey || '',
+          baseUrl: providerConfig.baseUrl || '',
+        },
       },
       imagePreference: 'content-only',
       degraded: false,

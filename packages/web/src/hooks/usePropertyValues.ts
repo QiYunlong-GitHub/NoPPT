@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { PropertyDescriptor } from '@/constants/propertyDescriptors';
-import { readStyleValue, writeStyleValue, parseNumberValue, formatNumberValue } from '@/utils/styleProperties';
+import {
+  readStyleValue,
+  writeStyleValue,
+  parseNumberValue,
+  formatNumberValue,
+} from '@/utils/styleProperties';
 
 export interface UsePropertyValuesResult {
   values: Record<string, string>;
@@ -63,37 +68,46 @@ export function usePropertyValues(
     readValues();
   }, [readValues]);
 
-  const setValue = useCallback((key: string, value: string) => {
-    if (!selectedElements || selectedElements.length === 0) return;
+  const setValue = useCallback(
+    (key: string, value: string) => {
+      if (!selectedElements || selectedElements.length === 0) return;
 
-    selectedElements.forEach((el) => {
-      writeStyleValue(el, key, value);
-    });
+      selectedElements.forEach((el) => {
+        writeStyleValue(el, key, value);
+      });
 
-    setValues((prev) => ({ ...prev, [key]: value }));
-    setMixedKeys((prev) => {
-      if (!prev.has(key)) return prev;
-      const next = new Set(prev);
-      next.delete(key);
-      return next;
-    });
+      setValues((prev) => ({ ...prev, [key]: value }));
+      setMixedKeys((prev) => {
+        if (!prev.has(key)) return prev;
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
 
-    onChangeRef.current?.();
-  }, [selectedElements]);
+      onChangeRef.current?.();
+    },
+    [selectedElements],
+  );
 
-  const setNumberValue = useCallback((key: string, num: number) => {
-    const descriptor = descriptorsRef.current.find((d) => d.key === key);
-    const unit = descriptor?.unit ?? 'px';
-    const formatted = formatNumberValue(num, unit);
-    setValue(key, formatted);
-  }, [setValue]);
+  const setNumberValue = useCallback(
+    (key: string, num: number) => {
+      const descriptor = descriptorsRef.current.find((d) => d.key === key);
+      const unit = descriptor?.unit ?? 'px';
+      const formatted = formatNumberValue(num, unit);
+      setValue(key, formatted);
+    },
+    [setValue],
+  );
 
-  const getNumber = useCallback((key: string): number => {
-    const raw = values[key];
-    if (!raw) return 0;
-    const descriptor = descriptorsRef.current.find((d) => d.key === key);
-    return parseNumberValue(raw, descriptor?.unit ?? 'px');
-  }, [values]);
+  const getNumber = useCallback(
+    (key: string): number => {
+      const raw = values[key];
+      if (!raw) return 0;
+      const descriptor = descriptorsRef.current.find((d) => d.key === key);
+      return parseNumberValue(raw, descriptor?.unit ?? 'px');
+    },
+    [values],
+  );
 
   return {
     values,

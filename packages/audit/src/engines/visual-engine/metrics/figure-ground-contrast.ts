@@ -1,10 +1,6 @@
 import type { Page } from 'playwright-core';
 import type { ImageDataLike } from '../png-decoder';
-import {
-  contrastRatio,
-  normalizeContrastScore,
-  relativeLuminance,
-} from './color-utils';
+import { contrastRatio, normalizeContrastScore, relativeLuminance } from './color-utils';
 
 export interface GridContrastResult {
   mean: number;
@@ -104,7 +100,7 @@ export function computeGridContrast(imageData: ImageDataLike, gridSize = 4): Gri
 function parseColorToRgb(color: string): { r: number; g: number; b: number } | null {
   const m = color.match(/rgba?\(([^)]+)\)/);
   if (!m) return null;
-  const parts = m[1].split(',').map(p => parseFloat(p.trim()));
+  const parts = m[1].split(',').map((p) => parseFloat(p.trim()));
   if (parts.length < 3) return null;
   return { r: parts[0], g: parts[1], b: parts[2] };
 }
@@ -120,13 +116,17 @@ export async function computeTextContrast(page: Page): Promise<TextContrastResul
       if (!text || text.length > 200) continue;
 
       const style = window.getComputedStyle(el);
-      if (style.display === 'none' || style.visibility === 'hidden' || parseFloat(style.opacity) === 0) {
+      if (
+        style.display === 'none' ||
+        style.visibility === 'hidden' ||
+        parseFloat(style.opacity) === 0
+      ) {
         continue;
       }
 
       const childText = Array.from(el.childNodes)
-        .filter(n => n.nodeType === Node.TEXT_NODE)
-        .map(n => (n.textContent || '').trim())
+        .filter((n) => n.nodeType === Node.TEXT_NODE)
+        .map((n) => (n.textContent || '').trim())
         .join('')
         .trim();
       if (!childText) continue;
@@ -137,7 +137,7 @@ export async function computeTextContrast(page: Page): Promise<TextContrastResul
         const bs = window.getComputedStyle(bgEl).backgroundColor;
         const m = bs.match(/rgba?\(([^)]+)\)/);
         if (m) {
-          const parts = m[1].split(',').map(p => parseFloat(p.trim()));
+          const parts = m[1].split(',').map((p) => parseFloat(p.trim()));
           const alpha = parts.length === 4 ? parts[3] : 1;
           if (alpha > 0.01) {
             bgColor = bs;

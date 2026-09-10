@@ -41,7 +41,9 @@ export interface DeckBuildResult {
 }
 
 function mimeOf(filePathOrUrl: string): string {
-  return MIME_BY_EXT[extname(filePathOrUrl.split('?')[0]).toLowerCase()] || 'application/octet-stream';
+  return (
+    MIME_BY_EXT[extname(filePathOrUrl.split('?')[0]).toLowerCase()] || 'application/octet-stream'
+  );
 }
 
 /** 把 `/data/**` 的公开 URL 还原成本地文件路径（支持作用域目录）。 */
@@ -140,22 +142,43 @@ export async function buildSelfContainedDeck(
   }
 
   const slidesMarkup = slideHtmlList
-    .map((html, i) => `<section class="slide${i === 0 ? ' is-active' : ''}" data-index="${i}">${html}</section>`)
+    .map(
+      (html, i) =>
+        `<section class="slide${i === 0 ? ' is-active' : ''}" data-index="${i}">${html}</section>`,
+    )
     .join('\n');
 
-  const html = renderShell({ title, width, height, slidesMarkup, total: slideHtmlList.length, lang });
+  const html = renderShell({
+    title,
+    width,
+    height,
+    slidesMarkup,
+    total: slideHtmlList.length,
+    lang,
+  });
   return { html, inlined, failed };
 }
 
 function escapeHtml(s: string): string {
-  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 /**
  * deck 外壳。**不使用模板字符串内嵌脚本**：脚本单独用普通字符串定义，
  * 避免 `${}` / 反引号与 HTML 模板冲突。
  */
-function renderShell(ctx: { title: string; width: number; height: number; slidesMarkup: string; total: number; lang: Locale }): string {
+function renderShell(ctx: {
+  title: string;
+  width: number;
+  height: number;
+  slidesMarkup: string;
+  total: number;
+  lang: Locale;
+}): string {
   const script = [
     '(function(){',
     'var W=' + ctx.width + ',H=' + ctx.height + ',TOTAL=' + ctx.total + ';',
@@ -233,7 +256,9 @@ function renderShell(ctx: { title: string; width: number; height: number; slides
     '</style>',
     '</head>',
     '<body>',
-    '<div class="deck-head"><span class="badge">只读 · Hermes 产物</span><span>' + ctx.title + '</span></div>',
+    '<div class="deck-head"><span class="badge">只读 · Hermes 产物</span><span>' +
+      ctx.title +
+      '</span></div>',
     ctx.total > 0
       ? '<div id="stage">' + ctx.slidesMarkup + '</div>'
       : '<div class="deck-empty">该演示暂无可展示的页面</div>',

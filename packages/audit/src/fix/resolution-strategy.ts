@@ -18,11 +18,11 @@ export class ResolutionStrategy {
     config: { autoFix: boolean; maxRetries: number; currentRetry?: number },
   ): ResolutionDecision {
     const fixableIssues = report.issues.filter(
-      i => i.fixable && (i.severity === 'error' || i.severity === 'warn'),
+      (i) => i.fixable && (i.severity === 'error' || i.severity === 'warn'),
     );
-    const unfixableErrors = report.issues.filter(i => !i.fixable && i.severity === 'error');
-    const warnIssues = report.issues.filter(i => i.severity === 'warn' && !i.fixable);
-    const infoIssues = report.issues.filter(i => i.severity === 'info');
+    const unfixableErrors = report.issues.filter((i) => !i.fixable && i.severity === 'error');
+    const warnIssues = report.issues.filter((i) => i.severity === 'warn' && !i.fixable);
+    const infoIssues = report.issues.filter((i) => i.severity === 'info');
 
     const retries = config.currentRetry ?? 0;
     const canRegenerate = retries < config.maxRetries;

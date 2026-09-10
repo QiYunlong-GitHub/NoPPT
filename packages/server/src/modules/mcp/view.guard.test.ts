@@ -17,9 +17,12 @@ describe('M7 ViewGuard', () => {
     ({ ip: '127.0.0.1', query: {}, headers: {}, ...over }) as never;
 
   describe('loopback 判定', () => {
-    it.each(['127.0.0.1', '::1', '::ffff:127.0.0.1', 'localhost', '127.0.1.5'])('放行回环地址 %s', (ip) => {
-      expect(isLoopbackRequest({ ip } as never)).toBe(true);
-    });
+    it.each(['127.0.0.1', '::1', '::ffff:127.0.0.1', 'localhost', '127.0.1.5'])(
+      '放行回环地址 %s',
+      (ip) => {
+        expect(isLoopbackRequest({ ip } as never)).toBe(true);
+      },
+    );
 
     it.each(['192.168.1.10', '10.0.0.5', '8.8.8.8', ''])('拒绝非回环地址 %s', (ip) => {
       expect(isLoopbackRequest({ ip } as never)).toBe(false);
@@ -45,11 +48,15 @@ describe('M7 ViewGuard', () => {
     });
 
     it('query 携带正确 token → 放行（即使非本机）', () => {
-      expect(checkViewAccess(req({ ip: '203.0.113.9', query: { token: 'secret-token' } })).ok).toBe(true);
+      expect(checkViewAccess(req({ ip: '203.0.113.9', query: { token: 'secret-token' } })).ok).toBe(
+        true,
+      );
     });
 
     it('X-View-Token 头携带正确 token → 放行', () => {
-      expect(checkViewAccess(req({ ip: '203.0.113.9', headers: { 'x-view-token': 'secret-token' } })).ok).toBe(true);
+      expect(
+        checkViewAccess(req({ ip: '203.0.113.9', headers: { 'x-view-token': 'secret-token' } })).ok,
+      ).toBe(true);
     });
 
     it('token 错误 → 403', () => {

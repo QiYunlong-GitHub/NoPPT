@@ -38,19 +38,22 @@ export const gridNeedsAlignContent: LayoutRule = {
   },
 
   fix(html: string): string {
-    return html.replace(/<([a-zA-Z][a-zA-Z0-9]*)\b([^>]*)>/g, (match: string, tag: string, attrs: string) => {
-      if (/\/\s*$/.test(attrs)) return match;
-      const styleMatch = attrs.match(/style="([^"]*)"/i);
-      if (!styleMatch) return match;
-      const styleStr = styleMatch[1];
-      if (!/display\s*:\s*grid/i.test(styleStr)) return match;
-      if (hasStyleKey(styleStr, 'align-content')) return match;
+    return html.replace(
+      /<([a-zA-Z][a-zA-Z0-9]*)\b([^>]*)>/g,
+      (match: string, tag: string, attrs: string) => {
+        if (/\/\s*$/.test(attrs)) return match;
+        const styleMatch = attrs.match(/style="([^"]*)"/i);
+        if (!styleMatch) return match;
+        const styleStr = styleMatch[1];
+        if (!/display\s*:\s*grid/i.test(styleStr)) return match;
+        if (hasStyleKey(styleStr, 'align-content')) return match;
 
-      const styleMap = getStyleMap(styleStr);
-      styleMap['align-content'] = 'center';
-      const newStyle = stringifyStyleMap(styleMap);
-      const newAttrs = attrs.replace(/style="[^"]*"/i, `style="${newStyle}"`);
-      return `<${tag}${newAttrs}>`;
-    });
+        const styleMap = getStyleMap(styleStr);
+        styleMap['align-content'] = 'center';
+        const newStyle = stringifyStyleMap(styleMap);
+        const newAttrs = attrs.replace(/style="[^"]*"/i, `style="${newStyle}"`);
+        return `<${tag}${newAttrs}>`;
+      },
+    );
   },
 };

@@ -21,11 +21,39 @@ function visual(over: Partial<ReferenceVisualFeatures> = {}): ReferenceVisualFea
 
 function makeRva(over: Partial<ReferenceVisualAttributes> = {}): ReferenceVisualAttributes {
   const base = {
-    global: { uploaded: false, referenceImageUrl: undefined, referenceHtml: undefined, visual: visual(), style: {} as any, master: undefined },
+    global: {
+      uploaded: false,
+      referenceImageUrl: undefined,
+      referenceHtml: undefined,
+      visual: visual(),
+      style: {} as any,
+      master: undefined,
+    },
     byCategory: {
-      cover: { uploaded: true, referenceImageUrl: undefined, referenceHtml: undefined, visual: visual(), style: {} as any, master: undefined },
-      content: { uploaded: true, referenceImageUrl: undefined, referenceHtml: undefined, visual: visual(), style: {} as any, master: undefined },
-      summary: { uploaded: true, referenceImageUrl: undefined, referenceHtml: undefined, visual: visual(), style: {} as any, master: undefined },
+      cover: {
+        uploaded: true,
+        referenceImageUrl: undefined,
+        referenceHtml: undefined,
+        visual: visual(),
+        style: {} as any,
+        master: undefined,
+      },
+      content: {
+        uploaded: true,
+        referenceImageUrl: undefined,
+        referenceHtml: undefined,
+        visual: visual(),
+        style: {} as any,
+        master: undefined,
+      },
+      summary: {
+        uploaded: true,
+        referenceImageUrl: undefined,
+        referenceHtml: undefined,
+        visual: visual(),
+        style: {} as any,
+        master: undefined,
+      },
     },
   };
   return { ...base, ...over } as ReferenceVisualAttributes;
@@ -33,7 +61,12 @@ function makeRva(over: Partial<ReferenceVisualAttributes> = {}): ReferenceVisual
 
 describe('FR-0 normalizeBBox', () => {
   it('accepts a well-formed normalized bbox', () => {
-    expect(normalizeBBox({ x: 0.1, y: 0.2, w: 0.5, h: 0.3 })).toEqual({ x: 0.1, y: 0.2, w: 0.5, h: 0.3 });
+    expect(normalizeBBox({ x: 0.1, y: 0.2, w: 0.5, h: 0.3 })).toEqual({
+      x: 0.1,
+      y: 0.2,
+      w: 0.5,
+      h: 0.3,
+    });
   });
   it('rejects null / non-object', () => {
     expect(normalizeBBox(null)).toBeUndefined();
@@ -104,7 +137,10 @@ describe('FR-0 resolveHeroImageForPage', () => {
   });
   it('returns src + bbox when contentImageBBox present and valid', () => {
     const rva = makeRva();
-    rva.byCategory.summary.visual = visual({ imagery: 'photo', contentImageBBox: { x: 0.1, y: 0.2, w: 0.5, h: 0.3 } });
+    rva.byCategory.summary.visual = visual({
+      imagery: 'photo',
+      contentImageBBox: { x: 0.1, y: 0.2, w: 0.5, h: 0.3 },
+    });
     rva.byCategory.summary.referenceImageUrl = 'file:///sum.png';
     expect(resolveHeroImageForPage(rva, 'summary')).toEqual({
       src: 'file:///sum.png',

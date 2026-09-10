@@ -28,7 +28,9 @@ describe('M4 deck-builder', () => {
     }
   });
 
-  const makePresentation = (slides: Array<{ title: string; html: string; hidden?: boolean }>): Presentation =>
+  const makePresentation = (
+    slides: Array<{ title: string; html: string; hidden?: boolean }>,
+  ): Presentation =>
     ({
       id: 'p1',
       title: '季度汇报',
@@ -80,9 +82,24 @@ describe('M4 deck-builder', () => {
   });
 
   it('本地 /data 图片被内联成 data URL', async () => {
-    const imgDir = join(tmpRoot, 'data', 'tenants', 't1', 'users', 'u1', 'workspace', 'presentations', 'p1', 'assets', 'images');
+    const imgDir = join(
+      tmpRoot,
+      'data',
+      'tenants',
+      't1',
+      'users',
+      'u1',
+      'workspace',
+      'presentations',
+      'p1',
+      'assets',
+      'images',
+    );
     mkdirSync(imgDir, { recursive: true });
-    writeFileSync(join(imgDir, 'cover.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+    writeFileSync(
+      join(imgDir, 'cover.png'),
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    );
     const { html, inlined, failed } = await buildSelfContainedDeck(
       makePresentation([
         {
@@ -94,15 +111,25 @@ describe('M4 deck-builder', () => {
     expect(inlined).toBeGreaterThan(0);
     expect(failed).toBe(0);
     expect(html).toContain('data:image/png;base64,');
-    expect(html).not.toContain('/data/tenants/t1/users/u1/workspace/presentations/p1/assets/images/cover.png');
+    expect(html).not.toContain(
+      '/data/tenants/t1/users/u1/workspace/presentations/p1/assets/images/cover.png',
+    );
   });
 
   it('内联 style 中的 url() 背景图也被内联', async () => {
     const imgDir = join(tmpRoot, 'data', 'workspace', 'presentations', 'p2', 'assets', 'images');
     mkdirSync(imgDir, { recursive: true });
-    writeFileSync(join(imgDir, 'bg.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+    writeFileSync(
+      join(imgDir, 'bg.png'),
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    );
     const { html } = await buildSelfContainedDeck(
-      makePresentation([{ title: '背景', html: '<div style="background-image:url(/data/workspace/presentations/p2/assets/images/bg.png)">x</div>' }]),
+      makePresentation([
+        {
+          title: '背景',
+          html: '<div style="background-image:url(/data/workspace/presentations/p2/assets/images/bg.png)">x</div>',
+        },
+      ]),
     );
     expect(html).toContain('data:image/png;base64,');
   });
@@ -112,8 +139,7 @@ describe('M4 deck-builder', () => {
       makePresentation([
         {
           title: '危险',
-          html:
-            '<div><script>alert(1)</script><img src="x" onerror="alert(2)"><a href="javascript:alert(3)">link</a></div>',
+          html: '<div><script>alert(1)</script><img src="x" onerror="alert(2)"><a href="javascript:alert(3)">link</a></div>',
         },
       ]),
     );

@@ -35,7 +35,11 @@ function hasTripleCentering(style: string): boolean {
   return hasJC && hasAI && hasTA;
 }
 
-function classifyBranch(existingStyle: string, parsed: ReturnType<typeof parseStyleDeclarations>, styles: Record<string, string>): { ok8: boolean; parseFailed: boolean; branch: 'A' | 'B' | 'C' | 'none' } {
+function classifyBranch(
+  existingStyle: string,
+  parsed: ReturnType<typeof parseStyleDeclarations>,
+  styles: Record<string, string>,
+): { ok8: boolean; parseFailed: boolean; branch: 'A' | 'B' | 'C' | 'none' } {
   const has = (r: RegExp) => r.test(existingStyle);
   const ok8 =
     has(/(?:^|;)\s*width\s*:\s*100%\s*(?:;|$)/i) &&
@@ -43,13 +47,16 @@ function classifyBranch(existingStyle: string, parsed: ReturnType<typeof parseSt
     has(/(?:^|;)\s*overflow\s*:\s*hidden\s*(?:;|$)/i) &&
     has(/(?:^|;)\s*position\s*:\s*relative\s*(?:;|$)/i) &&
     has(/(?:^|;)\s*box-sizing\s*:\s*border-box\s*(?:;|$)/i) &&
-    has(/(?:^|;)\s*padding\s*:/i) && !/(?:^|;)\s*padding\s*:\s*0(?:px)?\s*(?:;|$)/i.test(existingStyle) &&
+    has(/(?:^|;)\s*padding\s*:/i) &&
+    !/(?:^|;)\s*padding\s*:\s*0(?:px)?\s*(?:;|$)/i.test(existingStyle) &&
     has(/(?:^|;)\s*display\s*:\s*flex\s*(?:;|$)/i) &&
     has(/(?:^|;)\s*flex-direction\s*:\s*(?:column|row)\s*(?:;|$)/i);
 
   // estimateDeclCount
   const estimateDeclCount = (() => {
-    let n = 1; let inQ: 0 | 1 | 2 = 0; let dep = 0;
+    let n = 1;
+    let inQ: 0 | 1 | 2 = 0;
+    let dep = 0;
     for (let k = 0; k < existingStyle.length; k++) {
       const c = existingStyle[k];
       if (dep === 0) {
@@ -57,19 +64,21 @@ function classifyBranch(existingStyle: string, parsed: ReturnType<typeof parseSt
         else if (c === '"' && inQ !== 1) inQ = inQ === 2 ? 0 : 2;
       }
       if (inQ === 0) {
-        if (c === '(') dep++; else if (c === ')') dep--;
+        if (c === '(') dep++;
+        else if (c === ')') dep--;
         else if (c === ';' && dep === 0) n++;
       }
     }
     return n;
   })();
   const est = estimateDeclCount;
-  const parseFailed = existingStyle
-    && parsed.length > 0
-    && (parsed.length < Math.ceil(est * 0.7)
-      || !(styles['display'] || '').trim()
-      || !(styles['width'] || '').trim()
-      || !(styles['height'] || '').trim());
+  const parseFailed =
+    existingStyle &&
+    parsed.length > 0 &&
+    (parsed.length < Math.ceil(est * 0.7) ||
+      !(styles['display'] || '').trim() ||
+      !(styles['width'] || '').trim() ||
+      !(styles['height'] || '').trim());
 
   let branch: 'A' | 'B' | 'C' | 'none' = 'none';
   if (existingStyle && ok8) branch = 'A';
@@ -79,7 +88,13 @@ function classifyBranch(existingStyle: string, parsed: ReturnType<typeof parseSt
   return { ok8, parseFailed, branch };
 }
 
-function analyzeBranch(html: string): { branch: 'A' | 'B' | 'C' | 'none'; ok8: boolean; parseFailed: boolean; layoutShouldCenter_initial: boolean; hasContentSign: boolean } {
+function analyzeBranch(html: string): {
+  branch: 'A' | 'B' | 'C' | 'none';
+  ok8: boolean;
+  parseFailed: boolean;
+  layoutShouldCenter_initial: boolean;
+  hasContentSign: boolean;
+} {
   const result = html.trim();
   const outerDivMatch = result.match(/^<div([^>]*)>([\s\S]*)<\/div>$/i);
   const attrs = outerDivMatch ? outerDivMatch![1] || '' : '';
@@ -171,7 +186,8 @@ describe('Task 5: slide-08 总结页居中三件套守卫 (centering guard)', ()
   it('TR-5.3: 仅有 h2 标题无 ul/li → 三件套应不出现（因 CONTENT_SIGN_RE 含 <h2，isCoverLike=false）。若出现则 CONTENT_SIGN_RE 守卫漏判需紧急修复。', () => {
     // 8 大特征全有，inner 仅含 <h2>（模拟无 bullet 的 summary 降级情况，用 mono 字体栈模拟完整 outer）
     const monoStack = "'JetBrains Mono', ui-monospace, 'Cascadia Code', monospace";
-    const h2OnlyHtml = `<div style="width:100%;height:100%;overflow:hidden;position:relative;box-sizing:border-box;padding:48px 64px;display:flex;flex-direction:column;background-color:#fff;font-family:${monoStack};">` +
+    const h2OnlyHtml =
+      `<div style="width:100%;height:100%;overflow:hidden;position:relative;box-sizing:border-box;padding:48px 64px;display:flex;flex-direction:column;background-color:#fff;font-family:${monoStack};">` +
       `<h2 style="font-size:48px;font-weight:700;">仅标题无列表</h2></div>`;
 
     const diag = analyzeBranch(h2OnlyHtml);
@@ -199,9 +215,9 @@ describe('Task 5: slide-08 总结页居中三件套守卫 (centering guard)', ()
   it('TR-5.1-C (Branch C 专项): h2+ul 强制进入 Map 分支 (ok8=false, parseFailed=false) → 三件套仍不应出现', () => {
     const monoStack = "'JetBrains Mono', ui-monospace, 'Cascadia Code', monospace";
     // 故意去掉 position:relative（ok8 的 8 大特征缺一）
-    const styleNoPosition =
-      `width:100%;height:100%;overflow:hidden;box-sizing:border-box;padding:48px 64px;display:flex;flex-direction:column;background-color:#fff;font-family:${monoStack}`;
-    const h2UlContent = `\n  <h2 style="font-size:48px;font-weight:700;">认识自然规律，提升全社会的气候韧性</h2>\n  <div style="flex:1;"><ul style="margin:0;padding-left:24px;">` +
+    const styleNoPosition = `width:100%;height:100%;overflow:hidden;box-sizing:border-box;padding:48px 64px;display:flex;flex-direction:column;background-color:#fff;font-family:${monoStack}`;
+    const h2UlContent =
+      `\n  <h2 style="font-size:48px;font-weight:700;">认识自然规律，提升全社会的气候韧性</h2>\n  <div style="flex:1;"><ul style="margin:0;padding-left:24px;">` +
       `<li>建立全球气候监测预警网络</li><li>加强农业基础设施抗灾能力</li></ul></div>\n`;
     const html = `<div style="${styleNoPosition}">${h2UlContent}</div>`;
 
@@ -233,8 +249,7 @@ describe('Task 5: slide-08 总结页居中三件套守卫 (centering guard)', ()
   it('TR-5.1-B (Branch B 专项): h2+ul 强制进入 parseFailed 分支 → 三件套仍不应出现', () => {
     const monoStack = "'JetBrains Mono', ui-monospace, 'Cascadia Code', monospace";
     // 故意缺 display 和 position（缺 display → parseFailed；缺 position → ok8=false）
-    const styleNoDisplay =
-      `width:100%;height:100%;overflow:hidden;box-sizing:border-box;padding:48px 64px;flex-direction:column;background-color:#fff;font-family:${monoStack}`;
+    const styleNoDisplay = `width:100%;height:100%;overflow:hidden;box-sizing:border-box;padding:48px 64px;flex-direction:column;background-color:#fff;font-family:${monoStack}`;
     const h2UlContent = `\n  <h2 style="font-size:48px;">总结标题</h2>\n  <ul><li>条目一</li><li>条目二</li></ul>\n`;
     const html = `<div style="${styleNoDisplay}">${h2UlContent}</div>`;
 

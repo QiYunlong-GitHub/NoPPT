@@ -1,5 +1,14 @@
 import type { Presentation } from '@noppt/core';
-import type { ModelConfig, StageModelConfigs, ModelRoutingConfig, PresentationPlan, DesignProposal, RenderedSlide, CritiqueConfig, LogConfig } from '@noppt/ai';
+import type {
+  ModelConfig,
+  StageModelConfigs,
+  ModelRoutingConfig,
+  PresentationPlan,
+  DesignProposal,
+  RenderedSlide,
+  CritiqueConfig,
+  LogConfig,
+} from '@noppt/ai';
 import { useSettingsStore } from '@/stores/settings';
 import { translate } from '@/i18n';
 
@@ -52,9 +61,7 @@ export interface AILogEntry {
 }
 
 // 开发环境直连后端 localhost:3001，绕过 Vite 代理（避免 Windows 下 http-proxy 转发大请求体时报 EACCES）
-const API_BASE = import.meta.env.DEV
-  ? 'http://localhost:3001/api'
-  : '/api';
+const API_BASE = import.meta.env.DEV ? 'http://localhost:3001/api' : '/api';
 
 /** 当前界面语言对应的 Accept-Language 头，使后端返回的错误文案跟随设置页语言。 */
 function localeHeaders(): Record<string, string> {
@@ -233,42 +240,71 @@ export const aiApi = {
     });
   },
 
-  generateFromPlan(data: GeneratePresentationParams & { plan: PresentationPlan }): Promise<Presentation> {
+  generateFromPlan(
+    data: GeneratePresentationParams & { plan: PresentationPlan },
+  ): Promise<Presentation> {
     return request<Presentation>('/ai/generate-from-plan', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
 
-  generateDesignProposals(data: GeneratePresentationParams & { plan: PresentationPlan; proposalCount?: number }): Promise<DesignProposal[]> {
+  generateDesignProposals(
+    data: GeneratePresentationParams & { plan: PresentationPlan; proposalCount?: number },
+  ): Promise<DesignProposal[]> {
     return request<DesignProposal[]>('/ai/design-proposals', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
 
-  renderSlides(data: GeneratePresentationParams & { plan: PresentationPlan; design: DesignProposal; startIndex?: number; endIndex?: number }): Promise<RenderedSlide[]> {
+  renderSlides(
+    data: GeneratePresentationParams & {
+      plan: PresentationPlan;
+      design: DesignProposal;
+      startIndex?: number;
+      endIndex?: number;
+    },
+  ): Promise<RenderedSlide[]> {
     return request<RenderedSlide[]>('/ai/render-slides', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
 
-  regenerateSlide(data: GeneratePresentationParams & { plan: PresentationPlan; design: DesignProposal; slideIndex: number }): Promise<RenderedSlide> {
+  regenerateSlide(
+    data: GeneratePresentationParams & {
+      plan: PresentationPlan;
+      design: DesignProposal;
+      slideIndex: number;
+    },
+  ): Promise<RenderedSlide> {
     return request<RenderedSlide>('/ai/regenerate-slide', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
 
-  assembleImages(data: GeneratePresentationParams & { plan: PresentationPlan; design: DesignProposal; slides: RenderedSlide[] }): Promise<RenderedSlide[]> {
+  assembleImages(
+    data: GeneratePresentationParams & {
+      plan: PresentationPlan;
+      design: DesignProposal;
+      slides: RenderedSlide[];
+    },
+  ): Promise<RenderedSlide[]> {
     return request<RenderedSlide[]>('/ai/assemble-images', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
 
-  finalizePresentation(data: GeneratePresentationParams & { plan: PresentationPlan; design: DesignProposal; slides: RenderedSlide[] }): Promise<Presentation> {
+  finalizePresentation(
+    data: GeneratePresentationParams & {
+      plan: PresentationPlan;
+      design: DesignProposal;
+      slides: RenderedSlide[];
+    },
+  ): Promise<Presentation> {
     return request<Presentation>('/ai/finalize', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -344,7 +380,11 @@ export const assetsApi = {
       body: formData,
     }).then((res) => res.json());
   },
-  remove(presentationId: string, type: 'image' | 'video', filename: string): Promise<{ success: boolean }> {
+  remove(
+    presentationId: string,
+    type: 'image' | 'video',
+    filename: string,
+  ): Promise<{ success: boolean }> {
     return request<{ success: boolean }>(`/assets/${presentationId}/${type}/${filename}`, {
       method: 'DELETE',
     });
@@ -389,9 +429,12 @@ export const draftApi = {
   /** 拉取草稿预填参数：`GET /api/drafts/:id?tenant&user&token`。 */
   async get(draftId: string, tenant: string, user: string, token: string): Promise<DraftPrefill> {
     const query = new URLSearchParams({ tenant, user, token });
-    const response = await fetch(`${API_BASE}/drafts/${encodeURIComponent(draftId)}?${query.toString()}`, {
-      headers: localeHeaders(),
-    });
+    const response = await fetch(
+      `${API_BASE}/drafts/${encodeURIComponent(draftId)}?${query.toString()}`,
+      {
+        headers: localeHeaders(),
+      },
+    );
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
       const kind =
@@ -448,16 +491,19 @@ export interface AppConfig {
     enabled: boolean;
     useDefaultApiKey: boolean;
     activeProvider: string;
-    providers: Record<string, {
-      apiKey: string;
-      baseUrl: string;
-      gatewayVendor?: string;
-      models: Array<{
-        modelName: string;
-        sizes: Array<{ width: number; height: number; label?: string }>;
-        pixelRanges?: Array<{ minPixels: number; maxPixels: number; label?: string }>;
-      }>;
-    }>;
+    providers: Record<
+      string,
+      {
+        apiKey: string;
+        baseUrl: string;
+        gatewayVendor?: string;
+        models: Array<{
+          modelName: string;
+          sizes: Array<{ width: number; height: number; label?: string }>;
+          pixelRanges?: Array<{ minPixels: number; maxPixels: number; label?: string }>;
+        }>;
+      }
+    >;
   };
 }
 

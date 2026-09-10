@@ -1,13 +1,41 @@
-import {
-  renderSvgIcon,
-  resolveIconByIndex,
-} from '@noppt/ai/templates';
+import { renderSvgIcon, resolveIconByIndex } from '@noppt/ai/templates';
 
-export type IconStyle = 'auto' | 'line' | 'filled' | 'numbered' | 'bullet' | 'lettered' | 'emoji' | 'none' | 'checkmark' | 'minimal';
+export type IconStyle =
+  | 'auto'
+  | 'line'
+  | 'filled'
+  | 'numbered'
+  | 'bullet'
+  | 'lettered'
+  | 'emoji'
+  | 'none'
+  | 'checkmark'
+  | 'minimal';
 
 const CHECK_SVG = `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M13 4L6.5 10.5L3 7" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const DASH_SVG = `<svg width="10" height="10" viewBox="0 0 10 10"><rect x="2" y="4.5" width="6" height="1.5" rx="0.75" fill="#9CA3AF"/></svg>`;
-const EMOJI_POOL = ['🎯','📊','⚡','🛡️','💡','🤝','🚀','📈','🔍','✨','🔥','⭐','🏆','🎨','💎','🌐','🔑','📱','💻','🔧'];
+const EMOJI_POOL = [
+  '🎯',
+  '📊',
+  '⚡',
+  '🛡️',
+  '💡',
+  '🤝',
+  '🚀',
+  '📈',
+  '🔍',
+  '✨',
+  '🔥',
+  '⭐',
+  '🏆',
+  '🎨',
+  '💎',
+  '🌐',
+  '🔑',
+  '📱',
+  '💻',
+  '🔧',
+];
 
 function renderLineSvg(pathIdx: number, size: number, color: string): string {
   const name = resolveIconByIndex(pathIdx);
@@ -53,7 +81,13 @@ function detectPrimaryColorFromElement(root: Element): string {
   return '#2563eb';
 }
 
-function makeListIcon(style: IconStyle, idx: number, primary: string, darker: string, isCompareLeft: boolean = false): string {
+function makeListIcon(
+  style: IconStyle,
+  idx: number,
+  primary: string,
+  darker: string,
+  isCompareLeft: boolean = false,
+): string {
   if (style === 'none') return '';
 
   if (isCompareLeft) {
@@ -93,7 +127,15 @@ function makeListIcon(style: IconStyle, idx: number, primary: string, darker: st
   }
 }
 
-function makeCircleIcon(size: number, fontSize: number, num: number, primary: string, darker: string, fontWeight: number = 700, shadowAlpha: string = '30'): string {
+function makeCircleIcon(
+  size: number,
+  fontSize: number,
+  num: number,
+  primary: string,
+  darker: string,
+  fontWeight: number = 700,
+  shadowAlpha: string = '30',
+): string {
   const grad = makeGradient(primary, darker);
   const shadowY = size > 44 ? 4 : 3;
   const shadowBlur = size > 44 ? 16 : 12;
@@ -101,7 +143,13 @@ function makeCircleIcon(size: number, fontSize: number, num: number, primary: st
   return `<span class="noppt-icon-marker" style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:${size}px;height:${size}px;border-radius:50%;background:${grad};box-shadow:${shadow};color:#fff;font-size:${fontSize}px;font-weight:${fontWeight};">${num}</span>`;
 }
 
-function makeBigBadgeIcon(style: IconStyle, idx: number, size: number, primary: string, darker: string): string {
+function makeBigBadgeIcon(
+  style: IconStyle,
+  idx: number,
+  size: number,
+  primary: string,
+  darker: string,
+): string {
   const iconSize = Math.round(size * 0.46);
   const radius = Math.round(size * 0.25);
   if (style === 'filled') {
@@ -116,7 +164,12 @@ function makeBigBadgeIcon(style: IconStyle, idx: number, size: number, primary: 
   return `<span class="noppt-icon-marker" style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:${size}px;height:${size}px;border-radius:${radius}px;background:${primary}14;color:${primary};">${renderLineSvg(idx, iconSize, primary)}</span>`;
 }
 
-function replaceIconsInContainer(container: Element, newStyle: IconStyle, primary?: string, startIdx: number = 0): { primary: string; count: number } {
+function replaceIconsInContainer(
+  container: Element,
+  newStyle: IconStyle,
+  primary?: string,
+  startIdx: number = 0,
+): { primary: string; count: number } {
   const detectedPrimary = primary || detectPrimaryColorFromElement(container);
   const darker = darkenColor(detectedPrimary, 20);
 
@@ -127,7 +180,10 @@ function replaceIconsInContainer(container: Element, newStyle: IconStyle, primar
     let nestedInReplaced = false;
     let parent: Element | null = ul.parentElement;
     while (parent && parent !== container) {
-      if (parent.tagName === 'UL') { nestedInReplaced = true; break; }
+      if (parent.tagName === 'UL') {
+        nestedInReplaced = true;
+        break;
+      }
       parent = parent.parentElement;
     }
     if (!nestedInReplaced) directUls.push(ul as HTMLUListElement);
@@ -136,11 +192,14 @@ function replaceIconsInContainer(container: Element, newStyle: IconStyle, primar
   directUls.forEach((ul) => {
     const lis = Array.from(ul.children).filter((el) => el.tagName === 'LI');
     const isCompareColumn = ul.closest('div[style*="border"]') !== null;
-    const isInCompareLeft = isCompareColumn && !ul.querySelector(':scope > li > span[style*="box-shadow"]');
+    const isInCompareLeft =
+      isCompareColumn && !ul.querySelector(':scope > li > span[style*="box-shadow"]');
 
     lis.forEach((li, idx) => {
       const liEl = li as HTMLElement;
-      const existingIcon = liEl.querySelector(':scope > span.noppt-icon-marker') || liEl.querySelector(':scope > span:first-child');
+      const existingIcon =
+        liEl.querySelector(':scope > span.noppt-icon-marker') ||
+        liEl.querySelector(':scope > span:first-child');
       const isLeftCompareItem = isInCompareLeft && existingIcon?.querySelector('svg rect');
 
       liEl.style.display = 'flex';
@@ -152,7 +211,13 @@ function replaceIconsInContainer(container: Element, newStyle: IconStyle, primar
       ul.style.listStyle = 'none';
       ul.style.paddingLeft = '0';
 
-      const newIconHtml = makeListIcon(newStyle, startIdx + idx, detectedPrimary, darker, !!isLeftCompareItem);
+      const newIconHtml = makeListIcon(
+        newStyle,
+        startIdx + idx,
+        detectedPrimary,
+        darker,
+        !!isLeftCompareItem,
+      );
 
       if (existingIcon) {
         if (newIconHtml) {
@@ -173,7 +238,9 @@ function replaceIconsInContainer(container: Element, newStyle: IconStyle, primar
   });
 
   let bigCircleCount = 0;
-  const allSpans = container.querySelectorAll('span.noppt-icon-marker, span[style*="border-radius:50%"]');
+  const allSpans = container.querySelectorAll(
+    'span.noppt-icon-marker, span[style*="border-radius:50%"]',
+  );
   const bigCircleSpans: HTMLElement[] = [];
   allSpans.forEach((span) => {
     const el = span as HTMLElement;
@@ -220,7 +287,15 @@ function replaceIconsInContainer(container: Element, newStyle: IconStyle, primar
     }
 
     const num = idx + 1;
-    const newSpanHtml = makeCircleIcon(targetSize, targetFontSize, num, detectedPrimary, darker, targetWeight, shadowAlpha);
+    const newSpanHtml = makeCircleIcon(
+      targetSize,
+      targetFontSize,
+      num,
+      detectedPrimary,
+      darker,
+      targetWeight,
+      shadowAlpha,
+    );
     span.outerHTML = newSpanHtml;
     bigCircleCount++;
   });
@@ -230,7 +305,10 @@ function replaceIconsInContainer(container: Element, newStyle: IconStyle, primar
 
 export function replaceIconsInHtml(html: string, newStyle: IconStyle): string {
   const parser = new DOMParser();
-  const doc = parser.parseFromString(`<!DOCTYPE html><html><body>${html}</body></html>`, 'text/html');
+  const doc = parser.parseFromString(
+    `<!DOCTYPE html><html><body>${html}</body></html>`,
+    'text/html',
+  );
   const container = doc.body;
 
   if (!container.firstElementChild) return html;
@@ -240,20 +318,34 @@ export function replaceIconsInHtml(html: string, newStyle: IconStyle): string {
   return container.innerHTML;
 }
 
-export function replaceIconsInElement(element: HTMLElement, newStyle: IconStyle, primary?: string): number {
-  const liveEl = (element.isConnected ? element : (document.getElementById(element.id) || element)) as HTMLElement;
+export function replaceIconsInElement(
+  element: HTMLElement,
+  newStyle: IconStyle,
+  primary?: string,
+): number {
+  const liveEl = (
+    element.isConnected ? element : document.getElementById(element.id) || element
+  ) as HTMLElement;
   if (!liveEl || !liveEl.isConnected) return 0;
   const { count } = replaceIconsInContainer(liveEl, newStyle, primary);
   return count;
 }
 
-export function replaceIconsInElements(elements: HTMLElement[], newStyle: IconStyle, primary?: string): number {
+export function replaceIconsInElements(
+  elements: HTMLElement[],
+  newStyle: IconStyle,
+  primary?: string,
+): number {
   if (elements.length === 0) return 0;
   const liveElements = elements
     .map((el) => (el.isConnected ? el : (document.getElementById(el.id) as HTMLElement | null)))
     .filter((el): el is HTMLElement => !!el && el.isConnected);
   if (liveElements.length === 0) return 0;
-  const detectedPrimary = primary || detectPrimaryColorFromElement(liveElements[0].closest('[data-slide-content="true"]') || liveElements[0]);
+  const detectedPrimary =
+    primary ||
+    detectPrimaryColorFromElement(
+      liveElements[0].closest('[data-slide-content="true"]') || liveElements[0],
+    );
   let total = 0;
   liveElements.forEach((el) => {
     const { count } = replaceIconsInContainer(el, newStyle, detectedPrimary, total);
@@ -264,7 +356,12 @@ export function replaceIconsInElements(elements: HTMLElement[], newStyle: IconSt
 
 function isPlainTextContainer(el: Element): boolean {
   if (el.tagName === 'UL' || el.tagName === 'OL') return false;
-  if (el.querySelector('ul, ol, table, img, svg, video, iframe, h1, h2, h3, button, input, select, textarea, .noppt-slide-image-element, .noppt-group-element')) return false;
+  if (
+    el.querySelector(
+      'ul, ol, table, img, svg, video, iframe, h1, h2, h3, button, input, select, textarea, .noppt-slide-image-element, .noppt-group-element',
+    )
+  )
+    return false;
   const text = (el.textContent || '').trim();
   if (!text) return false;
   return true;
@@ -286,7 +383,8 @@ function extractLinesFromContainer(el: HTMLElement): string[] {
   }
 
   const childBlocks = Array.from(el.children).filter(
-    (c) => (c.tagName === 'DIV' || c.tagName === 'P' || c.tagName === 'SPAN') && isPlainTextContainer(c)
+    (c) =>
+      (c.tagName === 'DIV' || c.tagName === 'P' || c.tagName === 'SPAN') && isPlainTextContainer(c),
   );
   if (childBlocks.length >= 2) {
     childBlocks.forEach((c) => {
@@ -335,7 +433,14 @@ export function findBestIconContainer(el: HTMLElement): HTMLElement {
   return best;
 }
 
-function rebuildElementWithIcons(el: HTMLElement, lines: string[], newStyle: IconStyle, primary: string, darker: string, globalIdx: number): HTMLUListElement {
+function rebuildElementWithIcons(
+  el: HTMLElement,
+  lines: string[],
+  newStyle: IconStyle,
+  primary: string,
+  darker: string,
+  globalIdx: number,
+): HTMLUListElement {
   const ul = document.createElement('ul');
   ul.style.listStyle = 'none';
   ul.style.paddingLeft = '0';
@@ -399,7 +504,9 @@ export function addIconsToElements(elements: HTMLElement[], newStyle: IconStyle)
     if (lines.length < 2) {
       const parent = best.parentElement;
       if (parent && parent !== slideEl) {
-        const siblings = Array.from(parent.children).filter((c) => isPlainTextContainer(c) && (c.tagName === 'DIV' || c.tagName === 'P')) as HTMLElement[];
+        const siblings = Array.from(parent.children).filter(
+          (c) => isPlainTextContainer(c) && (c.tagName === 'DIV' || c.tagName === 'P'),
+        ) as HTMLElement[];
         if (siblings.length >= 3) {
           const siblingLines: string[] = [];
           siblings.forEach((s) => {
@@ -412,7 +519,14 @@ export function addIconsToElements(elements: HTMLElement[], newStyle: IconStyle)
             siblings.forEach((s) => wrapper.appendChild(s));
             lines = siblingLines;
             best.replaceWith(wrapper);
-            const ul = rebuildElementWithIcons(wrapper, lines, newStyle, detectedPrimary, darker, globalIdx);
+            const ul = rebuildElementWithIcons(
+              wrapper,
+              lines,
+              newStyle,
+              detectedPrimary,
+              darker,
+              globalIdx,
+            );
             wrapper.replaceWith(ul);
             result.replacements.set(sourceEl, ul);
             totalAdded += lines.length;
@@ -447,25 +561,29 @@ export function findAndAddIconsInSlide(slideEl: HTMLElement, newStyle: IconStyle
   const seen = new Set<HTMLElement>();
 
   const checkSiblings = (parent: HTMLElement) => {
-    const plainChildren = Array.from(parent.children).filter((c) => isPlainTextContainer(c) && (c.tagName === 'DIV' || c.tagName === 'P')) as HTMLElement[];
+    const plainChildren = Array.from(parent.children).filter(
+      (c) => isPlainTextContainer(c) && (c.tagName === 'DIV' || c.tagName === 'P'),
+    ) as HTMLElement[];
     if (plainChildren.length >= 2 && !seen.has(parent)) {
       seen.add(parent);
       candidates.push(parent);
     }
   };
 
-  slideEl.querySelectorAll(':scope > div, :scope > div > div, :scope > div > div > div').forEach((d) => {
-    const html = d.innerHTML;
-    const brCount = (html.match(/<br\s*\/?>/gi) || []).length;
-    const lines = extractLinesFromContainer(d as HTMLElement);
-    if (brCount >= 2 || lines.length >= 3) {
-      if (!seen.has(d as HTMLElement)) {
-        seen.add(d as HTMLElement);
-        candidates.push(d as HTMLElement);
+  slideEl
+    .querySelectorAll(':scope > div, :scope > div > div, :scope > div > div > div')
+    .forEach((d) => {
+      const html = d.innerHTML;
+      const brCount = (html.match(/<br\s*\/?>/gi) || []).length;
+      const lines = extractLinesFromContainer(d as HTMLElement);
+      if (brCount >= 2 || lines.length >= 3) {
+        if (!seen.has(d as HTMLElement)) {
+          seen.add(d as HTMLElement);
+          candidates.push(d as HTMLElement);
+        }
       }
-    }
-    checkSiblings(d as HTMLElement);
-  });
+      checkSiblings(d as HTMLElement);
+    });
 
   slideEl.querySelectorAll('div, p').forEach((el) => {
     checkSiblings(el.parentElement as HTMLElement);
@@ -480,7 +598,9 @@ export function findAndAddIconsInSlide(slideEl: HTMLElement, newStyle: IconStyle
     if (processed.has(cand)) return;
     if (cand.closest('ul, ol')) return;
 
-    const plainChildren = Array.from(cand.children).filter((c) => isPlainTextContainer(c) && (c.tagName === 'DIV' || c.tagName === 'P')) as HTMLElement[];
+    const plainChildren = Array.from(cand.children).filter(
+      (c) => isPlainTextContainer(c) && (c.tagName === 'DIV' || c.tagName === 'P'),
+    ) as HTMLElement[];
 
     if (plainChildren.length >= 2) {
       const lines: string[] = [];
@@ -489,7 +609,14 @@ export function findAndAddIconsInSlide(slideEl: HTMLElement, newStyle: IconStyle
         if (t) lines.push(t);
       });
       if (lines.length >= 2) {
-        const ul = rebuildElementWithIcons(cand, lines, newStyle, detectedPrimary, darker, globalIdx);
+        const ul = rebuildElementWithIcons(
+          cand,
+          lines,
+          newStyle,
+          detectedPrimary,
+          darker,
+          globalIdx,
+        );
         plainChildren.forEach((c) => c.remove());
         cand.appendChild(ul);
         totalAdded += lines.length;

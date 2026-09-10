@@ -8,10 +8,7 @@ function mapImpact(impact: string | null | undefined): AuditIssue['severity'] {
   return 'info';
 }
 
-export async function runAccessibilityCheck(
-  page: Page,
-  slideIndex: number,
-): Promise<AuditIssue[]> {
+export async function runAccessibilityCheck(page: Page, slideIndex: number): Promise<AuditIssue[]> {
   const issues: AuditIssue[] = [];
 
   try {

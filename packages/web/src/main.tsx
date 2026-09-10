@@ -9,10 +9,7 @@ function renderFatal(error: unknown) {
   const root = document.getElementById('root');
   if (!root) return;
   const raw = error instanceof Error ? error.stack || error.message : String(error);
-  const escaped = String(raw)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+  const escaped = String(raw).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   root.innerHTML = `<pre style="white-space:pre-wrap;word-break:break-word;padding:16px;color:#b91c1c;background:#fff;font:13px/1.6 monospace;min-height:100vh;margin:0;">${escaped}</pre>`;
 }
 

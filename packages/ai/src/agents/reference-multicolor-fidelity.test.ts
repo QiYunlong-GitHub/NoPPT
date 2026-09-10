@@ -15,7 +15,10 @@ function buildAgent(): HTMLPresentationAgent {
     name: 'stub',
     config: {},
     supportsStreaming: false,
-    chat: async () => ({ content: '', usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 } }),
+    chat: async () => ({
+      content: '',
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    }),
   } as any;
   return new HTMLPresentationAgent(dummy);
 }
@@ -110,7 +113,10 @@ describe('参考撞色板保真（P1）：后处理不得把参考风格压成�
 });
 
 describe('真实封面样例回归（pres_mtr3es5u_ju99pb9 / 05-content1-response.html）', () => {
-  const fixture = resolve(__dirname, '../../../../scripts/output/pres_mtr3es5u_ju99pb9/05-content1-response.html');
+  const fixture = resolve(
+    __dirname,
+    '../../../../scripts/output/pres_mtr3es5u_ju99pb9/05-content1-response.html',
+  );
   it('参考标题色与撞色板在真实大模型输出后处理后被保留', () => {
     let coverHtml: string;
     try {
@@ -157,7 +163,8 @@ describe('居中护栏单一真源（P2）：isCoverLikeHtml', () => {
 
 describe('终局越权信号白名单（P1）：参考撞色不计入越权', () => {
   it('传入 allowedAccentHexes 后，参考撞色不再被计为 colorViolations', () => {
-    const html = '<div style="color:#073b4c;"></div><div style="color:#06d6a0;"></div><div style="color:#ff4d6d;"></div>';
+    const html =
+      '<div style="color:#073b4c;"></div><div style="color:#06d6a0;"></div><div style="color:#ff4d6d;"></div>';
     const without = styleViolationSignal(html, '#ff4d6d');
     const withAccents = styleViolationSignal(html, '#ff4d6d', {
       allowedAccentHexes: new Set(['#073b4c', '#06d6a0']),

@@ -1,12 +1,20 @@
 import { create } from 'zustand';
-import type { ModelConfig, RouteStage, ModelRef, ModelRoutingConfig, StageModelConfigs, ImageModelRoutingConfig } from '@noppt/ai';
+import type {
+  ModelConfig,
+  RouteStage,
+  ModelRef,
+  ModelRoutingConfig,
+  StageModelConfigs,
+  ImageModelRoutingConfig,
+} from '@noppt/ai';
 import { storage } from '@/utils/storage';
 import { configApi } from '@/utils/api';
 import { t } from '@/i18n';
 
 export type ModelProvider = 'openai' | 'anthropic' | 'ollama' | 'freeai' | 'v0' | 'company-gateway';
 
-export type ImageProvider = 'openai' | 'qwen' | 'seedream' | 'freeai' | 'ollama' | 'company-gateway';
+export type ImageProvider =
+  'openai' | 'qwen' | 'seedream' | 'freeai' | 'ollama' | 'company-gateway';
 
 export type ImageGatewayVendor = 'openai' | 'qwen' | 'seedream';
 
@@ -154,8 +162,14 @@ interface SettingsState {
   updateImageGeneration: (config: Partial<ImageGenerationSettings>) => void;
   updateAuditSettings: (config: Partial<AuditSettings>) => void;
   updateInlineSelfCheckSettings: (config: Partial<InlineSelfCheckSettings>) => void;
-  updateImageProviderConfig: (provider: ImageProvider, config: Partial<ImageProviderConfig>) => void;
-  setImageRoutingConfig: (provider: ImageProvider, config: Partial<ImageRoutingProviderConfig>) => void;
+  updateImageProviderConfig: (
+    provider: ImageProvider,
+    config: Partial<ImageProviderConfig>,
+  ) => void;
+  setImageRoutingConfig: (
+    provider: ImageProvider,
+    config: Partial<ImageRoutingProviderConfig>,
+  ) => void;
   getModelConfig: () => ModelConfig;
   getModelConfigsForStages: () => StageModelConfigs;
   getImageGenerationConfig: () => {
@@ -241,9 +255,7 @@ const defaultImageProviders: Record<ImageProvider, ImageProviderConfig> = {
       },
       {
         modelName: 'wanx2.1-t2i-turbo',
-        sizes: [
-          { width: 1024, height: 1024, label: '1024×1024' },
-        ],
+        sizes: [{ width: 1024, height: 1024, label: '1024×1024' }],
       },
     ],
   },
@@ -263,9 +275,7 @@ const defaultImageProviders: Record<ImageProvider, ImageProviderConfig> = {
           { width: 1664, height: 2496, label: '1664×2496 (2:3 竖中幅)' },
           { width: 1600, height: 2848, label: '1600×2848 (9:16 竖长)' },
         ],
-        pixelRanges: [
-          { minPixels: 3686400, maxPixels: 16777216, label: '标准 (3.5MP-16MP)' },
-        ],
+        pixelRanges: [{ minPixels: 3686400, maxPixels: 16777216, label: '标准 (3.5MP-16MP)' }],
       },
     ],
   },
@@ -275,9 +285,7 @@ const defaultImageProviders: Record<ImageProvider, ImageProviderConfig> = {
     models: [
       {
         modelName: 'flux-dev',
-        sizes: [
-          { width: 1024, height: 1024, label: '1024×1024' },
-        ],
+        sizes: [{ width: 1024, height: 1024, label: '1024×1024' }],
       },
     ],
   },
@@ -287,9 +295,7 @@ const defaultImageProviders: Record<ImageProvider, ImageProviderConfig> = {
     models: [
       {
         modelName: 'flux-dev',
-        sizes: [
-          { width: 1024, height: 1024, label: '1024×1024' },
-        ],
+        sizes: [{ width: 1024, height: 1024, label: '1024×1024' }],
       },
     ],
   },
@@ -310,9 +316,7 @@ const defaultImageProviders: Record<ImageProvider, ImageProviderConfig> = {
           { width: 1664, height: 2496, label: '1664×2496 (2:3 竖中幅)' },
           { width: 1600, height: 2848, label: '1600×2848 (9:16 竖长)' },
         ],
-        pixelRanges: [
-          { minPixels: 3686400, maxPixels: 16777216, label: '标准 (3.5MP-16MP)' },
-        ],
+        pixelRanges: [{ minPixels: 3686400, maxPixels: 16777216, label: '标准 (3.5MP-16MP)' }],
       },
     ],
   },
@@ -483,11 +487,17 @@ function migrateOldConfig(config: any): any {
       migrated.imageGeneration.activeProvider = oldImg.provider;
     }
 
-    if (oldImg.provider && (oldImg.model || oldImg.size || oldImg.baseUrl || oldImg.apiKey || oldImg.gatewayVendor) && !providers[oldImg.provider]?.models?.length) {
+    if (
+      oldImg.provider &&
+      (oldImg.model || oldImg.size || oldImg.baseUrl || oldImg.apiKey || oldImg.gatewayVendor) &&
+      !providers[oldImg.provider]?.models?.length
+    ) {
       const providerKey = oldImg.provider as ImageProvider;
       const existingProvider = providers[providerKey] || defaultImageProviders[providerKey];
       const modelName = oldImg.model || '';
-      let sizes: ImageSize[] = existingProvider?.models?.[0]?.sizes || [{ width: 1024, height: 1024 }];
+      let sizes: ImageSize[] = existingProvider?.models?.[0]?.sizes || [
+        { width: 1024, height: 1024 },
+      ];
 
       if (oldImg.size) {
         const parts = oldImg.size.split('x');
@@ -505,9 +515,7 @@ function migrateOldConfig(config: any): any {
         apiKey: oldImg.apiKey || existingProvider?.apiKey || '',
         baseUrl: oldImg.baseUrl || existingProvider?.baseUrl || '',
         gatewayVendor: oldImg.gatewayVendor || existingProvider?.gatewayVendor,
-        models: modelName
-          ? [{ modelName, sizes }]
-          : existingProvider?.models || [],
+        models: modelName ? [{ modelName, sizes }] : existingProvider?.models || [],
       };
     }
 
@@ -795,8 +803,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   updateLogSettings: (settings) => {
     const valid: LogVerbosity[] = ['detailed', 'simple'];
     const patch: Partial<LogSettings> = {};
-    if (settings && valid.includes(settings.consoleVerbosity!)) patch.consoleVerbosity = settings.consoleVerbosity;
-    if (settings && valid.includes(settings.fileVerbosity!)) patch.fileVerbosity = settings.fileVerbosity;
+    if (settings && valid.includes(settings.consoleVerbosity!))
+      patch.consoleVerbosity = settings.consoleVerbosity;
+    if (settings && valid.includes(settings.fileVerbosity!))
+      patch.fileVerbosity = settings.fileVerbosity;
     set((state) => ({
       logSettings: {
         ...state.logSettings,
@@ -892,7 +902,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     const firstSize = firstModel?.sizes?.[0];
     const sizeStr = firstSize ? `${firstSize.width}x${firstSize.height}` : '1024x1024';
 
-    const allModels = (providerConfig?.models || []).map(m => ({
+    const allModels = (providerConfig?.models || []).map((m) => ({
       modelName: m.modelName,
       sizes: m.sizes || [],
       pixelRanges: m.pixelRanges,

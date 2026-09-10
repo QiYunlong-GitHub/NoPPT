@@ -59,9 +59,20 @@ const ATTR_PROMPT = `你是 PPT 版面属性提取器。分析用户提供的参
 关于 master.logo：x/y/w/h 必须为相对图片宽高的归一化比例（0~1 小数，左上角为原点，w/h 为归一化宽高）。**务必紧贴 logo 图形本身框选**（logo+文字商标整体），不要把整条标题栏、整片页眉或大面积页面区域框进来；经验上限约为 w≤0.4 且 h≤0.2，若只能框出大片区域（w>0.5 或 h>0.3）则视为无法精确定位 logo，master.logo 务必返回 null，不要编造坐标。visual 为可选视觉特征（构图/栏数/标题层级/装饰风格/背景调性/圆角/图片调性），无法判断的维度可返回 null 或省略对应字段。contentImageBBox 为可选的主体内容图区域归一化坐标（0~1，左上角原点，w/h 为归一化宽高），仅当参考图主要是照片/插画且主体清晰时给出，否则返回 null。`;
 
 const LAYOUT_SET = new Set<LayoutSkeletonType>([
-  'table-dominant', 'comparison', 'flowchart', 'org-chart', 'timeline', 'pyramid',
-  'matrix-four-quadrant', 'card-grid', 'big-image-caption', 'pure-text-list',
-  'three-section', 'text-left-image-right', 'image-left-text-right', 'fullscreen-quote',
+  'table-dominant',
+  'comparison',
+  'flowchart',
+  'org-chart',
+  'timeline',
+  'pyramid',
+  'matrix-four-quadrant',
+  'card-grid',
+  'big-image-caption',
+  'pure-text-list',
+  'three-section',
+  'text-left-image-right',
+  'image-left-text-right',
+  'fullscreen-quote',
 ]);
 
 function minimalRef(): CategoryReference {
@@ -112,15 +123,28 @@ function toCategoryReference(parsed: any): CategoryReference {
   if (titleColor) style.titleColor = titleColor;
   const bodyColor = asHex(parsed.bodyColor);
   if (bodyColor) style.bodyColor = bodyColor;
-  const ff = asOneOf<'sans' | 'serif' | 'mono'>(parsed.fontFamily, new Set(['sans', 'serif', 'mono']));
+  const ff = asOneOf<'sans' | 'serif' | 'mono'>(
+    parsed.fontFamily,
+    new Set(['sans', 'serif', 'mono']),
+  );
   if (ff) style.fontFamily = ff;
-  const cd = asOneOf<'compact' | 'normal' | 'spacious'>(parsed.contentDensity, new Set(['compact', 'normal', 'spacious']));
+  const cd = asOneOf<'compact' | 'normal' | 'spacious'>(
+    parsed.contentDensity,
+    new Set(['compact', 'normal', 'spacious']),
+  );
   if (cd) style.contentDensity = cd;
-  const ic = asOneOf<IconStyle>(parsed.iconStyle, new Set(['numbered', 'lettered', 'bullet', 'line', 'none', 'auto']));
+  const ic = asOneOf<IconStyle>(
+    parsed.iconStyle,
+    new Set(['numbered', 'lettered', 'bullet', 'line', 'none', 'auto']),
+  );
   if (ic) style.iconStyle = ic;
-  const st = asOneOf<ReferenceStyle>(parsed.style, new Set(['academic', 'creative', 'business', 'simple', 'tech']));
+  const st = asOneOf<ReferenceStyle>(
+    parsed.style,
+    new Set(['academic', 'creative', 'business', 'simple', 'tech']),
+  );
   if (st) style.style = st;
-  if (typeof parsed.backgroundEnabled === 'boolean') style.backgroundEnabled = parsed.backgroundEnabled;
+  if (typeof parsed.backgroundEnabled === 'boolean')
+    style.backgroundEnabled = parsed.backgroundEnabled;
   // 注意：imagePreference / slideCount / pageHints 为结构性字段，图片参考永远不推断（FR-2 强制 undefined）
 
   let master: ReferenceMaster | undefined;
@@ -137,8 +161,19 @@ function toCategoryReference(parsed: any): CategoryReference {
           new Set(['top-left', 'top-right', 'bottom-left', 'bottom-right', 'center']),
         );
         const color = asHex(m.logo.colorHex);
-        const x = num01(m.logo.x), y = num01(m.logo.y), w = num01(m.logo.w), h = num01(m.logo.h);
-        const hasAny = !!(pos || color || x !== undefined || y !== undefined || w !== undefined || h !== undefined || typeof m.logo.description === 'string');
+        const x = num01(m.logo.x),
+          y = num01(m.logo.y),
+          w = num01(m.logo.w),
+          h = num01(m.logo.h);
+        const hasAny = !!(
+          pos ||
+          color ||
+          x !== undefined ||
+          y !== undefined ||
+          w !== undefined ||
+          h !== undefined ||
+          typeof m.logo.description === 'string'
+        );
         if (hasAny) {
           const logo: MasterLogo = { position: pos ?? 'top-left', colorHex: color };
           // bbox 收紧门控（FR-16 修正）：若框出整片页面区域（疑似整条标题栏 / 整页背景，
@@ -162,7 +197,10 @@ function toCategoryReference(parsed: any): CategoryReference {
         .filter((e): e is Record<string, unknown> => !!e && typeof e === 'object')
         .map((e): MasterHeaderElement => {
           const c = asHex(e.colorHex);
-          return { type: typeof e.type === 'string' ? e.type : 'unknown', ...(c ? { colorHex: c } : {}) };
+          return {
+            type: typeof e.type === 'string' ? e.type : 'unknown',
+            ...(c ? { colorHex: c } : {}),
+          };
         });
       if (els.length) master.header = { elements: els };
     }
@@ -170,14 +208,18 @@ function toCategoryReference(parsed: any): CategoryReference {
     if (m.footer && typeof m.footer === 'object') {
       const txt = typeof m.footer.textContent === 'string' ? m.footer.textContent : undefined;
       const hpn = typeof m.footer.hasPageNumber === 'boolean' ? m.footer.hasPageNumber : undefined;
-      if (txt !== undefined || hpn !== undefined) master.footer = { textContent: txt, hasPageNumber: hpn ?? false };
+      if (txt !== undefined || hpn !== undefined)
+        master.footer = { textContent: txt, hasPageNumber: hpn ?? false };
     }
     // sideDecorations（侧边装饰条）
     if (Array.isArray(m.sideDecorations)) {
       const sides = (m.sideDecorations as unknown[])
         .filter((s): s is Record<string, unknown> => !!s && typeof s === 'object')
         .map((s): MasterSideDecoration | null => {
-          const side = asOneOf<'left' | 'right' | 'top' | 'bottom'>(s.side, new Set(['left', 'right', 'top', 'bottom']));
+          const side = asOneOf<'left' | 'right' | 'top' | 'bottom'>(
+            s.side,
+            new Set(['left', 'right', 'top', 'bottom']),
+          );
           const c = asHex(s.colorHex);
           if (!side && !c) return null;
           return { side: side ?? 'right', ...(c ? { colorHex: c } : {}) };
@@ -215,22 +257,37 @@ function toCategoryReference(parsed: any): CategoryReference {
     );
     if (comp) v.composition = comp;
     const cols =
-      typeof vi.columns === 'number' && (vi.columns === 1 || vi.columns === 2 || vi.columns === 3 || vi.columns === 4)
+      typeof vi.columns === 'number' &&
+      (vi.columns === 1 || vi.columns === 2 || vi.columns === 3 || vi.columns === 4)
         ? (vi.columns as 1 | 2 | 3 | 4)
         : undefined;
     if (cols !== undefined) v.columns = cols;
-    const ts = asOneOf<'poster' | 'large' | 'normal'>(vi.titleScale, new Set(['poster', 'large', 'normal']));
+    const ts = asOneOf<'poster' | 'large' | 'normal'>(
+      vi.titleScale,
+      new Set(['poster', 'large', 'normal']),
+    );
     if (ts) v.titleScale = ts;
-    const dec = asOneOf<'gradient-glow' | 'geometric-shapes' | 'thin-lines' | 'solid-blocks' | 'minimal'>(
+    const dec = asOneOf<
+      'gradient-glow' | 'geometric-shapes' | 'thin-lines' | 'solid-blocks' | 'minimal'
+    >(
       vi.decoration,
       new Set(['gradient-glow', 'geometric-shapes', 'thin-lines', 'solid-blocks', 'minimal']),
     );
     if (dec) v.decoration = dec;
-    const bg = asOneOf<'light' | 'dark' | 'colored'>(vi.backgroundTone, new Set(['light', 'dark', 'colored']));
+    const bg = asOneOf<'light' | 'dark' | 'colored'>(
+      vi.backgroundTone,
+      new Set(['light', 'dark', 'colored']),
+    );
     if (bg) v.backgroundTone = bg;
-    const cr = asOneOf<'none' | 'small' | 'large'>(vi.cardRadius, new Set(['none', 'small', 'large']));
+    const cr = asOneOf<'none' | 'small' | 'large'>(
+      vi.cardRadius,
+      new Set(['none', 'small', 'large']),
+    );
     if (cr) v.cardRadius = cr;
-    const img = asOneOf<'photo' | 'illustration' | 'icon' | 'none'>(vi.imagery, new Set(['photo', 'illustration', 'icon', 'none']));
+    const img = asOneOf<'photo' | 'illustration' | 'icon' | 'none'>(
+      vi.imagery,
+      new Set(['photo', 'illustration', 'icon', 'none']),
+    );
     if (img) v.imagery = img;
     const bbox = normalizeBBox(vi.contentImageBBox);
     if (bbox) v.contentImageBBox = bbox;

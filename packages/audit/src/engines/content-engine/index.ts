@@ -1,9 +1,5 @@
 import type { Page } from 'playwright-core';
-import type {
-  AuditContext,
-  AuditEngineResult,
-  AuditIssue,
-} from '../../types';
+import type { AuditContext, AuditEngineResult, AuditIssue } from '../../types';
 import type { ContentEngineOptions } from './types';
 import { runLlmCritique } from './llm-critique-adapter';
 import { runAccessibilityCheck } from './accessibility-check';
@@ -143,7 +139,9 @@ export class ContentAuditEngine {
         } catch {
         } finally {
           if (page) {
-            try { await page.close(); } catch {}
+            try {
+              await page.close();
+            } catch {}
           }
         }
       }
@@ -152,7 +150,9 @@ export class ContentAuditEngine {
 
     const sharedPage: Page | undefined = isPage(renderer)
       ? renderer
-      : (isPage(renderer.page) ? renderer.page : undefined);
+      : isPage(renderer.page)
+        ? renderer.page
+        : undefined;
 
     if (!sharedPage) return;
 
@@ -161,8 +161,7 @@ export class ContentAuditEngine {
         await sharedPage.setContent(slides[i].html, { waitUntil: 'networkidle' });
         const a11yIssues = await runAccessibilityCheck(sharedPage, i);
         issues.push(...a11yIssues);
-      } catch {
-      }
+      } catch {}
     }
   }
 }

@@ -18,7 +18,9 @@ describe('M4 GenerationQueue', () => {
   });
 
   it('入队为 queued，执行后转 done 并带 result', async () => {
-    const jobId = queue.enqueue('generate', ctx, { topic: 't' }, async () => ({ presentationId: 'p1' }));
+    const jobId = queue.enqueue('generate', ctx, { topic: 't' }, async () => ({
+      presentationId: 'p1',
+    }));
     // 入队后可能已被 pump 立即置为 running（信号量有空位），两者都合法
     expect(['queued', 'running']).toContain(queue.get(jobId)?.status);
     const job = await queue.waitFor(jobId, 3000);

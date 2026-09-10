@@ -56,7 +56,11 @@ export function parseModelName(modelName: string): ParsedModelName {
     remaining = remaining.replace(versionMatch[0], '');
   }
 
-  const family = remaining.replace(/^[-\s]+|[-\s]+$/g, '').replace(/[-\s]+/g, '-').toLowerCase() || modelName.toLowerCase();
+  const family =
+    remaining
+      .replace(/^[-\s]+|[-\s]+$/g, '')
+      .replace(/[-\s]+/g, '-')
+      .toLowerCase() || modelName.toLowerCase();
 
   return { family, version, tier, tierScore, dateSuffix };
 }

@@ -1,4 +1,10 @@
-import type { ChatMessage, ChatOptions, ChatResponse, ImageGenerationOptions, GeneratedImage } from '../types';
+import type {
+  ChatMessage,
+  ChatOptions,
+  ChatResponse,
+  ImageGenerationOptions,
+  GeneratedImage,
+} from '../types';
 
 /** 单次 LLM 调用的完整报文（无任何截断），供详细日志排查用 */
 export interface LLMCallTrace {
@@ -114,14 +120,16 @@ export function getTraces(sessionId: string): AnyTrace[] {
 
 /** 仅获取 chat 对话类 traces（向后兼容） */
 export function getLLMTraces(sessionId: string): LLMCallTrace[] {
-  return (sessions.get(sessionId)?.traces || [])
-    .filter((t): t is LLMCallTrace => !t.type || t.type === 'chat');
+  return (sessions.get(sessionId)?.traces || []).filter(
+    (t): t is LLMCallTrace => !t.type || t.type === 'chat',
+  );
 }
 
 /** 仅获取图片生成类 traces */
 export function getImageTraces(sessionId: string): ImageGenerationTrace[] {
-  return (sessions.get(sessionId)?.traces || [])
-    .filter((t): t is ImageGenerationTrace => t.type === 'image');
+  return (sessions.get(sessionId)?.traces || []).filter(
+    (t): t is ImageGenerationTrace => t.type === 'image',
+  );
 }
 
 export function closeTraceSession(sessionId: string): AnyTrace[] {

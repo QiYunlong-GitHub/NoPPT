@@ -33,7 +33,11 @@ export interface McpJob {
   finishedAt?: number;
 }
 
-export type JobRunner = (ctx: McpContext, args: Record<string, unknown>, jobId: string) => Promise<Record<string, unknown>>;
+export type JobRunner = (
+  ctx: McpContext,
+  args: Record<string, unknown>,
+  jobId: string,
+) => Promise<Record<string, unknown>>;
 
 export interface GenerationQueueOptions {
   maxConcurrent: number;
@@ -64,7 +68,12 @@ export class GenerationQueue {
   }
 
   /** 入队，立即返回 jobId。 */
-  enqueue(tool: McpJobTool, ctx: McpContext, args: Record<string, unknown>, runner: JobRunner): string {
+  enqueue(
+    tool: McpJobTool,
+    ctx: McpContext,
+    args: Record<string, unknown>,
+    runner: JobRunner,
+  ): string {
     this.seq += 1;
     const jobId = `j_${Date.now().toString(36)}_${this.seq.toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
     const job: McpJob = { jobId, tool, status: 'queued', ctx, args, createdAt: Date.now() };
@@ -143,7 +152,8 @@ export class GenerationQueue {
     const expired: McpJob[] = [];
     for (const job of this.jobs.values()) {
       const terminal = job.status === 'done' || job.status === 'failed';
-      if (terminal && now - (job.finishedAt ?? job.createdAt) > this.options.ttlMs) expired.push(job);
+      if (terminal && now - (job.finishedAt ?? job.createdAt) > this.options.ttlMs)
+        expired.push(job);
     }
     for (const job of expired) this.remove(job.jobId);
 

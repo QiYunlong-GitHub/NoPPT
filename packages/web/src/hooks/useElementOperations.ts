@@ -2,8 +2,26 @@ import { useRef, type MutableRefObject } from 'react';
 import { getSlideAppendTarget as _getSlideAppendTarget } from '@/utils/selection';
 import { t } from '@/i18n';
 
-type AlignType = 'left' | 'right' | 'top' | 'bottom' | 'center-h' | 'center-v' | 'distribute-h' | 'distribute-v' | 'center-slide-h' | 'center-slide-v';
-type SingleAlignType = 'left' | 'right' | 'top' | 'bottom' | 'center-h' | 'center-v' | 'center-slide-h' | 'center-slide-v';
+type AlignType =
+  | 'left'
+  | 'right'
+  | 'top'
+  | 'bottom'
+  | 'center-h'
+  | 'center-v'
+  | 'distribute-h'
+  | 'distribute-v'
+  | 'center-slide-h'
+  | 'center-slide-v';
+type SingleAlignType =
+  | 'left'
+  | 'right'
+  | 'top'
+  | 'bottom'
+  | 'center-h'
+  | 'center-v'
+  | 'center-slide-h'
+  | 'center-slide-v';
 type MoveDirection = 'up' | 'down' | 'left' | 'right';
 
 interface PresentationLike {
@@ -50,7 +68,8 @@ export function useElementOperations({
   showToast,
   commitAllSelectedTransforms,
 }: UseElementOperationsParams) {
-  const getSlideAppendTarget = (innerDiv: HTMLElement): HTMLElement => _getSlideAppendTarget(innerDiv);
+  const getSlideAppendTarget = (innerDiv: HTMLElement): HTMLElement =>
+    _getSlideAppendTarget(innerDiv);
 
   const handleBindElements = () => {
     if (!currentSlide || !presentation) return;
@@ -67,8 +86,17 @@ export function useElementOperations({
 
     const zoom = presentation.zoom ?? 1;
 
-    const elementInfos: { el: HTMLElement; left: number; top: number; width: number; height: number }[] = [];
-    let minLeft = Infinity, minTop = Infinity, maxRight = -Infinity, maxBottom = -Infinity;
+    const elementInfos: {
+      el: HTMLElement;
+      left: number;
+      top: number;
+      width: number;
+      height: number;
+    }[] = [];
+    let minLeft = Infinity,
+      minTop = Infinity,
+      maxRight = -Infinity,
+      maxBottom = -Infinity;
 
     elements.forEach((el) => {
       const rect = el.getBoundingClientRect();
@@ -147,9 +175,10 @@ export function useElementOperations({
     if (!currentSlide || !presentation) return;
 
     const elements = selectedElementsRef.current;
-    const groupElements = elements.filter(el =>
-      el.getAttribute('data-element-type') === 'group' ||
-      el.classList.contains('noppt-group-element')
+    const groupElements = elements.filter(
+      (el) =>
+        el.getAttribute('data-element-type') === 'group' ||
+        el.classList.contains('noppt-group-element'),
     );
 
     if (groupElements.length === 0) {
@@ -203,7 +232,7 @@ export function useElementOperations({
     if (allUnboundElements.length > 0) {
       saveSlideHtml(true);
       const finalElements = updateSelectedElements(allUnboundElements);
-      finalElements.forEach(el => highlightElement(el, true));
+      finalElements.forEach((el) => highlightElement(el, true));
       if (finalElements.length > 0) {
         setShowPropertyPanel(true);
         setRightPanelTab('property');
@@ -241,8 +270,12 @@ export function useElementOperations({
         elementData.forEach(({ element, left }) => {
           const delta = minLeft - left;
           const match = element.style.transform.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
-          let tx = 0, ty = 0;
-          if (match) { tx = parseFloat(match[1]); ty = parseFloat(match[2]); }
+          let tx = 0,
+            ty = 0;
+          if (match) {
+            tx = parseFloat(match[1]);
+            ty = parseFloat(match[2]);
+          }
           element.style.transform = `translate(${tx + delta}px, ${ty}px)`;
         });
         break;
@@ -252,8 +285,12 @@ export function useElementOperations({
         elementData.forEach(({ element, right }) => {
           const delta = maxRight - right;
           const match = element.style.transform.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
-          let tx = 0, ty = 0;
-          if (match) { tx = parseFloat(match[1]); ty = parseFloat(match[2]); }
+          let tx = 0,
+            ty = 0;
+          if (match) {
+            tx = parseFloat(match[1]);
+            ty = parseFloat(match[2]);
+          }
           element.style.transform = `translate(${tx + delta}px, ${ty}px)`;
         });
         break;
@@ -263,8 +300,12 @@ export function useElementOperations({
         elementData.forEach(({ element, top }) => {
           const delta = minTop - top;
           const match = element.style.transform.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
-          let tx = 0, ty = 0;
-          if (match) { tx = parseFloat(match[1]); ty = parseFloat(match[2]); }
+          let tx = 0,
+            ty = 0;
+          if (match) {
+            tx = parseFloat(match[1]);
+            ty = parseFloat(match[2]);
+          }
           element.style.transform = `translate(${tx}px, ${ty + delta}px)`;
         });
         break;
@@ -274,8 +315,12 @@ export function useElementOperations({
         elementData.forEach(({ element, bottom }) => {
           const delta = maxBottom - bottom;
           const match = element.style.transform.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
-          let tx = 0, ty = 0;
-          if (match) { tx = parseFloat(match[1]); ty = parseFloat(match[2]); }
+          let tx = 0,
+            ty = 0;
+          if (match) {
+            tx = parseFloat(match[1]);
+            ty = parseFloat(match[2]);
+          }
           element.style.transform = `translate(${tx}px, ${ty + delta}px)`;
         });
         break;
@@ -288,8 +333,12 @@ export function useElementOperations({
           const elCenter = (left + right) / 2;
           const delta = centerX - elCenter;
           const match = element.style.transform.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
-          let tx = 0, ty = 0;
-          if (match) { tx = parseFloat(match[1]); ty = parseFloat(match[2]); }
+          let tx = 0,
+            ty = 0;
+          if (match) {
+            tx = parseFloat(match[1]);
+            ty = parseFloat(match[2]);
+          }
           element.style.transform = `translate(${tx + delta}px, ${ty}px)`;
         });
         break;
@@ -302,8 +351,12 @@ export function useElementOperations({
           const elCenter = (top + bottom) / 2;
           const delta = centerY - elCenter;
           const match = element.style.transform.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
-          let tx = 0, ty = 0;
-          if (match) { tx = parseFloat(match[1]); ty = parseFloat(match[2]); }
+          let tx = 0,
+            ty = 0;
+          if (match) {
+            tx = parseFloat(match[1]);
+            ty = parseFloat(match[2]);
+          }
           element.style.transform = `translate(${tx}px, ${ty + delta}px)`;
         });
         break;
@@ -317,8 +370,12 @@ export function useElementOperations({
         const deltaX = targetLeft - minLeft;
         elementData.forEach(({ element, left }) => {
           const match = element.style.transform.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
-          let tx = 0, ty = 0;
-          if (match) { tx = parseFloat(match[1]); ty = parseFloat(match[2]); }
+          let tx = 0,
+            ty = 0;
+          if (match) {
+            tx = parseFloat(match[1]);
+            ty = parseFloat(match[2]);
+          }
           element.style.transform = `translate(${tx + deltaX}px, ${ty}px)`;
         });
         break;
@@ -332,8 +389,12 @@ export function useElementOperations({
         const deltaY = targetTop - minTop;
         elementData.forEach(({ element, top }) => {
           const match = element.style.transform.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
-          let tx = 0, ty = 0;
-          if (match) { tx = parseFloat(match[1]); ty = parseFloat(match[2]); }
+          let tx = 0,
+            ty = 0;
+          if (match) {
+            tx = parseFloat(match[1]);
+            ty = parseFloat(match[2]);
+          }
           element.style.transform = `translate(${tx}px, ${ty + deltaY}px)`;
         });
         break;
@@ -349,8 +410,12 @@ export function useElementOperations({
         sorted.forEach(({ element, left, width }) => {
           const delta = currentLeft - left;
           const match = element.style.transform.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
-          let tx = 0, ty = 0;
-          if (match) { tx = parseFloat(match[1]); ty = parseFloat(match[2]); }
+          let tx = 0,
+            ty = 0;
+          if (match) {
+            tx = parseFloat(match[1]);
+            ty = parseFloat(match[2]);
+          }
           element.style.transform = `translate(${tx + delta}px, ${ty}px)`;
           currentLeft += width + gap;
         });
@@ -367,8 +432,12 @@ export function useElementOperations({
         sorted.forEach(({ element, top, height }) => {
           const delta = currentTop - top;
           const match = element.style.transform.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
-          let tx = 0, ty = 0;
-          if (match) { tx = parseFloat(match[1]); ty = parseFloat(match[2]); }
+          let tx = 0,
+            ty = 0;
+          if (match) {
+            tx = parseFloat(match[1]);
+            ty = parseFloat(match[2]);
+          }
           element.style.transform = `translate(${tx}px, ${ty + delta}px)`;
           currentTop += height + gap;
         });
@@ -402,8 +471,12 @@ export function useElementOperations({
     const containerHeight = containerRect.height / zoom;
 
     const match = element.style.transform.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
-    let tx = 0, ty = 0;
-    if (match) { tx = parseFloat(match[1]); ty = parseFloat(match[2]); }
+    let tx = 0,
+      ty = 0;
+    if (match) {
+      tx = parseFloat(match[1]);
+      ty = parseFloat(match[2]);
+    }
 
     let deltaX = 0;
     let deltaY = 0;
@@ -451,8 +524,12 @@ export function useElementOperations({
 
     selectedElementsRef.current.forEach((element) => {
       const match = element.style.transform.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
-      let tx = 0, ty = 0;
-      if (match) { tx = parseFloat(match[1]); ty = parseFloat(match[2]); }
+      let tx = 0,
+        ty = 0;
+      if (match) {
+        tx = parseFloat(match[1]);
+        ty = parseFloat(match[2]);
+      }
       element.style.transform = `translate(${tx + delta.x}px, ${ty + delta.y}px)`;
     });
 

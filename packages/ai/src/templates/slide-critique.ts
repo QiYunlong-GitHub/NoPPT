@@ -42,9 +42,9 @@ const DEFAULT_MAX_RETRIES = 1;
 /** Content LLM 五维度评分 → overallScore 推荐加权均值（总和=1.0） */
 const CRITIQUE_WEIGHTS: Readonly<CritiqueScores & Record<keyof CritiqueScores, number>> = {
   philosophy: 0.25,
-  hierarchy: 0.30,
-  craft: 0.20,
-  functionality: 0.20,
+  hierarchy: 0.3,
+  craft: 0.2,
+  functionality: 0.2,
   originality: 0.05,
 };
 
@@ -153,7 +153,8 @@ function buildCritiqueUserPrompt(
   designContext: { style: string; primaryColor: string; fontFamily: string; iconStyle: string },
   referenceContext?: ReferenceContext,
 ): string {
-  const truncatedHtml = slideHtml.length > 6000 ? slideHtml.slice(0, 6000) + '\n...[HTML truncated]' : slideHtml;
+  const truncatedHtml =
+    slideHtml.length > 6000 ? slideHtml.slice(0, 6000) + '\n...[HTML truncated]' : slideHtml;
   const referenceNote = referenceContext?.hasReference
     ? `
 
@@ -345,7 +346,16 @@ export async function critiqueSlide(
 
   const messages: ChatMessage[] = [
     { role: 'system', content: buildCritiqueSystemPrompt() },
-    { role: 'user', content: buildCritiqueUserPrompt(slideTitle, slideHtml, pageType, designContext, options.referenceContext) },
+    {
+      role: 'user',
+      content: buildCritiqueUserPrompt(
+        slideTitle,
+        slideHtml,
+        pageType,
+        designContext,
+        options.referenceContext,
+      ),
+    },
   ];
 
   let raw: any;
@@ -391,15 +401,18 @@ export async function critiqueSlide(
       overallScore: FALLBACK_SCORE_FOR_TRANSIENT_ERROR,
       scores: { philosophy: 7, hierarchy: 7, craft: 7, functionality: 7, originality: 7 },
       keep: [],
-      issues: kind === 'unknown'
-        ? [{
-            severity: 'minor',
-            title: '审核调用未知异常（非阻塞）',
-            current: snippet,
-            problem: '调用内容审核模型时遇到非网络/非配额/非JSON解析类异常，默认放行避免阻塞。',
-            fix: '查看日志详情，若频繁出现建议检查模型提供商或路由配置。',
-          }]
-        : [],
+      issues:
+        kind === 'unknown'
+          ? [
+              {
+                severity: 'minor',
+                title: '审核调用未知异常（非阻塞）',
+                current: snippet,
+                problem: '调用内容审核模型时遇到非网络/非配额/非JSON解析类异常，默认放行避免阻塞。',
+                fix: '查看日志详情，若频繁出现建议检查模型提供商或路由配置。',
+              },
+            ]
+          : [],
       quickWins: [],
       rawReport: '',
     };
@@ -407,9 +420,13 @@ export async function critiqueSlide(
 
   const scores = normalizeScores(raw.scores);
   const overallScore = fixOverallScore(raw.overallScore, scores); // clamp 最小值为 0（与 VLM 行为一致）
-  const keep = Array.isArray(raw.keep) ? raw.keep.slice(0, 5).map((k: any) => String(k).slice(0, 200)) : [];
+  const keep = Array.isArray(raw.keep)
+    ? raw.keep.slice(0, 5).map((k: any) => String(k).slice(0, 200))
+    : [];
   const issues = normalizeIssues(raw.issues);
-  const quickWins = Array.isArray(raw.quickWins) ? raw.quickWins.slice(0, 3).map((k: any) => String(k).slice(0, 200)) : [];
+  const quickWins = Array.isArray(raw.quickWins)
+    ? raw.quickWins.slice(0, 3).map((k: any) => String(k).slice(0, 200))
+    : [];
 
   const hasFatal = issues.some((i) => i.severity === 'fatal');
   const passed = overallScore >= threshold && !hasFatal;
@@ -438,14 +455,20 @@ export function buildCritiqueFeedback(critique: SlideCritique): string {
   feedbackLines.push('===========================================================');
   feedbackLines.push('🔴 上次审核驳回问题（本次生成必须逐一修复，最高优先级）');
   feedbackLines.push('===========================================================');
-  feedbackLines.push('以下是上一版 HTML 被审核驳回的具体原因。本次生成必须**逐条修复**下列问题，同时仍需遵守下方所有设计规范。');
-  feedbackLines.push('【修复优先级】：FATAL 致命问题 >> IMPORTANT 重要问题 >> MINOR 小问题。若不同审核维度给出矛盾建议，以 FATAL 维度要求为准。');
+  feedbackLines.push(
+    '以下是上一版 HTML 被审核驳回的具体原因。本次生成必须**逐条修复**下列问题，同时仍需遵守下方所有设计规范。',
+  );
+  feedbackLines.push(
+    '【修复优先级】：FATAL 致命问题 >> IMPORTANT 重要问题 >> MINOR 小问题。若不同审核维度给出矛盾建议，以 FATAL 维度要求为准。',
+  );
   feedbackLines.push('');
 
   if (fatalIssues.length > 0) {
     feedbackLines.push('----- FATAL（出现即判不通过，必须100%修复）-----');
     fatalIssues.forEach((i) => {
-      feedbackLines.push(`- [${i.title}] → 现状：${i.current ?? ''} → 修复指令：${i.fix ?? '请按上方规范修正'} → 涉及：未分类`);
+      feedbackLines.push(
+        `- [${i.title}] → 现状：${i.current ?? ''} → 修复指令：${i.fix ?? '请按上方规范修正'} → 涉及：未分类`,
+      );
     });
     feedbackLines.push('');
   }
@@ -453,7 +476,9 @@ export function buildCritiqueFeedback(critique: SlideCritique): string {
   if (importantIssues.length > 0) {
     feedbackLines.push('----- IMPORTANT（扣分较重，优先修复）-----');
     importantIssues.forEach((i) => {
-      feedbackLines.push(`- [${i.title}] → 现状：${i.current ?? ''} → 修复指令：${i.fix ?? '请按上方规范修正'} → 涉及：未分类`);
+      feedbackLines.push(
+        `- [${i.title}] → 现状：${i.current ?? ''} → 修复指令：${i.fix ?? '请按上方规范修正'} → 涉及：未分类`,
+      );
     });
     feedbackLines.push('');
   }
@@ -462,7 +487,9 @@ export function buildCritiqueFeedback(critique: SlideCritique): string {
   if (hasMinorContent) {
     feedbackLines.push('----- MINOR（轻微扣分，最后顺手修复）-----');
     minorIssues.forEach((i) => {
-      feedbackLines.push(`- [${i.title}] → 现状：${i.current ?? ''} → 修复指令：${i.fix ?? '请按上方规范修正'} → 涉及：未分类`);
+      feedbackLines.push(
+        `- [${i.title}] → 现状：${i.current ?? ''} → 修复指令：${i.fix ?? '请按上方规范修正'} → 涉及：未分类`,
+      );
     });
     critique.quickWins.forEach((w) => {
       feedbackLines.push(`- [快速优化建议] ${w}`);
@@ -475,10 +502,7 @@ export function buildCritiqueFeedback(critique: SlideCritique): string {
   return feedbackLines.join('\n');
 }
 
-export function buildRegenerationPrompt(
-  originalPrompt: string,
-  critique: SlideCritique,
-): string {
+export function buildRegenerationPrompt(originalPrompt: string, critique: SlideCritique): string {
   const feedback = buildCritiqueFeedback(critique);
   if (!feedback) return originalPrompt;
   return feedback + '\n\n' + originalPrompt;

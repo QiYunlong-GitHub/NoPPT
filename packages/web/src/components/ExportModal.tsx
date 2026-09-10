@@ -114,7 +114,7 @@ export default function ExportModal() {
     const processSlideHtml = async (html: string): Promise<string> => {
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = html;
-      
+
       const allElements = tempDiv.querySelectorAll('*');
       allElements.forEach((el) => {
         const element = el as HTMLElement;
@@ -122,12 +122,14 @@ export default function ExportModal() {
         element.style.userSelect = '';
         element.removeAttribute('contenteditable');
         element.classList.remove('noppt-selected');
-        if (element.style.boxShadow === 'inset 0 0 0 3px rgb(59, 130, 246)' || 
-            element.style.boxShadow === '0 0 0 3px #3b82f6') {
+        if (
+          element.style.boxShadow === 'inset 0 0 0 3px rgb(59, 130, 246)' ||
+          element.style.boxShadow === '0 0 0 3px #3b82f6'
+        ) {
           element.style.boxShadow = '';
         }
       });
-      
+
       const images = tempDiv.querySelectorAll('img');
       for (const img of images) {
         const src = img.getAttribute('src');
@@ -136,7 +138,7 @@ export default function ExportModal() {
           img.setAttribute('src', dataUrl);
         }
       }
-      
+
       const videos = tempDiv.querySelectorAll('video');
       for (const video of videos) {
         const src = video.getAttribute('src');
@@ -160,7 +162,7 @@ export default function ExportModal() {
           elem.setAttribute('style', newStyle);
         }
       }
-      
+
       return tempDiv.innerHTML;
     };
 
@@ -247,7 +249,7 @@ export default function ExportModal() {
     const processSlideHtml = async (html: string): Promise<string> => {
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = html;
-      
+
       const allElements = tempDiv.querySelectorAll('*');
       allElements.forEach((el) => {
         const element = el as HTMLElement;
@@ -255,12 +257,14 @@ export default function ExportModal() {
         element.style.userSelect = '';
         element.removeAttribute('contenteditable');
         element.classList.remove('noppt-selected');
-        if (element.style.boxShadow === 'inset 0 0 0 3px rgb(59, 130, 246)' || 
-            element.style.boxShadow === '0 0 0 3px #3b82f6') {
+        if (
+          element.style.boxShadow === 'inset 0 0 0 3px rgb(59, 130, 246)' ||
+          element.style.boxShadow === '0 0 0 3px #3b82f6'
+        ) {
           element.style.boxShadow = '';
         }
       });
-      
+
       const images = tempDiv.querySelectorAll('img');
       for (const img of images) {
         const src = img.getAttribute('src');
@@ -275,7 +279,7 @@ export default function ExportModal() {
           }
         }
       }
-      
+
       const videos = tempDiv.querySelectorAll('video');
       for (const video of videos) {
         const src = video.getAttribute('src');
@@ -311,7 +315,7 @@ export default function ExportModal() {
           elem.setAttribute('style', newStyle);
         }
       }
-      
+
       return tempDiv.innerHTML;
     };
 
@@ -419,7 +423,11 @@ export default function ExportModal() {
       slideEl.innerHTML = slide.html;
 
       document.body.appendChild(slideEl);
-      const canvas = await html2canvas(slideEl, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+      const canvas = await html2canvas(slideEl, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+      });
       document.body.removeChild(slideEl);
 
       canvas.toBlob((blob) => {
@@ -461,7 +469,9 @@ export default function ExportModal() {
               disabled={exporting !== null}
               className="w-full p-4 flex items-center gap-4 rounded-xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/50 transition-all text-left disabled:opacity-50"
             >
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${format.color}`}>
+              <div
+                className={`w-12 h-12 rounded-xl flex items-center justify-center ${format.color}`}
+              >
                 {exporting === format.id ? (
                   <Loader2 className="w-6 h-6 animate-spin" />
                 ) : (

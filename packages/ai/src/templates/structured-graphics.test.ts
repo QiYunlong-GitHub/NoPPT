@@ -18,7 +18,15 @@ describe('structured-graphics · 受控 SVG 渲染器', () => {
     it('bar：输出 svg 且包含坐标轴与柱', () => {
       const spec: ChartSpec = {
         kind: 'bar',
-        series: [{ name: 'A', points: [{ label: 'Q1', value: 10 }, { label: 'Q2', value: 20 }] }],
+        series: [
+          {
+            name: 'A',
+            points: [
+              { label: 'Q1', value: 10 },
+              { label: 'Q2', value: 20 },
+            ],
+          },
+        ],
         unit: '%',
       };
       const svg = renderChartSvg(spec, opts);
@@ -28,14 +36,34 @@ describe('structured-graphics · 受控 SVG 渲染器', () => {
     });
 
     it('line：输出 polyline', () => {
-      const spec: ChartSpec = { kind: 'line', series: [{ points: [{ label: 'a', value: 1 }, { label: 'b', value: 3 }] }] };
+      const spec: ChartSpec = {
+        kind: 'line',
+        series: [
+          {
+            points: [
+              { label: 'a', value: 1 },
+              { label: 'b', value: 3 },
+            ],
+          },
+        ],
+      };
       const svg = renderChartSvg(spec, opts);
       expect(svg).toContain('<polyline');
       expect(svg).toContain('<circle');
     });
 
     it('pie/donut：输出 path 扇区', () => {
-      const spec: ChartSpec = { kind: 'pie', series: [{ points: [{ label: 'x', value: 1 }, { label: 'y', value: 3 }] }] };
+      const spec: ChartSpec = {
+        kind: 'pie',
+        series: [
+          {
+            points: [
+              { label: 'x', value: 1 },
+              { label: 'y', value: 3 },
+            ],
+          },
+        ],
+      };
       const pie = renderChartSvg(spec, opts);
       expect(pie).toContain('<path');
       const donut = renderChartSvg({ ...spec, kind: 'donut' }, opts);

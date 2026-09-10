@@ -36,7 +36,10 @@ export {
 // Task 2/3：参考属性提取与解析（供 server 侧 ai.service 注入）
 export { extractReferenceHtmlAttributes } from './utils/reference-html-extractor';
 export { countStyleRules } from './utils/reference-style-cascade';
-export { extractReferenceImageAttributes, type VlmTextProvider } from './utils/vlm-attribute-extraction';
+export {
+  extractReferenceImageAttributes,
+  type VlmTextProvider,
+} from './utils/vlm-attribute-extraction';
 export {
   mergeReferenceAttrs,
   assembleReferenceVisualAttributes,

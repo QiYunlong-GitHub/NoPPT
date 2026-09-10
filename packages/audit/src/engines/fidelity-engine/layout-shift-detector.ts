@@ -76,7 +76,11 @@ export async function detectLayoutShift(
           }
         }
 
-        if (style.overflow === 'hidden' || style.overflowX === 'hidden' || style.overflowY === 'hidden') {
+        if (
+          style.overflow === 'hidden' ||
+          style.overflowX === 'hidden' ||
+          style.overflowY === 'hidden'
+        ) {
           const childOverflowX = el.scrollWidth - el.clientWidth;
           const childOverflowY = el.scrollHeight - el.clientHeight;
           if (childOverflowX > 2 || childOverflowY > 2) {

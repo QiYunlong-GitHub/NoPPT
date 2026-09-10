@@ -14,7 +14,7 @@ export const noAbsPosAsMainLayout: LayoutRule = {
     if (!outer) return issues;
 
     const children = getDirectChildren(ctx.html, outer.tag);
-    const absChildren = children.filter(child => {
+    const absChildren = children.filter((child) => {
       const styleStr = getStyleFromAttrs(child.attrs);
       return /position\s*:\s*absolute/i.test(styleStr);
     });

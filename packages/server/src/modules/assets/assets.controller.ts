@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Delete, Param, UseInterceptors, UploadedFile, Body, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Param,
+  UseInterceptors,
+  UploadedFile,
+  Body,
+  Query,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AssetsService, AssetInfo } from './assets.service';
 import { getStorageService } from '../../common/storage.service';

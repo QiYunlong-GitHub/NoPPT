@@ -1,9 +1,5 @@
 import { useState } from 'react';
-import {
-  OpenAIProvider,
-  FreeAIProvider,
-  AnthropicProvider,
-} from '@noppt/ai';
+import { OpenAIProvider, FreeAIProvider, AnthropicProvider } from '@noppt/ai';
 import { useSettingsStore } from '@/stores';
 
 interface TestConnectionState {
@@ -13,7 +9,7 @@ interface TestConnectionState {
 
 export function useTestConnection() {
   const settings = useSettingsStore();
-  
+
   const [connectionState, setConnectionState] = useState<TestConnectionState>({
     testing: false,
     testResult: null,
@@ -29,7 +25,7 @@ export function useTestConnection() {
     try {
       const providerConfig = settings.apiConfig[settings.defaultModelProvider];
       const testModel = providerConfig.models[0] || '';
-      
+
       if (settings.defaultModelProvider === 'v0') {
         const response = await fetch(`${providerConfig.baseUrl}/user`, {
           headers: {

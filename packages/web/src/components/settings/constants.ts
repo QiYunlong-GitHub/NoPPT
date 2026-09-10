@@ -16,14 +16,7 @@ import {
   ScrollText,
 } from 'lucide-react';
 
-export type SectionId =
-  | 'ai-model'
-  | 'interface'
-  | 'export'
-  | 'editor'
-  | 'logs'
-  | 'data'
-  | 'about';
+export type SectionId = 'ai-model' | 'interface' | 'export' | 'editor' | 'logs' | 'data' | 'about';
 
 export const sections = [
   { id: 'ai-model' as SectionId, label: 'AI 模型', icon: Sparkles },
@@ -37,11 +30,26 @@ export const sections = [
 
 export const modelProviders = [
   { value: 'openai', label: 'OpenAI 兼容接口', icon: Brain, hint: '支持 GPT、DeepSeek、Qwen 等' },
-  { value: 'anthropic', label: 'Anthropic 兼容接口', icon: Brain, hint: 'Claude 3.5 / Claude 4 系列' },
+  {
+    value: 'anthropic',
+    label: 'Anthropic 兼容接口',
+    icon: Brain,
+    hint: 'Claude 3.5 / Claude 4 系列',
+  },
   { value: 'freeai', label: 'Free.ai (380+ 模型)', icon: Zap, hint: '免费额度，聚合 380+ 模型' },
-  { value: 'v0', label: 'v0 by Vercel (UI 生成)', icon: Layers, hint: '高保真 UI 生成，React/Tailwind' },
+  {
+    value: 'v0',
+    label: 'v0 by Vercel (UI 生成)',
+    icon: Layers,
+    hint: '高保真 UI 生成，React/Tailwind',
+  },
   { value: 'ollama', label: 'Ollama (本地模型)', icon: Layout, hint: '完全离线，数据不出本机' },
-  { value: 'company-gateway', label: '公司 API 网关', icon: Layout, hint: '企业内网大模型服务网关' },
+  {
+    value: 'company-gateway',
+    label: '公司 API 网关',
+    icon: Layout,
+    hint: '企业内网大模型服务网关',
+  },
 ];
 
 export const imageProviders = [
@@ -50,7 +58,12 @@ export const imageProviders = [
   { value: 'seedream', label: '字节火山引擎', icon: Sparkles, hint: 'Seedream 系列模型' },
   { value: 'freeai', label: 'Free.ai (380+ 模型)', icon: Zap, hint: '免费额度，flux-dev 等' },
   { value: 'ollama', label: 'Ollama (本地模型)', icon: Layout, hint: '完全离线，数据不出本机' },
-  { value: 'company-gateway', label: '公司 API 网关', icon: Layout, hint: '企业内网文生图服务网关' },
+  {
+    value: 'company-gateway',
+    label: '公司 API 网关',
+    icon: Layout,
+    hint: '企业内网文生图服务网关',
+  },
 ];
 
 export const themeOptions = [
@@ -84,7 +97,7 @@ export const slideSizePresets = [
 ];
 
 export const quickModelOptions: Record<string, Array<{ label: string; value: string }>> = {
-  'freeai': [
+  freeai: [
     { label: 'Qwen 7B (免费)', value: 'qwen7b' },
     { label: 'Qwen Coder', value: 'qwen-coder' },
     { label: 'DeepSeek V3', value: 'deepseek-v3' },
@@ -93,7 +106,7 @@ export const quickModelOptions: Record<string, Array<{ label: string; value: str
     { label: 'Claude Sonnet 4', value: 'anthropic/claude-sonnet-4' },
     { label: 'Gemini Flash', value: 'google/gemini-2.0-flash' },
   ],
-  'v0': [
+  v0: [
     { label: 'v0 1.5 MD (平衡)', value: 'v0-1.5-md' },
     { label: 'v0 1.5 XL (高质量)', value: 'v0-1.5-xl' },
     { label: 'v0 Turbo (快速)', value: 'v0-turbo' },

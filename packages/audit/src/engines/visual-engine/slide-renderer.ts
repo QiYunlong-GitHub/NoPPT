@@ -66,7 +66,11 @@ export class SlideRenderer {
 
       const envPath = process.env.PLAYWRIGHT_CHROMIUM_PATH;
       if (envPath && fs.existsSync(envPath)) {
-        this.browser = await chromium.launch({ headless: true, executablePath: envPath, args: launchArgs });
+        this.browser = await chromium.launch({
+          headless: true,
+          executablePath: envPath,
+          args: launchArgs,
+        });
         return this.browser;
       }
 

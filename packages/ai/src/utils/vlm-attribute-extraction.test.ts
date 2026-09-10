@@ -18,10 +18,16 @@ describe('Task3 · extractReferenceImageAttributes (TR-3.x)', () => {
       slideCount: 6,
       pageHints: { disableCover: true, disableToc: false, disableConclusion: false },
       backgroundEnabled: true,
-      master: { logo: { position: 'top-right', colorHex: '#dc2626' }, footer: { textContent: 'NoPPT', hasPageNumber: true } },
+      master: {
+        logo: { position: 'top-right', colorHex: '#dc2626' },
+        footer: { textContent: 'NoPPT', hasPageNumber: true },
+      },
       layout: { type: 'single', single: 'card-grid', pageTypeMap: null },
     });
-    const r = await extractReferenceImageAttributes('data:image/png;base64,xxx', mockProvider(json));
+    const r = await extractReferenceImageAttributes(
+      'data:image/png;base64,xxx',
+      mockProvider(json),
+    );
     expect(r.uploaded).toBe(true);
     expect(r.style.primaryColor).toBe('#ea580c');
     expect(r.style.fontFamily).toBe('serif');
@@ -48,41 +54,68 @@ describe('Task3 · extractReferenceImageAttributes (TR-3.x)', () => {
       titleColor: '#111827',
       bodyColor: '#1a1a1a',
     });
-    const r = await extractReferenceImageAttributes('data:image/png;base64,xxx', mockProvider(json));
+    const r = await extractReferenceImageAttributes(
+      'data:image/png;base64,xxx',
+      mockProvider(json),
+    );
     expect(r.style.titleColor).toBe('#111827');
     expect(r.style.bodyColor).toBe('#1a1a1a');
   });
 
   it('[TXT] 文字色非法 hex（如 "black"）被忽略 → 回落 undefined', async () => {
-    const json = JSON.stringify({ confidence: 0.9, primaryColor: '#ea580c', titleColor: 'black', bodyColor: '#12' });
-    const r = await extractReferenceImageAttributes('data:image/png;base64,xxx', mockProvider(json));
+    const json = JSON.stringify({
+      confidence: 0.9,
+      primaryColor: '#ea580c',
+      titleColor: 'black',
+      bodyColor: '#12',
+    });
+    const r = await extractReferenceImageAttributes(
+      'data:image/png;base64,xxx',
+      mockProvider(json),
+    );
     expect(r.style.titleColor).toBeUndefined();
     expect(r.style.bodyColor).toBeUndefined();
   });
 
   it('[TXT] 文字色字段缺失（JSON 不含 titleColor/bodyColor）→ 回落 undefined', async () => {
     const json = JSON.stringify({ confidence: 0.9, primaryColor: '#ea580c' });
-    const r = await extractReferenceImageAttributes('data:image/png;base64,xxx', mockProvider(json));
+    const r = await extractReferenceImageAttributes(
+      'data:image/png;base64,xxx',
+      mockProvider(json),
+    );
     expect(r.style.titleColor).toBeUndefined();
     expect(r.style.bodyColor).toBeUndefined();
   });
 
   it('L2 含噪声/Markdown 代码块仍可抠出 JSON', async () => {
-    const noisy = '```json\n' + JSON.stringify({ primaryColor: '#2563eb', fontFamily: 'sans' }) + '\n```\n（说明文字）';
-    const r = await extractReferenceImageAttributes('data:image/png;base64,xxx', mockProvider(noisy));
+    const noisy =
+      '```json\n' +
+      JSON.stringify({ primaryColor: '#2563eb', fontFamily: 'sans' }) +
+      '\n```\n（说明文字）';
+    const r = await extractReferenceImageAttributes(
+      'data:image/png;base64,xxx',
+      mockProvider(noisy),
+    );
     expect(r.style.primaryColor).toBe('#2563eb');
     expect(r.style.fontFamily).toBe('sans');
   });
 
   it('L3/L4 非法 JSON → minimal（仅 uploaded 标记）', async () => {
-    const r = await extractReferenceImageAttributes('data:image/png;base64,xxx', mockProvider('这不是 JSON'));
+    const r = await extractReferenceImageAttributes(
+      'data:image/png;base64,xxx',
+      mockProvider('这不是 JSON'),
+    );
     expect(r.uploaded).toBe(true);
     expect(r.style.primaryColor).toBeUndefined();
     expect(Object.keys(r.style).length).toBe(0);
   });
 
   it('L5 vlmProvider 抛错 → minimal', async () => {
-    const failing: VlmTextProvider = { generateText: async () => { throw new Error('VLM down'); } };
+    const failing: VlmTextProvider = {
+      generateText: async () => {
+        throw new Error('VLM down');
+      },
+    };
     const r = await extractReferenceImageAttributes('data:image/png;base64,xxx', failing);
     expect(r.uploaded).toBe(true);
     expect(Object.keys(r.style).length).toBe(0);
@@ -90,7 +123,10 @@ describe('Task3 · extractReferenceImageAttributes (TR-3.x)', () => {
 
   it('非法枚举值被忽略（primaryColor 非 hex / style 非允许值）', async () => {
     const json = JSON.stringify({ primaryColor: 'red', style: 'unknown-style', iconStyle: 'star' });
-    const r = await extractReferenceImageAttributes('data:image/png;base64,xxx', mockProvider(json));
+    const r = await extractReferenceImageAttributes(
+      'data:image/png;base64,xxx',
+      mockProvider(json),
+    );
     expect(r.style.primaryColor).toBeUndefined();
     expect(r.style.style).toBeUndefined();
     expect(r.style.iconStyle).toBeUndefined();
@@ -102,7 +138,10 @@ describe('Task3 · extractReferenceImageAttributes (TR-3.x)', () => {
       primaryColor: '#ea580c',
       master: { logo: { position: 'top-right', colorHex: '#dc2626' } },
     });
-    const r = await extractReferenceImageAttributes('data:image/png;base64,xxx', mockProvider(json));
+    const r = await extractReferenceImageAttributes(
+      'data:image/png;base64,xxx',
+      mockProvider(json),
+    );
     expect(r.uploaded).toBe(true);
     expect(Object.keys(r.style).length).toBe(0);
     expect(r.master).toBeUndefined();
@@ -110,7 +149,10 @@ describe('Task3 · extractReferenceImageAttributes (TR-3.x)', () => {
 
   it('confidence 缺失 → 不触发降级（向后兼容）', async () => {
     const json = JSON.stringify({ primaryColor: '#2563eb', fontFamily: 'mono' });
-    const r = await extractReferenceImageAttributes('data:image/png;base64,xxx', mockProvider(json));
+    const r = await extractReferenceImageAttributes(
+      'data:image/png;base64,xxx',
+      mockProvider(json),
+    );
     expect(r.style.primaryColor).toBe('#2563eb');
     expect(r.style.fontFamily).toBe('mono');
   });
@@ -119,13 +161,28 @@ describe('Task3 · extractReferenceImageAttributes (TR-3.x)', () => {
     const json = JSON.stringify({
       confidence: 0.9,
       master: {
-        logo: { position: 'top-left', x: 0.02, y: 0.03, w: 0.12, h: 0.1, colorHex: '#dc2626', description: '红色方标', confidence: 0.8 },
+        logo: {
+          position: 'top-left',
+          x: 0.02,
+          y: 0.03,
+          w: 0.12,
+          h: 0.1,
+          colorHex: '#dc2626',
+          description: '红色方标',
+          confidence: 0.8,
+        },
         header: { elements: [{ type: 'title-bar', colorHex: '#2563eb' }] },
         footer: { textContent: 'NoPPT', hasPageNumber: true },
-        sideDecorations: [{ side: 'right', colorHex: '#16a34a' }, { side: 'bad', colorHex: '#000000' }],
+        sideDecorations: [
+          { side: 'right', colorHex: '#16a34a' },
+          { side: 'bad', colorHex: '#000000' },
+        ],
       },
     });
-    const r = await extractReferenceImageAttributes('data:image/png;base64,xxx', mockProvider(json));
+    const r = await extractReferenceImageAttributes(
+      'data:image/png;base64,xxx',
+      mockProvider(json),
+    );
     expect(r.master!.logo!.x).toBe(0.02);
     expect(r.master!.logo!.y).toBe(0.03);
     expect(r.master!.logo!.w).toBe(0.12);
@@ -146,13 +203,21 @@ describe('Task3 · extractReferenceImageAttributes (TR-3.x)', () => {
         footer: { textContent: 'NoPPT', hasPageNumber: true },
       },
     });
-    const r = await extractReferenceImageAttributes('data:image/png;base64,xxx', mockProvider(json));
+    const r = await extractReferenceImageAttributes(
+      'data:image/png;base64,xxx',
+      mockProvider(json),
+    );
     expect(r.master!.logo).toBeUndefined();
     expect(r.master!.footer!.textContent).toBe('NoPPT');
   });
 
   it('VLM 5s 超时 → 降级为 minimal', async () => {
-    const hanging: VlmTextProvider = { generateText: () => new Promise<string>(() => { /* never resolves */ }) };
+    const hanging: VlmTextProvider = {
+      generateText: () =>
+        new Promise<string>(() => {
+          /* never resolves */
+        }),
+    };
     const r = await extractReferenceImageAttributes('data:image/png;base64,xxx', hanging);
     expect(r.uploaded).toBe(true);
     expect(Object.keys(r.style).length).toBe(0);

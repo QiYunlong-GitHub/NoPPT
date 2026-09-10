@@ -43,7 +43,6 @@ const VERTICAL_TOP_4LI = `
 </div>`;
 
 describe('Task 2: 双栏 slide 不被误判为垂直布局 → 双列', () => {
-
   it('T2-TR1: 水平双栏（图左文右）UL 保持 flex-direction:column 单列', () => {
     const out = LayoutEngine.normalizeAISlide({ index: 0, html: HORIZONTAL_LEFT_HTML } as any);
     const ulMatch = out.html.match(/<ul\b([^>]*)>/i);

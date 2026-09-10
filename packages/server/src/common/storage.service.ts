@@ -1,5 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { mkdirSync, existsSync, readFileSync, readdirSync, unlinkSync, rmdirSync, statSync, promises as fs } from 'fs';
+import {
+  mkdirSync,
+  existsSync,
+  readFileSync,
+  readdirSync,
+  unlinkSync,
+  rmdirSync,
+  statSync,
+  promises as fs,
+} from 'fs';
 import { join, dirname } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { formatBeijingTime } from '@noppt/ai';
@@ -145,9 +154,17 @@ export class StorageService {
     if (!existsSync(filePath)) return [];
     const content = readFileSync(filePath, 'utf-8');
     if (!content.trim()) return [];
-    return content.split('\n').filter((l) => l.trim()).map((l) => {
-      try { return JSON.parse(l); } catch { return null; }
-    }).filter(Boolean);
+    return content
+      .split('\n')
+      .filter((l) => l.trim())
+      .map((l) => {
+        try {
+          return JSON.parse(l);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
   }
 
   listDir(dirPath: string): string[] {
@@ -177,7 +194,10 @@ export class StorageService {
     this.ensurePresentationDir(presentationId);
     const imagesDir = this.getImagesDir(presentationId);
 
-    console.log(`[${formatBeijingTime()}] [Storage] saveImageFromUrl called:`, imageUrl.substring(0, 150));
+    console.log(
+      `[${formatBeijingTime()}] [Storage] saveImageFromUrl called:`,
+      imageUrl.substring(0, 150),
+    );
 
     if (imageUrl.startsWith('data:')) {
       const mimeMatch = imageUrl.match(/^data:image\/(\w+);base64,/);
@@ -192,18 +212,21 @@ export class StorageService {
     } else {
       let cleanUrl = imageUrl.trim();
       cleanUrl = cleanUrl.replace(/\s+/g, '%20');
-      
+
       try {
         cleanUrl = new URL(cleanUrl).toString();
       } catch (e) {
         console.warn(`[${formatBeijingTime()}] [Storage] URL parsing warning:`, e);
       }
 
-      console.log(`[${formatBeijingTime()}] [Storage] Fetching image from:`, cleanUrl.substring(0, 150));
+      console.log(
+        `[${formatBeijingTime()}] [Storage] Fetching image from:`,
+        cleanUrl.substring(0, 150),
+      );
       const response = await fetch(cleanUrl, {
         redirect: 'follow',
         headers: {
-          'Accept': 'image/*,*/*;q=0.8',
+          Accept: 'image/*,*/*;q=0.8',
         },
       });
 
@@ -227,13 +250,21 @@ export class StorageService {
       const filePath = join(imagesDir, filename);
       const arrayBuffer = await response.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
-      
+
       if (buffer.length === 0) {
         throw new Error('Downloaded image is empty');
       }
 
       await fs.writeFile(filePath, buffer);
-      console.log(`[${formatBeijingTime()}] [Storage] Saved image from URL:`, filename, 'size:', buffer.length, 'bytes', 'content-type:', contentType);
+      console.log(
+        `[${formatBeijingTime()}] [Storage] Saved image from URL:`,
+        filename,
+        'size:',
+        buffer.length,
+        'bytes',
+        'content-type:',
+        contentType,
+      );
       return `${this.getPublicBase()}/presentations/${presentationId}/assets/images/${filename}`;
     }
   }
@@ -268,7 +299,11 @@ export class StorageService {
     // 避免分步流程多次持久化同一批原图时累积孤儿文件（每次生成仅保留最新一份）。
     for (const f of readdirSync(dir)) {
       if (f.startsWith(`${slot}-`) || f.startsWith(`${slot}.`)) {
-        try { unlinkSync(join(dir, f)); } catch { /* ignore */ }
+        try {
+          unlinkSync(join(dir, f));
+        } catch {
+          /* ignore */
+        }
       }
     }
     const filename = `${slot}.${ext}`;
@@ -328,7 +363,13 @@ export class StorageService {
  */
 function parseImageDimensions(buf: Buffer): { width?: number; height?: number } {
   try {
-    if (buf.length >= 24 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) {
+    if (
+      buf.length >= 24 &&
+      buf[0] === 0x89 &&
+      buf[1] === 0x50 &&
+      buf[2] === 0x4e &&
+      buf[3] === 0x47
+    ) {
       const width = buf.readUInt32BE(16);
       const height = buf.readUInt32BE(20);
       if (width > 0 && height > 0) return { width, height };

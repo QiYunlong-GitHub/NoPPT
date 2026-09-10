@@ -39,7 +39,10 @@ export function toGrayscale(imageData: ImageDataLike): Float64Array {
   return gray;
 }
 
-export function extractHsvHistogram(imageData: ImageDataLike, bins = 360): {
+export function extractHsvHistogram(
+  imageData: ImageDataLike,
+  bins = 360,
+): {
   hist: Float64Array;
   satWeightedHist: Float64Array;
   totalWeight: number;
@@ -54,7 +57,7 @@ export function extractHsvHistogram(imageData: ImageDataLike, bins = 360): {
     const { h, s } = rgbToHsv(data[idx], data[idx + 1], data[idx + 2]);
     if (s < 0.1) continue;
 
-    const bin = Math.min(bins - 1, Math.floor(h / 360 * bins));
+    const bin = Math.min(bins - 1, Math.floor((h / 360) * bins));
     hist[bin] += 1;
     satWeightedHist[bin] += s;
     totalWeight += s;

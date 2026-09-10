@@ -9,11 +9,33 @@ import {
 import { t } from '@/i18n';
 
 const PASTED_LAYOUT_PROPS = [
-  'display', 'flex-direction', 'flex-wrap', 'align-items', 'align-content',
-  'justify-content', 'justify-items', 'grid-template-columns', 'grid-template-rows',
-  'grid-column', 'grid-row', 'gap', 'width', 'height', 'min-width', 'min-height',
-  'max-width', 'max-height', 'overflow', 'overflow-x', 'overflow-y',
-  'position', 'left', 'top', 'right', 'bottom', 'box-sizing',
+  'display',
+  'flex-direction',
+  'flex-wrap',
+  'align-items',
+  'align-content',
+  'justify-content',
+  'justify-items',
+  'grid-template-columns',
+  'grid-template-rows',
+  'grid-column',
+  'grid-row',
+  'gap',
+  'width',
+  'height',
+  'min-width',
+  'min-height',
+  'max-width',
+  'max-height',
+  'overflow',
+  'overflow-x',
+  'overflow-y',
+  'position',
+  'left',
+  'top',
+  'right',
+  'bottom',
+  'box-sizing',
 ];
 
 interface PresentationLike {
@@ -80,10 +102,18 @@ export function useClipboard({
   highlightElement,
   saveAndRestoreSelectionForNewElements,
 }: UseClipboardParams) {
-  const getSlideAppendTarget = (innerDiv: HTMLElement): HTMLElement => _getSlideAppendTarget(innerDiv);
+  const getSlideAppendTarget = (innerDiv: HTMLElement): HTMLElement =>
+    _getSlideAppendTarget(innerDiv);
 
-  const createTextElement = (text: string, x: number, y: number): HTMLElement => _createTextElement(text, x, y);
-  const createImageElement = (src: string, x: number, y: number, width?: number, height?: number): HTMLElement => _createImageElement(src, x, y, width, height);
+  const createTextElement = (text: string, x: number, y: number): HTMLElement =>
+    _createTextElement(text, x, y);
+  const createImageElement = (
+    src: string,
+    x: number,
+    y: number,
+    width?: number,
+    height?: number,
+  ): HTMLElement => _createImageElement(src, x, y, width, height);
 
   const createTableFromHtml = (html: string, x: number, y: number): HTMLElement => {
     const cssRules: { selector: string; styles: Record<string, string> }[] = [];
@@ -449,7 +479,10 @@ export function useClipboard({
     try {
       const clipboardItems = await navigator.clipboard.read();
       for (const item of clipboardItems) {
-        if (item.types.includes('application/x-noppt-slides') || item.types.includes('application/x-noppt-slide')) {
+        if (
+          item.types.includes('application/x-noppt-slides') ||
+          item.types.includes('application/x-noppt-slide')
+        ) {
           result.hasSlideClipboard = true;
         }
         if (item.types.includes('application/x-noppt-elements')) {
@@ -639,7 +672,10 @@ export function useClipboard({
       targetY = rect.height / 3 / zoom;
     }
 
-    let minLeft = Infinity, minTop = Infinity, maxRight = -Infinity, maxBottom = -Infinity;
+    let minLeft = Infinity,
+      minTop = Infinity,
+      maxRight = -Infinity,
+      maxBottom = -Infinity;
     elementsData.forEach((item: any) => {
       minLeft = Math.min(minLeft, item.left);
       minTop = Math.min(minTop, item.top);
@@ -979,13 +1015,15 @@ export function useClipboard({
 
   const clearClipboard = async () => {
     try {
-      await navigator.clipboard.write([new ClipboardItem({
-        'text/plain':                 new Blob([''], { type: 'text/plain' }),
-        'text/html':                  new Blob([''], { type: 'text/html' }),
-        'image/png':                  new Blob([],  { type: 'image/png' }),
-        'application/x-noppt-slide':  new Blob([''], { type: 'application/x-noppt-slide' }),
-        'application/x-noppt-slides': new Blob([''], { type: 'application/x-noppt-slides' }),
-      })]);
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'text/plain': new Blob([''], { type: 'text/plain' }),
+          'text/html': new Blob([''], { type: 'text/html' }),
+          'image/png': new Blob([], { type: 'image/png' }),
+          'application/x-noppt-slide': new Blob([''], { type: 'application/x-noppt-slide' }),
+          'application/x-noppt-slides': new Blob([''], { type: 'application/x-noppt-slides' }),
+        }),
+      ]);
     } catch {
       try {
         await navigator.clipboard.writeText('');
@@ -1013,12 +1051,20 @@ export function useClipboard({
     });
   };
 
-  const pasteElementsFromData = (elements: any[], targetX: number, targetY: number, extraOffset: number = 0): HTMLElement[] => {
+  const pasteElementsFromData = (
+    elements: any[],
+    targetX: number,
+    targetY: number,
+    extraOffset: number = 0,
+  ): HTMLElement[] => {
     const container = slideContainerRef.current;
     const innerDiv = container?.querySelector('[data-slide-content="true"]') as HTMLElement | null;
     if (!container || !innerDiv || !elements || elements.length === 0) return [];
 
-    let minLeft = Infinity, minTop = Infinity, maxRight = -Infinity, maxBottom = -Infinity;
+    let minLeft = Infinity,
+      minTop = Infinity,
+      maxRight = -Infinity,
+      maxBottom = -Infinity;
     elements.forEach((item: any) => {
       minLeft = Math.min(minLeft, item.left);
       minTop = Math.min(minTop, item.top);
@@ -1104,7 +1150,9 @@ export function useClipboard({
     if (navigator.clipboard) {
       try {
         const elementsJson = JSON.stringify(copied);
-        const textTypeBlob = new Blob([`__noppt_elements__:${elementsJson}`], { type: 'text/plain' });
+        const textTypeBlob = new Blob([`__noppt_elements__:${elementsJson}`], {
+          type: 'text/plain',
+        });
 
         const clipboardItems: Record<string, Blob> = {
           'text/plain': textTypeBlob,
@@ -1201,9 +1249,7 @@ export function useClipboard({
         canvas.toBlob(async (blob) => {
           if (blob && navigator.clipboard) {
             try {
-              await navigator.clipboard.write([
-                new ClipboardItem({ 'image/png': blob })
-              ]);
+              await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
               showToast(t('幻灯片已复制为图片'), 'success');
             } catch (err) {
               console.warn('Failed to copy slide image:', err);
@@ -1280,7 +1326,10 @@ export function useClipboard({
       pastedElements.push(el);
     });
 
-    saveAndRestoreSelectionForNewElements(pastedElements, { markUnsaved: false, clearClipboard: true });
+    saveAndRestoreSelectionForNewElements(pastedElements, {
+      markUnsaved: false,
+      clearClipboard: true,
+    });
   };
   const handlePasteAtPositionRef = useRef(handlePasteAtPosition);
   handlePasteAtPositionRef.current = handlePasteAtPosition;
@@ -1320,7 +1369,10 @@ export function useClipboard({
       pastedElements.push(el);
     });
 
-    saveAndRestoreSelectionForNewElements(pastedElements, { markUnsaved: false, clearClipboard: true });
+    saveAndRestoreSelectionForNewElements(pastedElements, {
+      markUnsaved: false,
+      clearClipboard: true,
+    });
   };
 
   const handlePasteFromClipboard = async () => {
@@ -1411,7 +1463,9 @@ export function useClipboard({
           } else {
             const directChildren = Array.from(tempDiv.children) as HTMLElement[];
             const firstAbsoluteChild = directChildren.find(
-              (c) => c.style?.position === 'absolute' && (c.style.left || c.style.top || c.style.right || c.style.bottom),
+              (c) =>
+                c.style?.position === 'absolute' &&
+                (c.style.left || c.style.top || c.style.right || c.style.bottom),
             );
             if (firstAbsoluteChild) {
               directChildren.forEach((origEl, idx) => {
@@ -1429,11 +1483,7 @@ export function useClipboard({
                 pastedElements.push(extracted);
               });
             } else {
-              const richTextEl = createRichTextFromHtml(
-                html,
-                centerX - 200,
-                centerY - 50,
-              );
+              const richTextEl = createRichTextFromHtml(html, centerX - 200, centerY - 50);
               if (richTextEl.innerText?.trim()) {
                 getSlideAppendTarget(innerDiv).appendChild(richTextEl);
                 pastedElements.push(richTextEl);
@@ -1486,7 +1536,10 @@ export function useClipboard({
       }
 
       if (pastedElements.length > 0) {
-        saveAndRestoreSelectionForNewElements(pastedElements, { markUnsaved: true, clearClipboard: true });
+        saveAndRestoreSelectionForNewElements(pastedElements, {
+          markUnsaved: true,
+          clearClipboard: true,
+        });
       }
     } catch (err) {
       console.warn('Failed to read from system clipboard:', err);
@@ -1526,7 +1579,10 @@ export function useClipboard({
 
     const finalize = () => {
       if (pastedElements.length > 0) {
-        saveAndRestoreSelectionForNewElements(pastedElements, { markUnsaved: true, clearClipboard: true });
+        saveAndRestoreSelectionForNewElements(pastedElements, {
+          markUnsaved: true,
+          clearClipboard: true,
+        });
       }
     };
 
@@ -1537,7 +1593,10 @@ export function useClipboard({
         try {
           const jsonStr = plainText.substring('__noppt_elements__:'.length);
           const elements = JSON.parse(jsonStr);
-          let minLeft = Infinity, minTop = Infinity, maxRight = -Infinity, maxBottom = -Infinity;
+          let minLeft = Infinity,
+            minTop = Infinity,
+            maxRight = -Infinity,
+            maxBottom = -Infinity;
           elements.forEach((item: any) => {
             minLeft = Math.min(minLeft, item.left);
             minTop = Math.min(minTop, item.top);
@@ -1574,7 +1633,11 @@ export function useClipboard({
 
         if (tables.length > 0) {
           tables.forEach((table, idx) => {
-            const tableEl = createTableFromHtml(html, centerX - 200 + idx * 20, centerY - 50 + idx * 20);
+            const tableEl = createTableFromHtml(
+              html,
+              centerX - 200 + idx * 20,
+              centerY - 50 + idx * 20,
+            );
             getSlideAppendTarget(innerDiv).appendChild(tableEl);
             pastedElements.push(tableEl);
           });
@@ -1588,7 +1651,9 @@ export function useClipboard({
           });
           const directChildren = Array.from(tempDiv.children) as HTMLElement[];
           const firstAbsoluteChild = directChildren.find(
-            (c) => c.style?.position === 'absolute' && (c.style.left || c.style.top || c.style.right || c.style.bottom),
+            (c) =>
+              c.style?.position === 'absolute' &&
+              (c.style.left || c.style.top || c.style.right || c.style.bottom),
           );
 
           if (firstAbsoluteChild && nopptCandidates.length === directChildren.length) {
@@ -1606,11 +1671,7 @@ export function useClipboard({
               pastedElements.push(extracted);
             });
           } else {
-            const richTextEl = createRichTextFromHtml(
-              html,
-              centerX - 200,
-              centerY - 50,
-            );
+            const richTextEl = createRichTextFromHtml(html, centerX - 200, centerY - 50);
             if (richTextEl.innerText?.trim()) {
               getSlideAppendTarget(innerDiv).appendChild(richTextEl);
               pastedElements.push(richTextEl);

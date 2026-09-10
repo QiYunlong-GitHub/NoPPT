@@ -75,7 +75,7 @@ export class VisualAuditEngine {
   async audit(context: AuditContext): Promise<AuditEngineResult> {
     const startTime = Date.now();
     const issues: AuditIssue[] = [];
-    const slides = context.presentation.slides.filter(s => !s.hidden);
+    const slides = context.presentation.slides.filter((s) => !s.hidden);
 
     const renderer = await this.ensureRenderer();
     const perSlide: PerSlideVisualMetrics[] = [];
@@ -89,14 +89,16 @@ export class VisualAuditEngine {
         engineName: 'Visual Design Audit Engine',
         status: 'error',
         score: 0,
-        issues: [{
-          ruleId: 'visual-renderer-unavailable',
-          severity: 'error',
-          engine: 'visual',
-          slideIndex: -1,
-          message: `无法启动 Chromium 渲染器: ${this.initError?.message || 'unknown error'}`,
-          fixable: false,
-        }],
+        issues: [
+          {
+            ruleId: 'visual-renderer-unavailable',
+            severity: 'error',
+            engine: 'visual',
+            slideIndex: -1,
+            message: `无法启动 Chromium 渲染器: ${this.initError?.message || 'unknown error'}`,
+            fixable: false,
+          },
+        ],
         durationMs: Date.now() - startTime,
         raw: { error: this.initError?.message },
       };
@@ -170,8 +172,7 @@ export class VisualAuditEngine {
             if (vlmResult.score > 0) {
               vlmScores.push(vlmResult.score);
             }
-          } catch {
-          }
+          } catch {}
         }
       } finally {
         await page.close();
@@ -203,8 +204,8 @@ export class VisualAuditEngine {
 
     const score = Math.round(total * 10) / 10;
 
-    const errorCount = issues.filter(i => i.severity === 'error').length;
-    const warnCount = issues.filter(i => i.severity === 'warn').length;
+    const errorCount = issues.filter((i) => i.severity === 'error').length;
+    const warnCount = issues.filter((i) => i.severity === 'warn').length;
     let status: AuditEngineResult['status'] = 'passed';
     if (errorCount > 0) status = 'fail';
     else if (warnCount > 0 || score < 80) status = 'warn';
@@ -276,7 +277,11 @@ export class VisualAuditEngine {
         message: `第 ${slideIndex + 1} 页色彩和谐度较低（最佳模板=${harmony.bestTemplate}，距离=${harmony.bestDistance.toFixed(1)}°，评分=${harmony.score.toFixed(2)}）`,
         fixSuggestion: '使用互补色、类似色或三角色等经典配色方案，统一色相分布',
         fixable: false,
-        metadata: { bestTemplate: harmony.bestTemplate, bestDistance: harmony.bestDistance, score: harmony.score },
+        metadata: {
+          bestTemplate: harmony.bestTemplate,
+          bestDistance: harmony.bestDistance,
+          score: harmony.score,
+        },
       });
     }
 
@@ -326,7 +331,10 @@ export class VisualAuditEngine {
         message: `第 ${slideIndex + 1} 页使用了 ${fontIcons.fontFamilyCount} 种字体（建议不超过 3 种）：${fontIcons.fontFamilies.join(', ')}`,
         fixSuggestion: '统一使用 1-2 个字体族，通过字重和字号建立层次',
         fixable: false,
-        metadata: { fontFamilyCount: fontIcons.fontFamilyCount, fontFamilies: fontIcons.fontFamilies },
+        metadata: {
+          fontFamilyCount: fontIcons.fontFamilyCount,
+          fontFamilies: fontIcons.fontFamilies,
+        },
       });
     }
 
@@ -347,9 +355,25 @@ export class VisualAuditEngine {
   private computeWeightedScore(
     perSlide: PerSlideVisualMetrics[],
     pacingScore: number,
-  ): { total: number; contrast: number; harmony: number; colorfulness: number; complexity: number; pacing: number; fontIcons: number } {
+  ): {
+    total: number;
+    contrast: number;
+    harmony: number;
+    colorfulness: number;
+    complexity: number;
+    pacing: number;
+    fontIcons: number;
+  } {
     if (perSlide.length === 0) {
-      return { total: 0, contrast: 0, harmony: 0, colorfulness: 0, complexity: 0, pacing: 0, fontIcons: 0 };
+      return {
+        total: 0,
+        contrast: 0,
+        harmony: 0,
+        colorfulness: 0,
+        complexity: 0,
+        pacing: 0,
+        fontIcons: 0,
+      };
     }
 
     let sumContrast = 0;
@@ -379,11 +403,11 @@ export class VisualAuditEngine {
     const fontIcons = (sumFontIcons / n) * 100;
 
     const total =
-      contrast * 0.30 +
+      contrast * 0.3 +
       harmony * 0.25 +
       colorfulness * 0.15 +
       complexity * 0.15 +
-      pacing * 0.10 +
+      pacing * 0.1 +
       fontIcons * 0.05;
 
     return {

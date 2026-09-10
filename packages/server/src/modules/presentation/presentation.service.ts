@@ -30,7 +30,7 @@ export class PresentationService {
   list(): PresentationListItem[] {
     const presentationsDir = join(this.storage.getWorkspaceDir(), 'presentations');
     const dirs = this.storage.listDir(presentationsDir);
-    
+
     const presentations: PresentationListItem[] = [];
     for (const dir of dirs) {
       const metaFile = join(presentationsDir, dir, 'presentation.json');
@@ -47,7 +47,7 @@ export class PresentationService {
         });
       }
     }
-    
+
     return presentations.sort((a, b) => b.updatedAt - a.updatedAt);
   }
 
@@ -85,14 +85,18 @@ export class PresentationService {
     });
     const normalizedPresentation = { ...presentation, slides: normalizedSlides };
 
-    const presentationFile = join(this.storage.getPresentationDir(presentation.id), 'presentation.json');
+    const presentationFile = join(
+      this.storage.getPresentationDir(presentation.id),
+      'presentation.json',
+    );
     await this.storage.writeJsonFile(presentationFile, normalizedPresentation);
 
     const defaultMessages: ChatMessage[] = [
       {
         id: '1',
         role: 'assistant',
-        content: '你好！我是你的 AI 演示助手。你可以告诉我怎么修改当前页面，或者对整个演示进行调整。想试试什么？',
+        content:
+          '你好！我是你的 AI 演示助手。你可以告诉我怎么修改当前页面，或者对整个演示进行调整。想试试什么？',
         scope: 'current',
       },
     ];
@@ -119,7 +123,10 @@ export class PresentationService {
    * 轻量更新：只更新元信息（标题、描述等），不重写整个 slides body
    * 避免前端 PUT 大 body（12页HTML）时触发代理 EPIPE / 超时
    */
-  async updateMeta(id: string, meta: { title?: string; description?: string }): Promise<Presentation> {
+  async updateMeta(
+    id: string,
+    meta: { title?: string; description?: string },
+  ): Promise<Presentation> {
     const presentationFile = join(this.storage.getPresentationDir(id), 'presentation.json');
     const existing = this.storage.readJsonFile<Presentation>(presentationFile, null);
     if (!existing) {
@@ -143,11 +150,7 @@ export class PresentationService {
     if (!original) {
       throw new NotFoundException('演示文稿不存在');
     }
-    const newPres = await this.create(
-      `${original.title} - 副本`,
-      original.width,
-      original.height,
-    );
+    const newPres = await this.create(`${original.title} - 副本`, original.width, original.height);
     const now = Date.now();
     const newSlides: any[] = original.slides.map((slide, i) => ({
       ...slide,

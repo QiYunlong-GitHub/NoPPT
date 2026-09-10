@@ -80,19 +80,11 @@ export function resolveStyle(
   return ref ?? user ?? def;
 }
 
-export function resolveBackgroundEnabled(
-  ref?: boolean,
-  user?: boolean,
-  def = false,
-): boolean {
+export function resolveBackgroundEnabled(ref?: boolean, user?: boolean, def = false): boolean {
   return ref ?? user ?? def;
 }
 
-export function resolveSlideCount(
-  ref?: number,
-  user?: number,
-  def?: number,
-): number | undefined {
+export function resolveSlideCount(ref?: number, user?: number, def?: number): number | undefined {
   return ref ?? user ?? def;
 }
 
@@ -137,7 +129,9 @@ export function mergeReferenceAttrs(
 }
 
 // ---------- 跨三分类 pageHints 合并（三取 OR，明确 false 优先）----------
-function mergePageHintsOR(list: (ReferencePageHints | undefined)[]): ReferencePageHints | undefined {
+function mergePageHintsOR(
+  list: (ReferencePageHints | undefined)[],
+): ReferencePageHints | undefined {
   const flags: (keyof ReferencePageHints)[] = ['disableCover', 'disableToc', 'disableConclusion'];
   const result: ReferencePageHints = {};
   let any = false;
@@ -323,11 +317,17 @@ export function resolveReferenceComposition(
   if (!attrs) return 'unknown';
   const cat = pageTypeToCategory(pageType);
   const cr = attrs.byCategory?.[cat];
-  const fromVisual = (v?: ReferenceVisualFeatures | null): 'left-aligned' | 'centered' | undefined => {
+  const fromVisual = (
+    v?: ReferenceVisualFeatures | null,
+  ): 'left-aligned' | 'centered' | undefined => {
     if (!v?.composition) return undefined;
-    return v.composition === 'left-aligned' || v.composition === 'centered' ? v.composition : undefined;
+    return v.composition === 'left-aligned' || v.composition === 'centered'
+      ? v.composition
+      : undefined;
   };
-  const fromVerbal = (s?: { layoutVerbal?: string } | null): 'left-aligned' | 'centered' | undefined => {
+  const fromVerbal = (
+    s?: { layoutVerbal?: string } | null,
+  ): 'left-aligned' | 'centered' | undefined => {
     const t = s?.layoutVerbal || '';
     if (/左对齐/.test(t)) return 'left-aligned';
     if (/居中/.test(t)) return 'centered';
@@ -413,7 +413,9 @@ export function resolveDeckReferencePrimaryColor(
     .filter((e): e is { cat: PageCategory; color: string } => !!e.color);
 
   const globalColor =
-    attrs.global?.uploaded && attrs.global.style?.primaryColor && HEX_RE.test(attrs.global.style.primaryColor)
+    attrs.global?.uploaded &&
+    attrs.global.style?.primaryColor &&
+    HEX_RE.test(attrs.global.style.primaryColor)
       ? attrs.global.style.primaryColor.toLowerCase()
       : undefined;
 
@@ -424,7 +426,7 @@ export function resolveDeckReferencePrimaryColor(
     // 单一分类主色：仅 content 具代表性可提升为 deck 级；非 content（如仅 summary）
     // 不提升，避免单一偶然值染全 deck；用户另有显式 global 主色则退用它。
     const entry = catEntries[0];
-    return entry.cat === 'content' ? entry.color : globalColor ?? undefined;
+    return entry.cat === 'content' ? entry.color : (globalColor ?? undefined);
   }
   // ≥2 个分类有主色：需一致/相近才提升，取众数颜色；否则不提升。
   return mostConsistentColor(catEntries.map((e) => e.color)) ?? undefined;
@@ -564,10 +566,21 @@ export function formatPriorityDecision(
 
 // ---------- 参考图视觉特征 → 自然语言指引（FR-2.x）----------
 const VISUAL_LABELS: Partial<Record<keyof ReferenceVisualFeatures, Record<string, string>>> = {
-  composition: { centered: '居中构图', 'left-aligned': '左对齐构图', split: '分栏构图', 'full-bleed': '全幅构图' },
+  composition: {
+    centered: '居中构图',
+    'left-aligned': '左对齐构图',
+    split: '分栏构图',
+    'full-bleed': '全幅构图',
+  },
   columns: { '1': '1 栏', '2': '2 栏', '3': '3 栏', '4': '4 栏' },
   titleScale: { poster: '海报级标题', large: '大号标题', normal: '常规标题' },
-  decoration: { 'gradient-glow': '渐变光晕装饰', 'geometric-shapes': '几何形状装饰', 'thin-lines': '细线条装饰', 'solid-blocks': '实色块装饰', minimal: '极简装饰' },
+  decoration: {
+    'gradient-glow': '渐变光晕装饰',
+    'geometric-shapes': '几何形状装饰',
+    'thin-lines': '细线条装饰',
+    'solid-blocks': '实色块装饰',
+    minimal: '极简装饰',
+  },
   backgroundTone: { light: '浅色背景', dark: '深色背景', colored: '彩色背景' },
   cardRadius: { none: '无圆角', small: '小圆角', large: '大圆角' },
   imagery: { photo: '照片调性', illustration: '插画调性', icon: '图标调性', none: '无图' },
@@ -599,7 +612,9 @@ export function computePageIndexInCategory(
   pageIndex: number,
 ): number {
   const baseCat = pageTypeToCategory(slides[pageIndex]?.pageType ?? 'content');
-  return slides.slice(0, pageIndex).filter((s) => pageTypeToCategory(s.pageType ?? 'content') === baseCat).length;
+  return slides
+    .slice(0, pageIndex)
+    .filter((s) => pageTypeToCategory(s.pageType ?? 'content') === baseCat).length;
 }
 
 /**
@@ -643,10 +658,15 @@ export function getReferenceSnippetForPage(
 }
 
 /** 取某页对应分类（或全局兜底）的调色板（含撞色判定）。 */
-export function getReferencePaletteForPage(attrs: ReferenceVisualAttributes, pageType: string): ReferencePalette | undefined {
+export function getReferencePaletteForPage(
+  attrs: ReferenceVisualAttributes,
+  pageType: string,
+): ReferencePalette | undefined {
   const cat = pageTypeToCategory(pageType);
   const cr = attrs.byCategory[cat];
-  return (cr?.uploaded && cr.palette) || (attrs.global.uploaded && attrs.global.palette) || undefined;
+  return (
+    (cr?.uploaded && cr.palette) || (attrs.global.uploaded && attrs.global.palette) || undefined
+  );
 }
 
 /**
@@ -689,7 +709,10 @@ export function resolveColorPolicyForPage(
  * 有参考撞色时，产出「豁免单色系红线」的策略文案；无撞色（单色/无参考）返回 ''（红线保持原样）。
  * 这是「有参考时豁免单色系红线」的唯一开关信号。
  */
-export function getReferenceColorPolicyForPage(attrs: ReferenceVisualAttributes, pageType: string): string {
+export function getReferenceColorPolicyForPage(
+  attrs: ReferenceVisualAttributes,
+  pageType: string,
+): string {
   const palette = getReferencePaletteForPage(attrs, pageType);
   if (!palette || !palette.isMultiColor || palette.accents.length === 0) return '';
   const accents = palette.accents.map((c) => c.toUpperCase()).join('、');
@@ -710,13 +733,22 @@ export function getReferenceSnippetOverview(attrs: ReferenceVisualAttributes): s
 
 /** 规划阶段的色彩红线豁免（任一分类撞色即生效）。 */
 export function getReferenceColorPolicyOverview(attrs: ReferenceVisualAttributes): string {
-  const anyMulti = [attrs.byCategory.cover, attrs.byCategory.content, attrs.byCategory.summary, attrs.global].some(
-    (c) => c?.uploaded && c.palette?.isMultiColor && c.palette.accents.length > 0,
-  );
+  const anyMulti = [
+    attrs.byCategory.cover,
+    attrs.byCategory.content,
+    attrs.byCategory.summary,
+    attrs.global,
+  ].some((c) => c?.uploaded && c.palette?.isMultiColor && c.palette.accents.length > 0);
   if (!anyMulti) return '';
   const accents = new Set<string>();
-  [attrs.byCategory.cover, attrs.byCategory.content, attrs.byCategory.summary, attrs.global].forEach((c) => {
-    if (c?.uploaded && c.palette?.accents) c.palette.accents.forEach((a) => accents.add(a.toUpperCase()));
+  [
+    attrs.byCategory.cover,
+    attrs.byCategory.content,
+    attrs.byCategory.summary,
+    attrs.global,
+  ].forEach((c) => {
+    if (c?.uploaded && c.palette?.accents)
+      c.palette.accents.forEach((a) => accents.add(a.toUpperCase()));
   });
   return `【参考克隆 · 色彩红线豁免】参考文件使用多色调色板，生成各页时允许使用以下 accent 色：${Array.from(accents).join('、')}。这些色视为参考风格的一部分，不计入「单色系红线」违规；其余装饰仍优先使用主色系。`;
 }
@@ -725,11 +757,16 @@ export function getReferenceColorPolicyOverview(attrs: ReferenceVisualAttributes
  * 规划阶段「版式多样性」提示：当有参考结构可用时，要求首内容页套用参考结构、其余同类内容页改用不同内置版式，
  * 且封面/总结页不要克隆内容页结构。仅在有结构参考时返回非空文案。
  */
-export function getReferenceLayoutDiversityHint(attrs: ReferenceVisualAttributes | null | undefined): string {
+export function getReferenceLayoutDiversityHint(
+  attrs: ReferenceVisualAttributes | null | undefined,
+): string {
   if (!attrs) return '';
   const hasStruct = (cat: PageCategory): boolean => {
     const cr = attrs.byCategory?.[cat];
-    return !!(cr?.uploaded && cr.referenceHtml) || (cat === 'content' && !!attrs.global?.uploaded && !!attrs.global.referenceHtml);
+    return (
+      !!(cr?.uploaded && cr.referenceHtml) ||
+      (cat === 'content' && !!attrs.global?.uploaded && !!attrs.global.referenceHtml)
+    );
   };
   if (!hasStruct('cover') && !hasStruct('content') && !hasStruct('summary')) return '';
   return (
@@ -772,13 +809,20 @@ export function formatReferenceOverrideForPage(
   const titleColor = pick('titleColor');
   const bodyColor = pick('bodyColor');
 
-  if (primary !== undefined) lines.push(`- 主色(primaryColor)：${String(primary)}（必须精确使用，覆盖用户全局配色）`);
+  if (primary !== undefined)
+    lines.push(`- 主色(primaryColor)：${String(primary)}（必须精确使用，覆盖用户全局配色）`);
   if (font !== undefined) lines.push(`- 字体(fontFamily)：${String(font)}`);
   if (density !== undefined) lines.push(`- 内容密度(contentDensity)：${String(density)}`);
   if (icon !== undefined) lines.push(`- 图标风格(iconStyle)：${String(icon)}`);
   if (theme !== undefined) lines.push(`- 风格主题(style)：${String(theme)}`);
-  if (titleColor !== undefined) lines.push(`- 标题文字色(titleColor)：${String(titleColor)}（H1/H2/H3 必须使用此色，覆盖默认深灰与浅底主色渐变规则）`);
-  if (bodyColor !== undefined) lines.push(`- 正文文字色(bodyColor)：${String(bodyColor)}（li/p 正文必须使用此色，覆盖默认深灰色）`);
+  if (titleColor !== undefined)
+    lines.push(
+      `- 标题文字色(titleColor)：${String(titleColor)}（H1/H2/H3 必须使用此色，覆盖默认深灰与浅底主色渐变规则）`,
+    );
+  if (bodyColor !== undefined)
+    lines.push(
+      `- 正文文字色(bodyColor)：${String(bodyColor)}（li/p 正文必须使用此色，覆盖默认深灰色）`,
+    );
 
   // FR-2.x：参考图视觉特征指引（构图/栏数/装饰/背景/圆角/图片调性等），仅结构来源非空时输出（防跨分类污染）
   const visual = structSrc.kind !== 'none' ? structSrc.ref?.visual : undefined;
@@ -814,14 +858,22 @@ export function formatReferenceOverrideForPage(
   if (layoutSkeleton) lines.push(`- 布局骨架(layout)：${layoutSkeleton}`);
 
   // FR-参考克隆：调色板（撞色 accent 多色，允许用于装饰/色块/描边）
-  const palette = cr?.uploaded && cr.palette ? cr.palette : gr.uploaded && gr.palette ? gr.palette : undefined;
+  const palette =
+    cr?.uploaded && cr.palette ? cr.palette : gr.uploaded && gr.palette ? gr.palette : undefined;
   if (palette && palette.accents.length) {
     const accentTxt = palette.accents.map((c) => c.toUpperCase()).join('、');
     const strokeTxt = palette.strokeColor ? `，粗描边色 ${palette.strokeColor.toUpperCase()}` : '';
-    lines.push(`- 参考调色板（accent 多色，可用于装饰色块/几何形状/描边）：${accentTxt}${strokeTxt}`);
+    lines.push(
+      `- 参考调色板（accent 多色，可用于装饰色块/几何形状/描边）：${accentTxt}${strokeTxt}`,
+    );
   }
   // FR：画布底色（参考文件提取）→ 提示模型替换默认纯白 #fff
-  const canvasSrc = cr?.uploaded && cr.palette?.canvasBg ? cr : gr.uploaded && gr.palette?.canvasBg ? gr : undefined;
+  const canvasSrc =
+    cr?.uploaded && cr.palette?.canvasBg
+      ? cr
+      : gr.uploaded && gr.palette?.canvasBg
+        ? gr
+        : undefined;
   const canvasBg = canvasSrc?.palette?.canvasBg;
   if (canvasBg) {
     lines.push(`- 画布底色(canvasBg)：${canvasBg}（页面背景请使用该底色，替换模板默认纯白 #fff）`);
@@ -829,7 +881,9 @@ export function formatReferenceOverrideForPage(
   // FR：参考构图红线（左对齐 / 居中）
   const comp = resolveReferenceComposition(attrs, pageType);
   if (comp === 'left-aligned') {
-    lines.push('- 构图红线：参考为「左对齐构图」，本页内容列左对齐、垂直居中即可，禁止给外层容器加 justify-content/align-items/text-align:center 居中三件套');
+    lines.push(
+      '- 构图红线：参考为「左对齐构图」，本页内容列左对齐、垂直居中即可，禁止给外层容器加 justify-content/align-items/text-align:center 居中三件套',
+    );
   } else if (comp === 'centered') {
     lines.push('- 构图红线：参考为「居中构图」，本页可保持居中');
   }

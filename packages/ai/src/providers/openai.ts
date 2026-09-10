@@ -1,5 +1,12 @@
 import { BaseProvider, formatMessages, truncate } from './base';
-import type { ChatMessage, ChatOptions, ChatResponse, ModelConfig, ImageGenerationOptions, GeneratedImage } from '../types';
+import type {
+  ChatMessage,
+  ChatOptions,
+  ChatResponse,
+  ModelConfig,
+  ImageGenerationOptions,
+  GeneratedImage,
+} from '../types';
 
 export class OpenAIProvider extends BaseProvider {
   name = 'openai';
@@ -304,10 +311,11 @@ export class OpenAIProvider extends BaseProvider {
       const data = await response.json();
       const duration = Date.now() - startTime;
 
-      const results = data.data?.map((item: any) => ({
-        url: item.url,
-        revisedPrompt: item.revised_prompt,
-      })) || [];
+      const results =
+        data.data?.map((item: any) => ({
+          url: item.url,
+          revisedPrompt: item.revised_prompt,
+        })) || [];
 
       this.logResponse('generateImage', {
         durationMs: duration,

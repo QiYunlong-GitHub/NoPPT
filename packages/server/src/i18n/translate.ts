@@ -8,7 +8,7 @@ import { en } from './messages/en';
  * 支持 `{name}` 占位符插值。
  */
 export function translate(key: string, locale: Locale, params?: MessageParams): string {
-  let str: string = locale === 'en' ? en[key] ?? key : key;
+  let str: string = locale === 'en' ? (en[key] ?? key) : key;
   if (params && str.includes('{')) {
     str = str.replace(/\{(\w+)\}/g, (_m, name: string) => {
       const v = params[name];

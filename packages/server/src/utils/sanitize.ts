@@ -14,7 +14,11 @@ function parseStyleString(styleStr: string): Array<{ key: string; value: string 
   const len = styleStr.length;
 
   while (i < len) {
-    while (i < len && (styleStr[i] === ';' || styleStr[i] === ' ' || styleStr[i] === '\n' || styleStr[i] === '\t')) i++;
+    while (
+      i < len &&
+      (styleStr[i] === ';' || styleStr[i] === ' ' || styleStr[i] === '\n' || styleStr[i] === '\t')
+    )
+      i++;
     if (i >= len) break;
 
     let colonIdx = -1;
@@ -29,7 +33,10 @@ function parseStyleString(styleStr: string): Array<{ key: string; value: string 
       if (inQuote === 0) {
         if (ch === '(') depth++;
         else if (ch === ')') depth--;
-        else if (ch === ':' && depth === 0) { colonIdx = j; break; }
+        else if (ch === ':' && depth === 0) {
+          colonIdx = j;
+          break;
+        }
       }
     }
     if (colonIdx === -1) break;
@@ -47,11 +54,15 @@ function parseStyleString(styleStr: string): Array<{ key: string; value: string 
       if (inQuote2 === 0) {
         if (ch === '(') depth2++;
         else if (ch === ')') depth2--;
-        else if (ch === ';' && depth2 === 0) { semiIdx = j; break; }
+        else if (ch === ';' && depth2 === 0) {
+          semiIdx = j;
+          break;
+        }
       }
     }
 
-    const raw = semiIdx === -1 ? styleStr.substring(colonIdx + 1) : styleStr.substring(colonIdx + 1, semiIdx);
+    const raw =
+      semiIdx === -1 ? styleStr.substring(colonIdx + 1) : styleStr.substring(colonIdx + 1, semiIdx);
     const value = raw.trim();
 
     if (key && value) {
@@ -197,7 +208,12 @@ export function sanitizeHtmlServerSide(html: string): string {
           element.removeAttribute(attr.name);
           continue;
         }
-        if (resolved.protocol && resolved.protocol !== 'http:' && resolved.protocol !== 'https:' && resolved.protocol !== 'data:') {
+        if (
+          resolved.protocol &&
+          resolved.protocol !== 'http:' &&
+          resolved.protocol !== 'https:' &&
+          resolved.protocol !== 'data:'
+        ) {
           element.removeAttribute(attr.name);
         }
         continue;
@@ -218,7 +234,7 @@ export function sanitizeHtmlServerSide(html: string): string {
     }
 
     const eventAttributes = Array.from(element.attributes).filter((a) =>
-      a.name.toLowerCase().startsWith('on')
+      a.name.toLowerCase().startsWith('on'),
     );
     eventAttributes.forEach((a) => element.removeAttribute(a.name));
   };

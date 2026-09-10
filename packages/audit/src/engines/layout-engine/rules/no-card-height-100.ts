@@ -19,7 +19,8 @@ export const noCardHeight100: LayoutRule = {
       const styleStr = styleMatch[1];
       if (!/height\s*:\s*100%/i.test(styleStr)) continue;
       if (/flex\s*:\s*1\b/i.test(styleStr)) continue;
-      if (/position\s*:\s*relative/i.test(styleStr) && /overflow\s*:\s*hidden/i.test(styleStr)) continue;
+      if (/position\s*:\s*relative/i.test(styleStr) && /overflow\s*:\s*hidden/i.test(styleStr))
+        continue;
 
       const looksLikeCard =
         /border-radius\s*:/i.test(styleStr) ||
@@ -49,7 +50,8 @@ export const noCardHeight100: LayoutRule = {
       const styleStr = styleMatch[1];
       if (!/height\s*:\s*100%/i.test(styleStr)) return match;
       if (/flex\s*:\s*1\b/i.test(styleStr)) return match;
-      if (/position\s*:\s*relative/i.test(styleStr) && /overflow\s*:\s*hidden/i.test(styleStr)) return match;
+      if (/position\s*:\s*relative/i.test(styleStr) && /overflow\s*:\s*hidden/i.test(styleStr))
+        return match;
 
       const looksLikeCard =
         /border-radius\s*:/i.test(styleStr) ||

@@ -39,17 +39,35 @@ describe('Task2 · extractReferenceHtmlAttributes 9 风格 (TR-2.1~2.11)', () =>
   });
 
   it('TR-2.2 字体提取', () => {
-    expect(extractReferenceHtmlAttributes(`<p style="font-family: Serif">a</p>`).style.fontFamily).toBe('serif');
-    expect(extractReferenceHtmlAttributes(`<p style="font-family: 'Courier New', monospace">a</p>`).style.fontFamily).toBe('mono');
-    expect(extractReferenceHtmlAttributes(`<p style="font-family: Arial, sans-serif">a</p>`).style.fontFamily).toBe('sans');
+    expect(
+      extractReferenceHtmlAttributes(`<p style="font-family: Serif">a</p>`).style.fontFamily,
+    ).toBe('serif');
+    expect(
+      extractReferenceHtmlAttributes(`<p style="font-family: 'Courier New', monospace">a</p>`).style
+        .fontFamily,
+    ).toBe('mono');
+    expect(
+      extractReferenceHtmlAttributes(`<p style="font-family: Arial, sans-serif">a</p>`).style
+        .fontFamily,
+    ).toBe('sans');
   });
 
   it('TR-2.3 图标映射 5 种 → numbered/numbered/lettered/bullet/line', () => {
-    expect(extractReferenceHtmlAttributes(`<span class="number-circle">1</span>`).style.iconStyle).toBe('numbered');
-    expect(extractReferenceHtmlAttributes(`<span class="large-number">9</span>`).style.iconStyle).toBe('numbered');
-    expect(extractReferenceHtmlAttributes(`<span class="letter-circle">A</span>`).style.iconStyle).toBe('lettered');
-    expect(extractReferenceHtmlAttributes(`<span class="icon dot"></span>`).style.iconStyle).toBe('bullet');
-    expect(extractReferenceHtmlAttributes(`<svg viewBox="0 0 10 10"></svg>`).style.iconStyle).toBe('line');
+    expect(
+      extractReferenceHtmlAttributes(`<span class="number-circle">1</span>`).style.iconStyle,
+    ).toBe('numbered');
+    expect(
+      extractReferenceHtmlAttributes(`<span class="large-number">9</span>`).style.iconStyle,
+    ).toBe('numbered');
+    expect(
+      extractReferenceHtmlAttributes(`<span class="letter-circle">A</span>`).style.iconStyle,
+    ).toBe('lettered');
+    expect(extractReferenceHtmlAttributes(`<span class="icon dot"></span>`).style.iconStyle).toBe(
+      'bullet',
+    );
+    expect(extractReferenceHtmlAttributes(`<svg viewBox="0 0 10 10"></svg>`).style.iconStyle).toBe(
+      'line',
+    );
   });
 
   it('TR-2.4 密度打分', () => {
@@ -57,11 +75,17 @@ describe('Task2 · extractReferenceHtmlAttributes 9 风格 (TR-2.1~2.11)', () =>
     expect(extractReferenceHtmlAttributes(compact).style.contentDensity).toBe('compact');
     const spacious = `<ul>${'<li style="padding:64px;font-size:20px">x</li>'.repeat(2)}</ul>`;
     expect(extractReferenceHtmlAttributes(spacious).style.contentDensity).toBe('spacious');
-    expect(extractReferenceHtmlAttributes(`<ul><li style="padding:40px;font-size:18px">x</li></ul>`).style.contentDensity).toBe('normal');
+    expect(
+      extractReferenceHtmlAttributes(`<ul><li style="padding:40px;font-size:18px">x</li></ul>`)
+        .style.contentDensity,
+    ).toBe('normal');
   });
 
   it('TR-2.5 配图分布', () => {
-    expect(extractReferenceHtmlAttributes(`<img src="a"><img src="b"><img src="c">`).style.imagePreference).toBe('all');
+    expect(
+      extractReferenceHtmlAttributes(`<img src="a"><img src="b"><img src="c">`).style
+        .imagePreference,
+    ).toBe('all');
     expect(extractReferenceHtmlAttributes(`<img src="a">`).style.imagePreference).toBe('minimal');
     expect(extractReferenceHtmlAttributes(`<p>no img</p>`).style.imagePreference).toBe('none');
   });
@@ -76,7 +100,10 @@ describe('Task2 · extractReferenceHtmlAttributes 9 风格 (TR-2.1~2.11)', () =>
   });
 
   it('TR-2.7 背景开关', () => {
-    expect(extractReferenceHtmlAttributes(`<div style="background-image:url(x.png)"></div>`).style.backgroundEnabled).toBe(true);
+    expect(
+      extractReferenceHtmlAttributes(`<div style="background-image:url(x.png)"></div>`).style
+        .backgroundEnabled,
+    ).toBe(true);
     expect(extractReferenceHtmlAttributes(`<div>plain</div>`).style.backgroundEnabled).toBe(false);
   });
 
@@ -92,8 +119,9 @@ describe('Task2 · extractReferenceHtmlAttributes 9 风格 (TR-2.1~2.11)', () =>
   });
 
   it('TR-2.9 slideCount 首选 data-slide-index', () => {
-    const html = Array.from({ length: 5 }, (_, i) =>
-      `<div class="slide" data-slide-index="${i}"></div>`,
+    const html = Array.from(
+      { length: 5 },
+      (_, i) => `<div class="slide" data-slide-index="${i}"></div>`,
     ).join('');
     expect(extractReferenceHtmlAttributes(html).style.slideCount).toBe(5);
   });
@@ -162,9 +190,15 @@ describe('Task2 · 布局 C-14 (TR-2.16/2.17/2.18)', () => {
 
 describe('Task2 · 分类隔离 (TR-2.19)', () => {
   it('三分类 HTML 分别调用互不串', () => {
-    const cover = extractReferenceHtmlAttributes(`<div style="color:#16a34a"></div><p style="font-family:serif">a</p>`);
-    const content = extractReferenceHtmlAttributes(`<div style="color:#ea580c"></div><p style="font-family:sans-serif">a</p>`);
-    const summary = extractReferenceHtmlAttributes(`<div style="color:#2563eb"></div><p style="font-family:mono">a</p>`);
+    const cover = extractReferenceHtmlAttributes(
+      `<div style="color:#16a34a"></div><p style="font-family:serif">a</p>`,
+    );
+    const content = extractReferenceHtmlAttributes(
+      `<div style="color:#ea580c"></div><p style="font-family:sans-serif">a</p>`,
+    );
+    const summary = extractReferenceHtmlAttributes(
+      `<div style="color:#2563eb"></div><p style="font-family:mono">a</p>`,
+    );
     expect(cover.style.primaryColor).toBe('#16a34a');
     expect(content.style.primaryColor).toBe('#ea580c');
     expect(summary.style.primaryColor).toBe('#2563eb');

@@ -43,7 +43,9 @@ export class QwenImageProvider extends BaseProvider {
 
   async chat(messages: ChatMessage[], _options?: Partial<ChatOptions>): Promise<ChatResponse> {
     this.logRequest('chat', { messages: formatMessages(messages), supported: false });
-    const error = new Error('QwenImageProvider is for image generation only, chat is not supported');
+    const error = new Error(
+      'QwenImageProvider is for image generation only, chat is not supported',
+    );
     this.logError('chat', error);
     throw error;
   }
@@ -54,7 +56,9 @@ export class QwenImageProvider extends BaseProvider {
     _options?: Partial<ChatOptions>,
   ): Promise<ChatResponse> {
     this.logRequest('streamChat', { messages: formatMessages(messages), supported: false });
-    const error = new Error('QwenImageProvider is for image generation only, streamChat is not supported');
+    const error = new Error(
+      'QwenImageProvider is for image generation only, streamChat is not supported',
+    );
     this.logError('streamChat', error);
     throw error;
   }
@@ -122,8 +126,24 @@ export class QwenImageProvider extends BaseProvider {
     // scene 从 options 扩展字段里读取（由 html-presentation-agent 注入），便于日志定位 slide
     const scene = (options as any)?.scene as string | undefined;
 
-    const writeTrace = (trace: Omit<ImageGenerationTrace, 'type' | 'stage' | 'provider' | 'model' | 'size' | 'startedAt' | 'endedAt' | 'durationMs' | 'request'> & Partial<Pick<ImageGenerationTrace, 'request'>>) => {
-      const stage = this.activeTraceSessionId ? (getSessionStage(this.activeTraceSessionId) || 'other') : 'other';
+    const writeTrace = (
+      trace: Omit<
+        ImageGenerationTrace,
+        | 'type'
+        | 'stage'
+        | 'provider'
+        | 'model'
+        | 'size'
+        | 'startedAt'
+        | 'endedAt'
+        | 'durationMs'
+        | 'request'
+      > &
+        Partial<Pick<ImageGenerationTrace, 'request'>>,
+    ) => {
+      const stage = this.activeTraceSessionId
+        ? getSessionStage(this.activeTraceSessionId) || 'other'
+        : 'other';
       const endedAt = Date.now();
       this.recordTrace({
         type: 'image',
@@ -146,7 +166,7 @@ export class QwenImageProvider extends BaseProvider {
 
     try {
       const content: Array<{ text?: string; image?: string }> = [];
-      
+
       if (referenceImage) {
         content.push({ image: referenceImage });
       }

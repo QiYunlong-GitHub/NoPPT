@@ -29,7 +29,10 @@ interface AIChatPanelProps {
   hasSelection?: boolean;
 }
 
-export default function AIChatPanel({ selectedElements = [], hasSelection = false }: AIChatPanelProps) {
+export default function AIChatPanel({
+  selectedElements = [],
+  hasSelection = false,
+}: AIChatPanelProps) {
   const presentation = usePresentationStore((s) => s.presentation);
   const updateCurrentSlideHtml = usePresentationStore((s) => s.updateCurrentSlideHtml);
   const setPresentation = usePresentationStore((s) => s.setPresentation);
@@ -92,20 +95,22 @@ export default function AIChatPanel({ selectedElements = [], hasSelection = fals
 
     console.log(`\n[${now}] [AIChat] ========== AI编辑指令开始 ==========`);
     console.log(`[${now}] [AIChat] scope=${scope}, 指令长度=${userInput.length} chars`);
-    console.log(`[${now}] [AIChat] 指令内容: ${userInput.length > 200 ? userInput.substring(0, 200) + '...' : userInput}`);
+    console.log(
+      `[${now}] [AIChat] 指令内容: ${userInput.length > 200 ? userInput.substring(0, 200) + '...' : userInput}`,
+    );
 
     try {
       const stageConfigs = settings.getModelConfigsForStages();
       const logSettings = settings.logSettings;
       const presentationId = presentation.id;
-      const currentSlide = presentation.slides.find(
-        (s) => s.id === presentation.selectedSlideId,
-      );
+      const currentSlide = presentation.slides.find((s) => s.id === presentation.selectedSlideId);
       const currentIndex = presentation.slides.findIndex(
         (s) => s.id === presentation.selectedSlideId,
       );
 
-      console.log(`[${now}] [AIChat] 当前页: 第 ${currentIndex + 1}/${presentation.slides.length} 页, slideId=${presentation.selectedSlideId}`);
+      console.log(
+        `[${now}] [AIChat] 当前页: 第 ${currentIndex + 1}/${presentation.slides.length} 页, slideId=${presentation.selectedSlideId}`,
+      );
 
       if (scope === 'selection' && selectedElements.length > 0 && currentSlide) {
         console.log(`[${now}] [AIChat] 选中元素数: ${selectedElements.length}`);
@@ -114,7 +119,9 @@ export default function AIChatPanel({ selectedElements = [], hasSelection = fals
         const modifiedElements: string[] = [];
 
         for (let i = 0; i < elementHtmls.length; i++) {
-          console.log(`[${now}] [AIChat] 正在修改元素 ${i + 1}/${elementHtmls.length} (id=${elementIds[i] || 'none'})...`);
+          console.log(
+            `[${now}] [AIChat] 正在修改元素 ${i + 1}/${elementHtmls.length} (id=${elementIds[i] || 'none'})...`,
+          );
           const response = await aiApi.editElement({
             modelConfigs: stageConfigs,
             presentationId,
@@ -149,11 +156,15 @@ export default function AIChatPanel({ selectedElements = [], hasSelection = fals
             targetEl.parentNode.replaceChild(newEl, targetEl);
             replaceCount++;
           } else {
-            console.warn(`[${now}] [AIChat] 元素 ${i + 1} (id=${elementIds[i] || 'none'}) 未能在DOM中找到匹配目标，跳过替换`);
+            console.warn(
+              `[${now}] [AIChat] 元素 ${i + 1} (id=${elementIds[i] || 'none'}) 未能在DOM中找到匹配目标，跳过替换`,
+            );
           }
         });
 
-        console.log(`[${now}] [AIChat] 元素替换完成: ${replaceCount}/${selectedElements.length} 成功`);
+        console.log(
+          `[${now}] [AIChat] 元素替换完成: ${replaceCount}/${selectedElements.length} 成功`,
+        );
 
         if (replaceCount > 0) {
           updateCurrentSlideHtml(tempDiv.innerHTML);
@@ -162,7 +173,9 @@ export default function AIChatPanel({ selectedElements = [], hasSelection = fals
         addChatMessage({
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: t('已更新选中的 {n} 个元素！你可以继续调整，或者撤销/重做。', { n: replaceCount }),
+          content: t('已更新选中的 {n} 个元素！你可以继续调整，或者撤销/重做。', {
+            n: replaceCount,
+          }),
           scope: 'selection',
           timestamp: formatBeijingTime(),
         });
@@ -240,14 +253,18 @@ export default function AIChatPanel({ selectedElements = [], hasSelection = fals
         addChatMessage({
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: t('已更新整个演示文稿！共 {n} 页。你可以继续调整。', { n: result.slides.length }),
+          content: t('已更新整个演示文稿！共 {n} 页。你可以继续调整。', {
+            n: result.slides.length,
+          }),
           scope: 'global',
           timestamp: formatBeijingTime(),
         });
       }
 
       const duration = Date.now() - startTime;
-      console.log(`[${formatBeijingTime()}] [AIChat] ========== AI编辑指令完成 (耗时=${(duration / 1000).toFixed(1)}s) ==========\n`);
+      console.log(
+        `[${formatBeijingTime()}] [AIChat] ========== AI编辑指令完成 (耗时=${(duration / 1000).toFixed(1)}s) ==========\n`,
+      );
       showToast(t('修改成功！'), 'success');
     } catch (e: any) {
       console.error(`[${formatBeijingTime()}] [AIChat] AI编辑失败:`, e);
@@ -255,7 +272,9 @@ export default function AIChatPanel({ selectedElements = [], hasSelection = fals
       addChatMessage({
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: t('抱歉，修改失败了：{msg}。请检查 API 配置或重试。', { msg: e.message || '未知错误' }),
+        content: t('抱歉，修改失败了：{msg}。请检查 API 配置或重试。', {
+          msg: e.message || '未知错误',
+        }),
         scope,
         timestamp: formatBeijingTime(),
       });
@@ -311,8 +330,8 @@ export default function AIChatPanel({ selectedElements = [], hasSelection = fals
               scope === 'selection'
                 ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
                 : hasSelection
-                ? 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                : 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
+                  ? 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  : 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
             }`}
             disabled={!hasSelection}
           >
@@ -326,7 +345,7 @@ export default function AIChatPanel({ selectedElements = [], hasSelection = fals
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-              {t('当前页')}
+            {t('当前页')}
           </button>
           <button
             onClick={() => setScope('global')}
@@ -336,7 +355,7 @@ export default function AIChatPanel({ selectedElements = [], hasSelection = fals
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-              {t('全部页')}
+            {t('全部页')}
           </button>
         </div>
       </div>
@@ -354,9 +373,11 @@ export default function AIChatPanel({ selectedElements = [], hasSelection = fals
               } flex flex-col`}
             >
               {msg.timestamp && (
-                <span className={`text-[10px] text-slate-400 mb-1 px-1 ${
-                  msg.role === 'user' ? 'text-right' : 'text-left'
-                }`}>
+                <span
+                  className={`text-[10px] text-slate-400 mb-1 px-1 ${
+                    msg.role === 'user' ? 'text-right' : 'text-left'
+                  }`}
+                >
                   {msg.timestamp}
                 </span>
               )}
@@ -371,7 +392,11 @@ export default function AIChatPanel({ selectedElements = [], hasSelection = fals
                   <div className="flex items-center gap-1 mb-1">
                     <Wand2 className="w-3 h-3 text-blue-600 dark:text-blue-400" />
                     <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
-                      {msg.scope === 'selection' ? t('选中元素') : msg.scope === 'current' ? t('当前页') : t('全部页')}
+                      {msg.scope === 'selection'
+                        ? t('选中元素')
+                        : msg.scope === 'current'
+                          ? t('当前页')
+                          : t('全部页')}
                     </span>
                   </div>
                 )}
@@ -385,9 +410,18 @@ export default function AIChatPanel({ selectedElements = [], hasSelection = fals
           <div className="flex justify-start">
             <div className="bg-slate-100 dark:bg-slate-800 rounded-2xl rounded-bl-sm px-3 py-2">
               <div className="flex gap-1">
-                <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                <div
+                  className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
+                  style={{ animationDelay: '0ms' }}
+                />
+                <div
+                  className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
+                  style={{ animationDelay: '150ms' }}
+                />
+                <div
+                  className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
+                  style={{ animationDelay: '300ms' }}
+                />
               </div>
             </div>
           </div>
@@ -422,8 +456,16 @@ export default function AIChatPanel({ selectedElements = [], hasSelection = fals
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
-            placeholder={scope === 'selection' ? t('描述你想怎么修改选中的元素...') : scope === 'current' ? t('描述你想怎么修改当前页...') : t('描述你想怎么修改整个演示...')}
+            onKeyDown={(e) =>
+              e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())
+            }
+            placeholder={
+              scope === 'selection'
+                ? t('描述你想怎么修改选中的元素...')
+                : scope === 'current'
+                  ? t('描述你想怎么修改当前页...')
+                  : t('描述你想怎么修改整个演示...')
+            }
             disabled={isLoading}
             rows={1}
             className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 rounded-xl text-sm leading-[21px] focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 resize-none overflow-y-auto"

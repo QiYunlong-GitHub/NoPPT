@@ -2,7 +2,12 @@ import { Controller, Get, Param, Query, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { sanitizeScopeSegment } from '../../common/storage.service';
 import { McpError } from '../../common/mcp-errors';
-import { readDraft, readDraftIncludingExpired, toPrefillView, verifyDraftToken } from './draft-store';
+import {
+  readDraft,
+  readDraftIncludingExpired,
+  toPrefillView,
+  verifyDraftToken,
+} from './draft-store';
 import type { DraftPrefillView } from './draft-store';
 import { getRequestLocale, translate } from '../../i18n/locale';
 
@@ -43,7 +48,8 @@ export class DraftController {
       safeTenant = sanitizeScopeSegment(tenant, 'tenant');
       safeUser = sanitizeScopeSegment(user, 'userKey');
     } catch (e) {
-      const body = e instanceof McpError ? e.toBody(locale) : { error: 'invalid_scope', message: '参数非法' };
+      const body =
+        e instanceof McpError ? e.toBody(locale) : { error: 'invalid_scope', message: '参数非法' };
       deny(400, body.error, body.message);
       return;
     }

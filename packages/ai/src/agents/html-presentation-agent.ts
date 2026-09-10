@@ -41,7 +41,13 @@ import {
   renderDashboardSvg,
   renderArchitectureSvg,
 } from '../templates/structured-graphics';
-import { critiqueSlide, buildCritiqueFeedback, DEFAULT_THRESHOLD, DEFAULT_MAX_RETRIES, type SlideCritique } from '../templates/slide-critique';
+import {
+  critiqueSlide,
+  buildCritiqueFeedback,
+  DEFAULT_THRESHOLD,
+  DEFAULT_MAX_RETRIES,
+  type SlideCritique,
+} from '../templates/slide-critique';
 import { parseModelName, getQualityScore, getSpeedScore } from '../utils/model-name-parser';
 import { extractReferenceHtmlAttributes } from '../utils/reference-html-extractor';
 import {
@@ -94,7 +100,16 @@ function switchStage(provider: AIModelProvider, stage: string) {
 
 export interface SlideElement {
   id: string;
-  type: 'heading' | 'paragraph' | 'list' | 'image' | 'card' | 'decoration' | 'table' | 'button' | 'other';
+  type:
+    | 'heading'
+    | 'paragraph'
+    | 'list'
+    | 'image'
+    | 'card'
+    | 'decoration'
+    | 'table'
+    | 'button'
+    | 'other';
   tag: string;
   label: string;
   selector?: string;
@@ -146,15 +161,40 @@ export const BODY_FONT_SIZE_MAX = 20;
 /** 绝对豁免标签（H1-H6），这些标签内部的 font-size 不 clamp（H3 允许 28-30px） */
 export const BODY_FONT_SIZE_EXEMPT_TAGS = new Set(['H1', 'H2', 'H3', 'H4', 'H5', 'H6']);
 /** 豁免的 CSS class（部分关键词匹配即可），带这些类名的元素即使在 li/p 内部也不 clamp */
-const BODY_FONT_SIZE_EXEMPT_CLASS_KEYWORDS = ['hero-title', 'page-title', 'slide-title', 'cover-title'] as const;
+const BODY_FONT_SIZE_EXEMPT_CLASS_KEYWORDS = [
+  'hero-title',
+  'page-title',
+  'slide-title',
+  'cover-title',
+] as const;
 /** 正文类 clamp 生效的标签范围（扩大 scope，从原来的 li/p 扩展到常见正文容器） */
-const BODY_CLAMP_TAGS = ['li', 'p', 'div', 'span', 'a', 'figcaption', 'aside', 'td', 'th', 'em', 'strong', 'small', 'label', 'button'];
+const BODY_CLAMP_TAGS = [
+  'li',
+  'p',
+  'div',
+  'span',
+  'a',
+  'figcaption',
+  'aside',
+  'td',
+  'th',
+  'em',
+  'strong',
+  'small',
+  'label',
+  'button',
+];
 // ==================================================================
 
-export function replaceImagePlaceholderWithRealSrc(html: string, realSrc: string, ratio: ImageRatio): string {
+export function replaceImagePlaceholderWithRealSrc(
+  html: string,
+  realSrc: string,
+  ratio: ImageRatio,
+): string {
   if (!html) return html;
   // 只匹配第一个占位 img（每张 slide 只应该有一张内容配图）
-  const re = /<img\b([^>]*)src\s*=\s*["']\s*`?\s*https:\/\/NOPPT_IMAGE_PLACEHOLDER\s*`?\s*["']([^>]*)>/i;
+  const re =
+    /<img\b([^>]*)src\s*=\s*["']\s*`?\s*https:\/\/NOPPT_IMAGE_PLACEHOLDER\s*`?\s*["']([^>]*)>/i;
   return html.replace(re, (_fullMatch, beforeAttrs: string, afterAttrs: string) => {
     const allAttrs = beforeAttrs + ' ' + afterAttrs;
     const attrs: string[] = [];
@@ -165,8 +205,13 @@ export function replaceImagePlaceholderWithRealSrc(html: string, realSrc: string
     while ((ma = attrRe.exec(allAttrs)) !== null) {
       const name = ma[1].trim().toLowerCase();
       if (!name || name === 'src') continue;
-      if (name === 'data-image-ratio') { seenRatio = true; attrs.push(`data-image-ratio="${ratio}"`); continue; }
-      const quote = ma[2] !== undefined ? `"${ma[2]}"` : ma[3] !== undefined ? `'${ma[3]}'` : (ma[4] ?? '');
+      if (name === 'data-image-ratio') {
+        seenRatio = true;
+        attrs.push(`data-image-ratio="${ratio}"`);
+        continue;
+      }
+      const quote =
+        ma[2] !== undefined ? `"${ma[2]}"` : ma[3] !== undefined ? `'${ma[3]}'` : (ma[4] ?? '');
       attrs.push(quote ? `${ma[1]}=${quote}` : ma[1]);
     }
     if (!seenRatio) attrs.push(`data-image-ratio="${ratio}"`);
@@ -184,7 +229,7 @@ function darkenColor(hex: string, percent: number): string {
   const nr = Math.max(0, Math.min(255, Math.round(r * f)));
   const ng = Math.max(0, Math.min(255, Math.round(g * f)));
   const nb = Math.max(0, Math.min(255, Math.round(b * f)));
-  return '#' + [nr, ng, nb].map(c => c.toString(16).padStart(2, '0')).join('');
+  return '#' + [nr, ng, nb].map((c) => c.toString(16).padStart(2, '0')).join('');
 }
 
 /** hex → HSL（H:0~360°, S:0~1, L:0~1）。无效 hex 返回 null。 */
@@ -201,19 +246,28 @@ function hexToHsl(hex: string): { h: number; s: number; l: number } | null {
     g = parseInt(n.substring(2, 4), 16);
     b = parseInt(n.substring(4, 6), 16);
   }
-  if ([r, g, b].some(v => Number.isNaN(v))) return null;
-  const rn = r / 255, gn = g / 255, bn = b / 255;
+  if ([r, g, b].some((v) => Number.isNaN(v))) return null;
+  const rn = r / 255,
+    gn = g / 255,
+    bn = b / 255;
   const max = Math.max(rn, gn, bn);
   const min = Math.min(rn, gn, bn);
-  let h = 0, s = 0;
+  let h = 0,
+    s = 0;
   const l = (max + min) / 2;
   const d = max - min;
   if (d !== 0) {
     s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
     switch (max) {
-      case rn: h = ((gn - bn) / d + (gn < bn ? 6 : 0)) / 6; break;
-      case gn: h = ((bn - rn) / d + 2) / 6; break;
-      case bn: h = ((rn - gn) / d + 4) / 6; break;
+      case rn:
+        h = ((gn - bn) / d + (gn < bn ? 6 : 0)) / 6;
+        break;
+      case gn:
+        h = ((bn - rn) / d + 2) / 6;
+        break;
+      case bn:
+        h = ((rn - gn) / d + 4) / 6;
+        break;
     }
   }
   return { h: h * 360, s, l };
@@ -221,7 +275,7 @@ function hexToHsl(hex: string): { h: number; s: number; l: number } | null {
 
 /** HSL → hex (#rrggbb)。分量越界自动钳制。 */
 function hslToHex(h: number, s: number, l: number): string {
-  h = ((h % 360) + 360) % 360 / 360;
+  h = (((h % 360) + 360) % 360) / 360;
   s = Math.max(0, Math.min(1, s));
   l = Math.max(0, Math.min(1, l));
   let r: number, g: number, b: number;
@@ -291,7 +345,11 @@ function assertHueClose(
   }
   const delta = hueDelta(p, d);
   if (delta <= maxDelta) {
-    return { pass: true, correctedDarker: d, message: `色相 ${delta.toFixed(1)}° ≤ ${maxDelta}°（OK）` };
+    return {
+      pass: true,
+      correctedDarker: d,
+      message: `色相 ${delta.toFixed(1)}° ≤ ${maxDelta}°（OK）`,
+    };
   }
   return {
     pass: false,
@@ -317,7 +375,8 @@ const COLOR_THEMES: Record<ColorTheme | string, string> = {
  * 后处理（postProcessSlideHtml）版本指纹。生成/发布时用于核对 dist 里编译产物是否包含
  * 最新一代后处理链（enforceSinglePalette + sanitizeStyleSyntax + assertGrid8pt）。
  */
-export const POST_VERSION_SIG = 'enforceSinglePalette:sanitizeStyleSyntax:assertGrid8pt:injectStructuredGraphics:r4';
+export const POST_VERSION_SIG =
+  'enforceSinglePalette:sanitizeStyleSyntax:assertGrid8pt:injectStructuredGraphics:r4';
 
 // ===== 每页重生成熔断（page-level regeneration limiter）=====
 // 共享计数：同一次生成（同一 presentationId）下，critique 重试循环 / 单页重生成共用同一 total budget。
@@ -327,7 +386,11 @@ const CHANNEL_BUDGET: Record<string, number> = { critique: 1, placeholder: 1, tr
 type RetryEntry = { total: number; byChannel: Record<string, number> };
 const retryBudget = new Map<string, Map<number, RetryEntry>>();
 const keyOf = (presentationId: string | undefined): string => presentationId || 'anon';
-function incRetryCount(key: string, idx: number, channel: string): { total: number; channelCount: number } {
+function incRetryCount(
+  key: string,
+  idx: number,
+  channel: string,
+): { total: number; channelCount: number } {
   let pageMap = retryBudget.get(key);
   if (!pageMap) {
     pageMap = new Map<number, RetryEntry>();
@@ -391,8 +454,10 @@ export function resolveProposalPrimaryColor(opts: {
 }): string {
   const refDeckPrimary = resolveDeckReferencePrimaryColor(opts.referenceVisualAttributes);
   if (refDeckPrimary) return refDeckPrimary; // 参考最高优先级，覆盖用户配色主题
-  if (opts.userPrimaryColor && /^#[0-9a-fA-F]{6}$/.test(opts.userPrimaryColor)) return opts.userPrimaryColor;
-  if (opts.userColorTheme && COLOR_THEMES[opts.userColorTheme]) return COLOR_THEMES[opts.userColorTheme] as string;
+  if (opts.userPrimaryColor && /^#[0-9a-fA-F]{6}$/.test(opts.userPrimaryColor))
+    return opts.userPrimaryColor;
+  if (opts.userColorTheme && COLOR_THEMES[opts.userColorTheme])
+    return COLOR_THEMES[opts.userColorTheme] as string;
   return '#2563eb';
 }
 
@@ -409,10 +474,10 @@ const PAGE_TYPE_DEFAULT_IMAGE_RATIO: Record<SlidePageType, ImageRatio | null> = 
   'content-timeline': null,
   'content-table': null,
   // ===== L1 高级版式默认图片比例 =====
-  'comparison-deep-dive': null,    // 无图，以文字+进度条+徽章为主
-  'content-zigzag': '4:3',          // Z 字三段都配图
-  'content-value-showcase': null,   // 纯数值大卡展示，无图
-  'content-stats-highlight': null,  // 指标并列展示，无图
+  'comparison-deep-dive': null, // 无图，以文字+进度条+徽章为主
+  'content-zigzag': '4:3', // Z 字三段都配图
+  'content-value-showcase': null, // 纯数值大卡展示，无图
+  'content-stats-highlight': null, // 指标并列展示，无图
   'content-image-background': '16:9', // 背景大图 16:9
   // ===== FR-18 §18.1 扩展（均无图）=====
   'content-flowchart': null,
@@ -492,7 +557,11 @@ const IMAGE_SIZE_MAPPINGS: Record<string, Record<ImageRatio, ImageSize>> = {
   },
 };
 
-interface PixelRange { minPixels: number; maxPixels: number; label?: string }
+interface PixelRange {
+  minPixels: number;
+  maxPixels: number;
+  label?: string;
+}
 /**
  * 给定目标比例（如 21:9 = 2.333）+ 像素允许范围，自动算出符合比例、
  * 落在像素范围内、且 w/h 能被 ALIGN=32 整除（主流扩散模型尺寸对齐要求）的 (w, h)。
@@ -512,8 +581,8 @@ function computeAlignedSizeForRatio(
   for (const range of pixelRanges) {
     const midPx = (range.minPixels + range.maxPixels) / 2;
     // 解 w/h = a/b，w*h = midPx → h = sqrt(midPx * b / a)，w = h * a / b
-    let hRaw = Math.sqrt(midPx * b / a);
-    let wRaw = hRaw * a / b;
+    let hRaw = Math.sqrt((midPx * b) / a);
+    let wRaw = (hRaw * a) / b;
     // 对齐到 align 倍数（向下取整）
     let wOk = Math.floor(wRaw / align) * align;
     let hOk = Math.floor(hRaw / align) * align;
@@ -536,7 +605,10 @@ function computeAlignedSizeForRatio(
       let cBestDiff = Infinity;
       for (const [wc, hc] of candidates) {
         const diff = Math.abs(wc / hc - a / b) / (a / b);
-        if (diff < cBestDiff) { cBestDiff = diff; cBest = [wc, hc]; }
+        if (diff < cBestDiff) {
+          cBestDiff = diff;
+          cBest = [wc, hc];
+        }
       }
       [wOk, hOk] = cBest;
     }
@@ -557,9 +629,14 @@ function getImageSizeForRatio(
   pixelRanges?: Array<{ minPixels: number; maxPixels: number; label?: string }>,
 ): ImageSize {
   const ratioMap: Record<ImageRatio, number> = {
-    '1:1': 1, '4:3': 4/3, '3:4': 3/4,
-    '16:9': 16/9, '9:16': 9/16, '3:2': 3/2,
-    '2:3': 2/3, '21:9': 21/9,
+    '1:1': 1,
+    '4:3': 4 / 3,
+    '3:4': 3 / 4,
+    '16:9': 16 / 9,
+    '9:16': 9 / 16,
+    '3:2': 3 / 2,
+    '2:3': 2 / 3,
+    '21:9': 21 / 9,
   };
   const targetRatio = ratioMap[ratio];
 
@@ -607,7 +684,11 @@ function getImageSizeForRatio(
     mapping = IMAGE_SIZE_MAPPINGS.seedream;
   } else if (modelLower.includes('qwen-image-2') || modelLower.includes('qwen-vl-max')) {
     mapping = IMAGE_SIZE_MAPPINGS['qwen-image-2'];
-  } else if (modelLower.includes('qwen-image') || modelLower.includes('qwen-image-max') || modelLower.includes('qwen-image-plus')) {
+  } else if (
+    modelLower.includes('qwen-image') ||
+    modelLower.includes('qwen-image-max') ||
+    modelLower.includes('qwen-image-plus')
+  ) {
     mapping = IMAGE_SIZE_MAPPINGS['qwen-image-1'];
   } else {
     mapping = IMAGE_SIZE_MAPPINGS.fallback;
@@ -617,9 +698,14 @@ function getImageSizeForRatio(
 
 function ratioMatchesSize(ratio: ImageRatio, width: number, height: number): boolean {
   const ratioMap: Record<ImageRatio, number> = {
-    '1:1': 1, '4:3': 4/3, '3:4': 3/4,
-    '16:9': 16/9, '9:16': 9/16, '3:2': 3/2,
-    '2:3': 2/3, '21:9': 21/9,
+    '1:1': 1,
+    '4:3': 4 / 3,
+    '3:4': 3 / 4,
+    '16:9': 16 / 9,
+    '9:16': 9 / 16,
+    '3:2': 3 / 2,
+    '2:3': 2 / 3,
+    '21:9': 21 / 9,
   };
   const targetRatio = ratioMap[ratio];
   const actualRatio = width / height;
@@ -677,13 +763,19 @@ function selectImageModel(
 ): { modelName: string; modelIndex: number } {
   if (!routingConfig?.enabled || allModels.length === 0) {
     const fallback = allModels[0];
-    return { modelName: fallback?.modelName || defaultModelName || '', modelIndex: fallback?.index || 0 };
+    return {
+      modelName: fallback?.modelName || defaultModelName || '',
+      modelIndex: fallback?.index || 0,
+    };
   }
 
   const scene = getRouteScene(pageType);
-  const manualIndex = scene === 'cover' ? routingConfig.coverModelIndex
-    : scene === 'content' ? routingConfig.contentModelIndex
-    : routingConfig.secondaryModelIndex;
+  const manualIndex =
+    scene === 'cover'
+      ? routingConfig.coverModelIndex
+      : scene === 'content'
+        ? routingConfig.contentModelIndex
+        : routingConfig.secondaryModelIndex;
 
   if (manualIndex !== undefined && manualIndex >= 0 && manualIndex < allModels.length) {
     const manual = allModels[manualIndex];
@@ -691,12 +783,12 @@ function selectImageModel(
   }
 
   const candidates = allModels.filter((m) => {
-    const matchingSizes = m.sizes.filter(s => ratioMatchesSize(targetRatio, s.width, s.height));
+    const matchingSizes = m.sizes.filter((s) => ratioMatchesSize(targetRatio, s.width, s.height));
     if (matchingSizes.length === 0) return false;
     if (m.pixelRanges && m.pixelRanges.length > 0) {
-      const hasMatchingRange = matchingSizes.some(s => {
+      const hasMatchingRange = matchingSizes.some((s) => {
         const pixels = s.width * s.height;
-        return m.pixelRanges!.some(r => pixels >= r.minPixels && pixels <= r.maxPixels);
+        return m.pixelRanges!.some((r) => pixels >= r.minPixels && pixels <= r.maxPixels);
       });
       if (!hasMatchingRange) return false;
     }
@@ -727,14 +819,24 @@ function selectImageModel(
 
   const selected = sorted[0]?.model || allModels[0];
   const parsed = parseModelName(selected.modelName);
-  console.log(`[${formatBeijingTime()}] [ROUTING] pageType=${pageType} scene=${scene} ratio=${targetRatio} → ${selected.modelName} (quality=${getQualityScore(parsed)}, speed=${getSpeedScore(parsed)})`);
+  console.log(
+    `[${formatBeijingTime()}] [ROUTING] pageType=${pageType} scene=${scene} ratio=${targetRatio} → ${selected.modelName} (quality=${getQualityScore(parsed)}, speed=${getSpeedScore(parsed)})`,
+  );
   return { modelName: selected.modelName, modelIndex: selected.index };
 }
 
-
 const chineseNumbers: Record<string, number> = {
-  '一': 1, '二': 2, '两': 2, '三': 3, '四': 4, '五': 5,
-  '六': 6, '七': 7, '八': 8, '九': 9, '十': 10,
+  一: 1,
+  二: 2,
+  两: 2,
+  三: 3,
+  四: 4,
+  五: 5,
+  六: 6,
+  七: 7,
+  八: 8,
+  九: 9,
+  十: 10,
 };
 
 const parseNumber = (str: string): number => {
@@ -782,15 +884,28 @@ export const extractPageStructureHints = (text: string): PageStructureHints => {
   // 句中同时出现 封面 / 目录 / (总结|结束) 三个词，例如"不要封面、目录和总结页"。
   // 在 25 字窗口内三者同时出现才判定，保守避免误伤。
   const noNavMatch = t.match(/不要([^。！？\n；;]{0,25})/);
-  const noNavList = !!noNavMatch
-    && /封面/.test(noNavMatch[1])
-    && /目录/.test(noNavMatch[1])
-    && /(总结|结束)/.test(noNavMatch[1]);
+  const noNavList =
+    !!noNavMatch &&
+    /封面/.test(noNavMatch[1]) &&
+    /目录/.test(noNavMatch[1]) &&
+    /(总结|结束)/.test(noNavMatch[1]);
   const hints: PageStructureHints = {
-    contentOnly: /只生成内容页|只要内容页|只做内容页|只保留内容页|仅内容页|纯内容页|不要封面不要总结不要目录|全部内容页/.test(t) || noNavList,
-    disableCover: /不生成封面页|不要封面页|不要封面|跳过封面|不做封面|无封面页|去掉封面|删去封面|不用封面|去除封面/.test(t),
-    disableToc: /不生成目录页|不要目录页|不要目录|跳过目录|不做目录|无目录页|去掉目录|删去目录|不用目录|去除目录/.test(t),
-    disableConclusion: /不生成总结页|不要总结页|不要总结|不要结束页|跳过总结|不做总结|无总结页|去掉总结|删去总结|不用总结|去除总结|不要结语|不要结尾|不要最后一页|不要结束/.test(t),
+    contentOnly:
+      /只生成内容页|只要内容页|只做内容页|只保留内容页|仅内容页|纯内容页|不要封面不要总结不要目录|全部内容页/.test(
+        t,
+      ) || noNavList,
+    disableCover:
+      /不生成封面页|不要封面页|不要封面|跳过封面|不做封面|无封面页|去掉封面|删去封面|不用封面|去除封面/.test(
+        t,
+      ),
+    disableToc:
+      /不生成目录页|不要目录页|不要目录|跳过目录|不做目录|无目录页|去掉目录|删去目录|不用目录|去除目录/.test(
+        t,
+      ),
+    disableConclusion:
+      /不生成总结页|不要总结页|不要总结|不要结束页|跳过总结|不做总结|无总结页|去掉总结|删去总结|不用总结|去除总结|不要结语|不要结尾|不要最后一页|不要结束/.test(
+        t,
+      ),
   };
   // 组合语义兜底：用户把封面/目录/总结三类结构页"同时"禁用（含顿号/逗号/和/与等连接句式，
   // 如"不要封面、目录和总结页"），等价于"只生成内容页"。仅在三者同时命中时触发，避免误伤。
@@ -881,7 +996,10 @@ export const extractSlideCountSpec = (text: string): SlideCountSpec | null => {
     { regex: new RegExp(`(${numberPattern})\\s*页\\s*最佳`, 'i'), kind: 'about' },
     { regex: new RegExp(`(${numberPattern})\\s*页\\s*即可`, 'i'), kind: 'about' },
     { regex: new RegExp(`(${numberPattern})-(${numberPattern})\\s*页`, 'i'), kind: 'range' },
-    { regex: new RegExp(`(${numberPattern})\\s*到\\s*(${numberPattern})\\s*页`, 'i'), kind: 'range' },
+    {
+      regex: new RegExp(`(${numberPattern})\\s*到\\s*(${numberPattern})\\s*页`, 'i'),
+      kind: 'range',
+    },
     { regex: new RegExp(`(${numberPattern})\\s*~(${numberPattern})\\s*页`, 'i'), kind: 'range' },
     { regex: new RegExp(`(${numberPattern})\\s*页`, 'i'), kind: 'exact' },
   ];
@@ -947,7 +1065,14 @@ export class HTMLPresentationAgent {
   /** 本次生成的输出语言（'zh' | 'en'），由 generatePresentation 从调用方 options 读取。 */
   private language: 'zh' | 'en' = 'zh';
 
-  constructor(provider: AIModelProvider, options?: { planningProvider?: AIModelProvider; contentProvider?: AIModelProvider; editingProvider?: AIModelProvider }) {
+  constructor(
+    provider: AIModelProvider,
+    options?: {
+      planningProvider?: AIModelProvider;
+      contentProvider?: AIModelProvider;
+      editingProvider?: AIModelProvider;
+    },
+  ) {
     this.provider = provider;
     this.planningProvider = options?.planningProvider || provider;
     this.contentProvider = options?.contentProvider || provider;
@@ -978,7 +1103,7 @@ export class HTMLPresentationAgent {
     } else {
       return 0.5;
     }
-    const srgb = [r, g, b].map(c => {
+    const srgb = [r, g, b].map((c) => {
       const v = c / 255;
       return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
     });
@@ -1006,7 +1131,9 @@ export class HTMLPresentationAgent {
     g = Math.max(0, Math.min(255, Math.round(g * ratio)));
     b = Math.max(0, Math.min(255, Math.round(b * ratio)));
     // 避免变暗后变成纯黑（看起来像 bug），至少保留亮度 0.05
-    const lum = this.hexLuminance(`${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`);
+    const lum = this.hexLuminance(
+      `${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`,
+    );
     if (lum < 0.05) {
       const boost = 0.08;
       r = Math.min(255, Math.round(r + (255 - r) * boost * 2));
@@ -1016,7 +1143,12 @@ export class HTMLPresentationAgent {
     return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
   }
 
-  private buildSlideCountGuidance(spec: SlideCountSpec | { exact: number; min?: undefined; max?: undefined } | { min: number; max: number; exact?: undefined }): { guidance: string; displayText: string; planningTotal: number } {
+  private buildSlideCountGuidance(
+    spec:
+      | SlideCountSpec
+      | { exact: number; min?: undefined; max?: undefined }
+      | { min: number; max: number; exact?: undefined },
+  ): { guidance: string; displayText: string; planningTotal: number } {
     if ('exact' in spec && spec.exact != null) {
       const n = spec.exact;
       return {
@@ -1040,11 +1172,14 @@ export class HTMLPresentationAgent {
   private buildStructureOverridePrompt(hints: PageStructureHints): string {
     const parts: string[] = [];
     if (hints.contentOnly) {
-      parts.push('**用户显式要求：全部幻灯片只生成内容页，封面、目录、总结（结束页）一律不要！无论上面规则怎么写，都必须全部是内容页！**');
+      parts.push(
+        '**用户显式要求：全部幻灯片只生成内容页，封面、目录、总结（结束页）一律不要！无论上面规则怎么写，都必须全部是内容页！**',
+      );
     } else {
       if (hints.disableCover) parts.push('- **不要封面页**：第一页不要封面，直接从内容/目录页开始');
       if (hints.disableToc) parts.push('- **不要目录页**：无论多少页都不要目录');
-      if (hints.disableConclusion) parts.push('- **不要总结/结束页**：最后一页不要总结、致谢、结语、结束之类页面');
+      if (hints.disableConclusion)
+        parts.push('- **不要总结/结束页**：最后一页不要总结、致谢、结语、结束之类页面');
     }
     if (parts.length === 0) return '';
     return `\n\n【用户结构指令 · 绝对最高优先级，覆盖所有规则】\n${parts.join('\n')}\n【以上结构指令必须严格遵守，不可忽略】\n`;
@@ -1073,7 +1208,12 @@ export class HTMLPresentationAgent {
    */
   private sanitizeTopicSettingsConflict(
     topic: string,
-    params: { slideCount?: SlideCountSpec; colorTheme?: ColorTheme; style?: string; imagePreference?: ImagePreference }
+    params: {
+      slideCount?: SlideCountSpec;
+      colorTheme?: ColorTheme;
+      style?: string;
+      imagePreference?: ImagePreference;
+    },
   ): void {
     if (!topic) return;
     const warnings: string[] = [];
@@ -1083,29 +1223,52 @@ export class HTMLPresentationAgent {
       const topicCount = parseInt(countMatch[1], 10);
       const exactN = 'exact' in params.slideCount ? params.slideCount.exact : null;
       if (exactN != null && exactN !== topicCount) {
-        warnings.push(`主题中写了"${topicCount} 页"，但用户高级选项选了 ${exactN} 页（高级选项优先级更高）`);
+        warnings.push(
+          `主题中写了"${topicCount} 页"，但用户高级选项选了 ${exactN} 页（高级选项优先级更高）`,
+        );
       }
     }
     // 2) 颜色冲突：
-    const colorKeywords: Record<string, ColorTheme> = { '蓝': 'blue', '紫': 'purple', '绿': 'green', '橙': 'orange', '青': 'teal', '灰': 'gray' };
+    const colorKeywords: Record<string, ColorTheme> = {
+      蓝: 'blue',
+      紫: 'purple',
+      绿: 'green',
+      橙: 'orange',
+      青: 'teal',
+      灰: 'gray',
+    };
     for (const [k, v] of Object.entries(colorKeywords)) {
-      if (new RegExp(k + '(色|主题|风格系)').test(topic) && params.colorTheme && params.colorTheme !== v) {
-        warnings.push(`主题中提到"${k}色"，但用户高级选项配色主题为 ${params.colorTheme}（高级选项优先级更高）`);
+      if (
+        new RegExp(k + '(色|主题|风格系)').test(topic) &&
+        params.colorTheme &&
+        params.colorTheme !== v
+      ) {
+        warnings.push(
+          `主题中提到"${k}色"，但用户高级选项配色主题为 ${params.colorTheme}（高级选项优先级更高）`,
+        );
         break;
       }
     }
     // 3) 风格冲突：
     if (params.style && params.style !== 'business') {
-      const styleHints: Record<string, string> = { '商务': 'business', '创意': 'creative', '简约': 'simple' };
+      const styleHints: Record<string, string> = {
+        商务: 'business',
+        创意: 'creative',
+        简约: 'simple',
+      };
       for (const [k, v] of Object.entries(styleHints)) {
         if (topic.includes(k) && params.style !== v) {
-          warnings.push(`主题中写了"${k}风格"，但用户高级选项风格是 ${params.style}（高级选项优先级更高）`);
+          warnings.push(
+            `主题中写了"${k}风格"，但用户高级选项风格是 ${params.style}（高级选项优先级更高）`,
+          );
           break;
         }
       }
     }
     if (warnings.length > 0) {
-      console.warn(`[${formatBeijingTime()}] [AGENT] sanitizeTopicSettingsConflict (仅检测，不修改):\n  - ${warnings.join('\n  - ')}`);
+      console.warn(
+        `[${formatBeijingTime()}] [AGENT] sanitizeTopicSettingsConflict (仅检测，不修改):\n  - ${warnings.join('\n  - ')}`,
+      );
     }
   }
 
@@ -1138,23 +1301,30 @@ export class HTMLPresentationAgent {
       none: '不生成任何图片，纯文字/卡片布局',
     };
     const colorThemeText: Record<ColorTheme, string> = {
-      blue: '蓝色商务（专业稳重）', purple: '紫色创意（个性活泼）',
-      green: '绿色环保（清新自然）', orange: '橙色活力（醒目热情）',
-      teal: '青色科技（科技感强）', gray: '极简灰度（低调克制）',
+      blue: '蓝色商务（专业稳重）',
+      purple: '紫色创意（个性活泼）',
+      green: '绿色环保（清新自然）',
+      orange: '橙色活力（醒目热情）',
+      teal: '青色科技（科技感强）',
+      gray: '极简灰度（低调克制）',
     };
     const iconStyleText: Record<IconStyle, string> = {
       auto: '智能匹配（默认使用线性SVG描边图标，简约专业，适合B端/技术/正式场景；根据语义从内置图标库选择匹配图标）',
       line: '线性SVG描边图标（Lucide风格，简约理性、专业冷静，主色描边+浅色圆角底，适合B端产品、技术PPT、研发平台、多图标并列场景）',
-      filled: '面性SVG填充图标（实心色块，视觉权重高、醒目有力，白色图标+渐变实心底，适合封面、核心结论、大屏展示、重点模块）',
+      filled:
+        '面性SVG填充图标（实心色块，视觉权重高、醒目有力，白色图标+渐变实心底，适合封面、核心结论、大屏展示、重点模块）',
       numbered: '数字序号（渐变圆角方形/圆形 + 白色数字 1/2/3/4，适合步骤/流程/阶段类要点）',
-      bullet: '对勾/圆点（简洁符号类：主色渐变圆形+白色对勾SVG，或主色10px小圆点，适合特性/优势/功能列表）',
+      bullet:
+        '对勾/圆点（简洁符号类：主色渐变圆形+白色对勾SVG，或主色10px小圆点，适合特性/优势/功能列表）',
       lettered: '字母分类（渐变圆形 + 白色字母 A/B/C/D…，适合分类/维度/类型类要点）',
-      emoji: 'Emoji风格（仅适合内部轻松沟通/C端/年轻群体内容；B端技术方案、正式汇报、商务宣讲禁止使用emoji，应改用line线性图标）',
+      emoji:
+        'Emoji风格（仅适合内部轻松沟通/C端/年轻群体内容；B端技术方案、正式汇报、商务宣讲禁止使用emoji，应改用line线性图标）',
       none: '无图标，纯文字列表',
     };
-    const slideCountText = 'exact' in params.slideCount
-      ? `严格 ${params.slideCount.exact} 页（不要多也不要少）`
-      : `${params.slideCount.min} ~ ${params.slideCount.max} 页之间（自行按复杂度决定）`;
+    const slideCountText =
+      'exact' in params.slideCount
+        ? `严格 ${params.slideCount.exact} 页（不要多也不要少）`
+        : `${params.slideCount.min} ~ ${params.slideCount.max} 页之间（自行按复杂度决定）`;
     let colorThemeLine: string;
     // FR-2.x：若「参考文件提取属性」提供了主色，则该参考主色为绝对最高优先级，
     // 本配色主题的 hex 硬约束须让位（消除「参考最高优先级」与「#2563eb 绝对不可改」的提示词自相矛盾）。
@@ -1221,30 +1391,61 @@ export class HTMLPresentationAgent {
     '风险与注意事项',
   ];
 
-  private clampSlidesToCount(slides: SlidePlan[], target: number, hints: PageStructureHints = { contentOnly: false, disableCover: false, disableToc: false, disableConclusion: false }, imagePreference: ImagePreference = 'content-only'): SlidePlan[] {
+  private clampSlidesToCount(
+    slides: SlidePlan[],
+    target: number,
+    hints: PageStructureHints = {
+      contentOnly: false,
+      disableCover: false,
+      disableToc: false,
+      disableConclusion: false,
+    },
+    imagePreference: ImagePreference = 'content-only',
+  ): SlidePlan[] {
     if (!Array.isArray(slides)) slides = [];
     const n = slides.length;
     if (n === target && target > 0) return slides;
     if (target <= 0) target = 1;
     const flags = deriveStructureFlags(target, hints);
     // 内容页补位辅助：按 imagePreference 决定补位 slide 默认带图还是纯文字
-    const buildSupplementSlide = (title: string, cursor: number, _asStructure = false): SlidePlan => {
-      const keyPoints = ['核心要点展开分析', '相关数据支撑', '落地建议与参考'].slice(0, 4 - (cursor % 3));
+    const buildSupplementSlide = (
+      title: string,
+      cursor: number,
+      _asStructure = false,
+    ): SlidePlan => {
+      const keyPoints = ['核心要点展开分析', '相关数据支撑', '落地建议与参考'].slice(
+        0,
+        4 - (cursor % 3),
+      );
       if (imagePreference === 'none' || imagePreference === 'minimal') {
         return { pageType: 'content-no-image', title, keyPoints, needsImage: false };
       }
       // all / content-only：补位用带图布局
-      return { pageType: 'content-image-left', title, keyPoints, needsImage: true, imageRatio: '4:3' };
+      return {
+        pageType: 'content-image-left',
+        title,
+        keyPoints,
+        needsImage: true,
+        imageRatio: '4:3',
+      };
     };
     // 结构页降级转内容辅助
     const downgradeStructureToContent = (s: SlidePlan): SlidePlan => {
       if (imagePreference === 'none' || imagePreference === 'minimal') {
         return { ...s, pageType: 'content-no-image', needsImage: false };
       }
-      return { ...s, pageType: 'content-image-left', needsImage: true, imageRatio: s.imageRatio || '4:3' };
+      return {
+        ...s,
+        pageType: 'content-image-left',
+        needsImage: true,
+        imageRatio: s.imageRatio || '4:3',
+      };
     };
     // cover/toc/summary 结构页默认生成：imagePreference=all 时需要配图
-    const buildDefaultStructure = (pageType: 'cover' | 'toc' | 'summary', title: string): SlidePlan => {
+    const buildDefaultStructure = (
+      pageType: 'cover' | 'toc' | 'summary',
+      title: string,
+    ): SlidePlan => {
       if (imagePreference === 'all') {
         return {
           pageType,
@@ -1260,9 +1461,13 @@ export class HTMLPresentationAgent {
 
     // 先把 slides 中识别出结构页的位置信息：cover/toc/conclusion 各挑一个代表
     const identifyCover = (s: SlidePlan) =>
-      s.pageType === 'cover' || /封面|title|开始|cover/i.test(s.title || '') || /封面|开篇|首页/.test(s.pageType || '');
+      s.pageType === 'cover' ||
+      /封面|title|开始|cover/i.test(s.title || '') ||
+      /封面|开篇|首页/.test(s.pageType || '');
     const identifyToc = (s: SlidePlan) =>
-      s.pageType === 'toc' || /目录|大纲|table\s*of\s*contents|contents/i.test(s.title || '') || /toc|目录|outline/.test(s.pageType || '');
+      s.pageType === 'toc' ||
+      /目录|大纲|table\s*of\s*contents|contents/i.test(s.title || '') ||
+      /toc|目录|outline/.test(s.pageType || '');
     const identifyConclusion = (s: SlidePlan) =>
       s.pageType === 'summary' ||
       /总结|致谢|结束|谢谢|展望|结语|最后|感谢观看|Q&A|问答/i.test(s.title || '');
@@ -1276,16 +1481,25 @@ export class HTMLPresentationAgent {
       let conclusionIdx = -1;
       // cover 判定范围：前 ceil(n/3) 页里找第一个
       for (let i = 0; i < Math.min(Math.ceil(n / 3), n); i++) {
-        if (identifyCover(slides[i])) { coverIdx = i; break; }
+        if (identifyCover(slides[i])) {
+          coverIdx = i;
+          break;
+        }
       }
       // toc：前半部分（不含 cover）找一个
       for (let i = 0; i < Math.floor(n * 0.5); i++) {
         if (i === coverIdx) continue;
-        if (identifyToc(slides[i])) { tocIdx = i; break; }
+        if (identifyToc(slides[i])) {
+          tocIdx = i;
+          break;
+        }
       }
       // conclusion：后 1/3 里找
       for (let i = Math.max(0, n - Math.ceil(n / 3)); i < n; i++) {
-        if (identifyConclusion(slides[i])) { conclusionIdx = i; break; }
+        if (identifyConclusion(slides[i])) {
+          conclusionIdx = i;
+          break;
+        }
       }
       // 如果 wantCover=true 但没识别到 cover，则把第一页当作 cover
       if (flags.wantCover && coverIdx === -1 && n > 0) coverIdx = 0;
@@ -1295,10 +1509,20 @@ export class HTMLPresentationAgent {
 
       // 按顺序保留（cover 最前 / toc 其次 / conclusion 最后），中间内容页按原顺序，不重复
       const used = new Set<number>();
-      if (flags.wantCover && coverIdx !== -1) { result.push(slides[coverIdx]); used.add(coverIdx); }
-      if (flags.wantToc && tocIdx !== -1 && !used.has(tocIdx)) { result.push(slides[tocIdx]); used.add(tocIdx); }
+      if (flags.wantCover && coverIdx !== -1) {
+        result.push(slides[coverIdx]);
+        used.add(coverIdx);
+      }
+      if (flags.wantToc && tocIdx !== -1 && !used.has(tocIdx)) {
+        result.push(slides[tocIdx]);
+        used.add(tocIdx);
+      }
       // 中间内容页：从前往后填，跳过已用和结论
-      for (let i = 0; i < n && result.length < target - (flags.wantConclusion && conclusionIdx !== -1 ? 1 : 0); i++) {
+      for (
+        let i = 0;
+        i < n && result.length < target - (flags.wantConclusion && conclusionIdx !== -1 ? 1 : 0);
+        i++
+      ) {
         if (used.has(i)) continue;
         if (flags.wantConclusion && i === conclusionIdx) continue;
         if (!flags.wantToc && identifyToc(slides[i])) continue; // 明确不要目录则跳过
@@ -1306,7 +1530,12 @@ export class HTMLPresentationAgent {
         if (!flags.wantCover && identifyCover(slides[i])) continue;
         result.push(slides[i]);
       }
-      if (flags.wantConclusion && conclusionIdx !== -1 && !used.has(conclusionIdx) && result.length < target) {
+      if (
+        flags.wantConclusion &&
+        conclusionIdx !== -1 &&
+        !used.has(conclusionIdx) &&
+        result.length < target
+      ) {
         result.push(slides[conclusionIdx]);
       }
       // 再多退少补（因为可能结构页不够 or 过多）
@@ -1336,18 +1565,24 @@ export class HTMLPresentationAgent {
       else contentList.push(s);
     }
     // 根据 flags 选择保留的结构页（各最多 1 个）
-    const finalCover = flags.wantCover ? (coverList[0] ?? buildDefaultStructure('cover', '演示封面')) : null;
+    const finalCover = flags.wantCover
+      ? (coverList[0] ?? buildDefaultStructure('cover', '演示封面'))
+      : null;
     const finalToc = flags.wantToc ? (tocList[0] ?? buildDefaultStructure('toc', '目录')) : null;
-    const finalConclusion = flags.wantConclusion ? (conclusionList[conclusionList.length - 1] ?? buildDefaultStructure('summary', '总结')) : null;
+    const finalConclusion = flags.wantConclusion
+      ? (conclusionList[conclusionList.length - 1] ?? buildDefaultStructure('summary', '总结'))
+      : null;
 
     const structureCount = (finalCover ? 1 : 0) + (finalToc ? 1 : 0) + (finalConclusion ? 1 : 0);
     const needContent = Math.max(0, target - structureCount);
     // 内容页补足：优先原有 contentList → 原有 coverList/tocList/conclusionList 被 flags 放弃的（转成内容）→ 再用 SUPPLEMENT 池补
     const finalContents: SlidePlan[] = [];
     for (const s of contentList) finalContents.push(s);
-    if (!flags.wantCover) for (const s of coverList) finalContents.push(downgradeStructureToContent(s));
+    if (!flags.wantCover)
+      for (const s of coverList) finalContents.push(downgradeStructureToContent(s));
     if (!flags.wantToc) for (const s of tocList) finalContents.push(downgradeStructureToContent(s));
-    if (!flags.wantConclusion) for (const s of conclusionList) finalContents.push(downgradeStructureToContent(s));
+    if (!flags.wantConclusion)
+      for (const s of conclusionList) finalContents.push(downgradeStructureToContent(s));
     let cursor = 0;
     while (finalContents.length < needContent) {
       const title = this.SUPPLEMENT_TITLE_POOL[cursor % this.SUPPLEMENT_TITLE_POOL.length];
@@ -1367,22 +1602,49 @@ export class HTMLPresentationAgent {
    * 强制对齐页结构：根据页数策略 + 用户显式禁用指令，确保封面/目录/总结正确存在或不存在。
    * 在 clampSlidesToCount 之后再跑一次，处理大模型可能生成错位（如把封面当内容、toc 放到末尾等）。
    */
-  private enforcePageStructure(slides: SlidePlan[], target: number, hints: PageStructureHints = { contentOnly: false, disableCover: false, disableToc: false, disableConclusion: false }, imagePreference: ImagePreference = 'content-only'): SlidePlan[] {
+  private enforcePageStructure(
+    slides: SlidePlan[],
+    target: number,
+    hints: PageStructureHints = {
+      contentOnly: false,
+      disableCover: false,
+      disableToc: false,
+      disableConclusion: false,
+    },
+    imagePreference: ImagePreference = 'content-only',
+  ): SlidePlan[] {
     // 辅助函数（与 clampSlidesToCount 中同名函数逻辑一致）
     const buildSupplementSlide = (title: string, cursor: number): SlidePlan => {
-      const keyPoints = ['核心要点展开分析', '相关数据支撑', '落地建议与参考'].slice(0, 4 - (cursor % 3));
+      const keyPoints = ['核心要点展开分析', '相关数据支撑', '落地建议与参考'].slice(
+        0,
+        4 - (cursor % 3),
+      );
       if (imagePreference === 'none' || imagePreference === 'minimal') {
         return { pageType: 'content-no-image', title, keyPoints, needsImage: false };
       }
-      return { pageType: 'content-image-left', title, keyPoints, needsImage: true, imageRatio: '4:3' };
+      return {
+        pageType: 'content-image-left',
+        title,
+        keyPoints,
+        needsImage: true,
+        imageRatio: '4:3',
+      };
     };
     const downgradeStructureToContent = (s: SlidePlan): SlidePlan => {
       if (imagePreference === 'none' || imagePreference === 'minimal') {
         return { ...s, pageType: 'content-no-image', needsImage: false };
       }
-      return { ...s, pageType: 'content-image-left', needsImage: true, imageRatio: s.imageRatio || '4:3' };
+      return {
+        ...s,
+        pageType: 'content-image-left',
+        needsImage: true,
+        imageRatio: s.imageRatio || '4:3',
+      };
     };
-    const buildDefaultStructure = (pageType: 'cover' | 'toc' | 'summary', title: string): SlidePlan => {
+    const buildDefaultStructure = (
+      pageType: 'cover' | 'toc' | 'summary',
+      title: string,
+    ): SlidePlan => {
       if (imagePreference === 'all') {
         return {
           pageType,
@@ -1401,9 +1663,13 @@ export class HTMLPresentationAgent {
     }
     const flags = deriveStructureFlags(target, hints);
     const identifyCover = (s: SlidePlan) =>
-      s.pageType === 'cover' || /封面|title|开始|cover/i.test(s.title || '') || /封面|开篇|首页/.test(s.pageType || '');
+      s.pageType === 'cover' ||
+      /封面|title|开始|cover/i.test(s.title || '') ||
+      /封面|开篇|首页/.test(s.pageType || '');
     const identifyToc = (s: SlidePlan) =>
-      s.pageType === 'toc' || /目录|大纲|table\s*of\s*contents|contents/i.test(s.title || '') || /toc|目录|outline/.test(s.pageType || '');
+      s.pageType === 'toc' ||
+      /目录|大纲|table\s*of\s*contents|contents/i.test(s.title || '') ||
+      /toc|目录|outline/.test(s.pageType || '');
     const identifyConclusion = (s: SlidePlan) =>
       s.pageType === 'summary' ||
       /总结|致谢|结束|谢谢|展望|结语|最后|感谢观看|Q&A|问答/i.test(s.title || '');
@@ -1414,9 +1680,18 @@ export class HTMLPresentationAgent {
     let conclusion: SlidePlan | null = null;
     const contents: SlidePlan[] = [];
     for (const s of slides) {
-      if (!cover && identifyCover(s)) { cover = s; continue; }
-      if (!toc && identifyToc(s)) { toc = s; continue; }
-      if (!conclusion && identifyConclusion(s)) { conclusion = s; continue; }
+      if (!cover && identifyCover(s)) {
+        cover = s;
+        continue;
+      }
+      if (!toc && identifyToc(s)) {
+        toc = s;
+        continue;
+      }
+      if (!conclusion && identifyConclusion(s)) {
+        conclusion = s;
+        continue;
+      }
       contents.push(s);
     }
 
@@ -1429,7 +1704,10 @@ export class HTMLPresentationAgent {
       contents.push(downgradeStructureToContent(toc));
       toc = null;
     }
-    if (conclusion && (flags.wantConclusion === false || hints.disableConclusion || hints.contentOnly)) {
+    if (
+      conclusion &&
+      (flags.wantConclusion === false || hints.disableConclusion || hints.contentOnly)
+    ) {
       contents.push(downgradeStructureToContent(conclusion));
       conclusion = null;
     }
@@ -1511,14 +1789,16 @@ export class HTMLPresentationAgent {
       if (imagePreference !== 'none') {
         console.warn(
           `[AGENT] imageOptions.enabled=${imageOptionsEnabled}，但 imagePreference=${imagePreference}，` +
-          `强制降级为 pref=none 避免生成 NOPPT 占位图。`,
+            `强制降级为 pref=none 避免生成 NOPPT 占位图。`,
         );
       }
       effectivePref = 'none';
     }
     // ================ ★ END: 防御性降级 ★ ================
-    const isStructureType = (pt: SlidePageType | undefined) => pt === 'cover' || pt === 'toc' || pt === 'summary';
-    const buildImagePromptFallback = (title: string) => `${topic} - ${title}，与整体配色协调的高品质专业插画，画面简洁主体靠边留出文字排版空间`;
+    const isStructureType = (pt: SlidePageType | undefined) =>
+      pt === 'cover' || pt === 'toc' || pt === 'summary';
+    const buildImagePromptFallback = (title: string) =>
+      `${topic} - ${title}，与整体配色协调的高品质专业插画，画面简洁主体靠边留出文字排版空间`;
     return slides.map((s) => {
       // FR-0：参考含图锁——参考属性优先级高于用户 imagePreference，任何 pref 下都不剥离参考图
       if (s.referenceLockedImage) {
@@ -1526,8 +1806,15 @@ export class HTMLPresentationAgent {
         return {
           ...s,
           needsImage: needs,
-          imagePrompt: s.imagePrompt ?? (needs ? `${s.title || '内容'}（参考素材风格）` : undefined),
-          imageRatio: s.imageRatio ?? (needs ? (s.pageType === 'content-image-top' ? defaultRatioForImageTop(s.keyPoints) : '4:3') : undefined),
+          imagePrompt:
+            s.imagePrompt ?? (needs ? `${s.title || '内容'}（参考素材风格）` : undefined),
+          imageRatio:
+            s.imageRatio ??
+            (needs
+              ? s.pageType === 'content-image-top'
+                ? defaultRatioForImageTop(s.keyPoints)
+                : '4:3'
+              : undefined),
         };
       }
       // ———— pref=none：强制删除所有图片相关信息 ————
@@ -1535,18 +1822,28 @@ export class HTMLPresentationAgent {
         const { imageRatio: _ir, imagePrompt: _ip, ...rest } = s;
         let { pageType, needsImage } = rest;
         needsImage = false;
-        if (pageType && (pageType === 'content-image-left' || pageType === 'content-image-right' || pageType === 'content-image-top')) {
+        if (
+          pageType &&
+          (pageType === 'content-image-left' ||
+            pageType === 'content-image-right' ||
+            pageType === 'content-image-top')
+        ) {
           pageType = 'content-no-image';
         }
         return { ...rest, pageType, needsImage };
       }
       // ———— pref=minimal：仅保留 "LLM明确写了 content-image-* 且 needsImage=true" 的，其余全部 false ————
       if (effectivePref === 'minimal') {
-        const isImageType = s.pageType === 'content-image-left' || s.pageType === 'content-image-right' || s.pageType === 'content-image-top';
+        const isImageType =
+          s.pageType === 'content-image-left' ||
+          s.pageType === 'content-image-right' ||
+          s.pageType === 'content-image-top';
         if (isImageType && s.needsImage) {
           return {
             ...s,
-            imageRatio: s.imageRatio || (s.pageType === 'content-image-top' ? defaultRatioForImageTop(s.keyPoints) : '4:3'),
+            imageRatio:
+              s.imageRatio ||
+              (s.pageType === 'content-image-top' ? defaultRatioForImageTop(s.keyPoints) : '4:3'),
             imagePrompt: s.imagePrompt || buildImagePromptFallback(s.title || '内容'),
           };
         }
@@ -1574,8 +1871,7 @@ export class HTMLPresentationAgent {
         // pageType 升级：所有纯文字/密集型布局统一升级为带图 left
         if (!isStructure) {
           const shouldUpgradeToImageType =
-            pageType === 'content-no-image' ||
-            pageType === 'content-table';
+            pageType === 'content-no-image' || pageType === 'content-table';
           if (shouldUpgradeToImageType && keyPoints.length >= 1) {
             pageType = 'content-image-left';
           }
@@ -1606,7 +1902,12 @@ export class HTMLPresentationAgent {
     density: ContentDensity,
     imagePreference: ImagePreference,
     backgroundEnabled: boolean = false,
-    pageHints: PageStructureHints = { contentOnly: false, disableCover: false, disableToc: false, disableConclusion: false },
+    pageHints: PageStructureHints = {
+      contentOnly: false,
+      disableCover: false,
+      disableToc: false,
+      disableConclusion: false,
+    },
     iconStyle: IconStyle = 'auto',
     fontFamily: 'sans' | 'serif' | 'mono' = 'sans',
     colorTheme?: ColorTheme,
@@ -1633,18 +1934,24 @@ export class HTMLPresentationAgent {
       none: '不生成任何图片，纯文字/卡片布局',
     };
     const colorThemeText: Record<ColorTheme, string> = {
-      blue: '蓝色商务（专业稳重）', purple: '紫色创意（个性活泼）',
-      green: '绿色环保（清新自然）', orange: '橙色活力（醒目热情）',
-      teal: '青色科技（科技感强）', gray: '极简灰度（低调克制）',
+      blue: '蓝色商务（专业稳重）',
+      purple: '紫色创意（个性活泼）',
+      green: '绿色环保（清新自然）',
+      orange: '橙色活力（醒目热情）',
+      teal: '青色科技（科技感强）',
+      gray: '极简灰度（低调克制）',
     };
     const iconStyleText: Record<IconStyle, string> = {
       auto: '智能匹配（默认使用线性SVG描边图标，简约专业，适合B端/技术/正式场景；根据语义从内置图标库选择匹配图标）',
       line: '线性SVG描边图标（Lucide风格，简约理性、专业冷静，主色描边+浅色圆角底，适合B端产品、技术PPT、研发平台、多图标并列场景）',
-      filled: '面性SVG填充图标（实心色块，视觉权重高、醒目有力，白色图标+渐变实心底，适合封面、核心结论、大屏展示、重点模块）',
+      filled:
+        '面性SVG填充图标（实心色块，视觉权重高、醒目有力，白色图标+渐变实心底，适合封面、核心结论、大屏展示、重点模块）',
       numbered: '数字序号（渐变圆角方形/圆形 + 白色数字 1/2/3/4，适合步骤/流程/阶段类要点）',
-      bullet: '对勾/圆点（简洁符号类：主色渐变圆形+白色对勾SVG，或主色10px小圆点，适合特性/优势/功能列表）',
+      bullet:
+        '对勾/圆点（简洁符号类：主色渐变圆形+白色对勾SVG，或主色10px小圆点，适合特性/优势/功能列表）',
       lettered: '字母分类（渐变圆形 + 白色字母 A/B/C/D…，适合分类/维度/类型类要点）',
-      emoji: 'Emoji风格（仅适合内部轻松沟通/C端/年轻群体内容；B端技术方案、正式汇报、商务宣讲禁止使用emoji，应改用line线性图标）',
+      emoji:
+        'Emoji风格（仅适合内部轻松沟通/C端/年轻群体内容；B端技术方案、正式汇报、商务宣讲禁止使用emoji，应改用line线性图标）',
       none: '无图标，纯文字列表',
     };
     const { guidance } = this.buildSlideCountGuidance(slideSpec);
@@ -1656,42 +1963,50 @@ export class HTMLPresentationAgent {
       if (effectivePrimaryColor && /^#[0-9a-fA-F]{6}$/.test(effectivePrimaryColor)) {
         return effectivePrimaryColor;
       }
-      return (colorTheme && COLOR_THEMES[colorTheme]) ? COLOR_THEMES[colorTheme] : '#2563eb';
+      return colorTheme && COLOR_THEMES[colorTheme] ? COLOR_THEMES[colorTheme] : '#2563eb';
     })();
     const colorThemeHint = colorTheme
       ? `【配色主题】\n配色主题（S-4 · 显式传递）：${colorThemeText[colorTheme]}。⚠️ primaryColor 必须精确填入 ${expectedPrimaryHex}（这是你输出 JSON 时的唯一合法值，绝对不可自己猜别的 hex）。imagePrompt 中生成的色调、整套 slides 的视觉气质，都要与该色系完全一致，禁止引入蓝/紫/绿等其他色系主强调色。`
       : '【配色主题】：未显式设置（默认按蓝色商务或根据主题自适应，但 primaryColor 字段必须填合法 6 位 hex）';
     const iconStyleHint = `【列表图标风格（S-7）】：${iconStyleText[iconStyle]}。规划阶段不需要写具体图标的 CSS，但要在选择 pageType 时考虑 iconStyle 的适配（例如 iconStyle=large-number 时，尽量选择带编号列表的 content-list / content-cards / content-compare 等 layout）。`;
     const fontFamilyHint = `【字体风格（S-11）】：${getFontFamilyDescription(fontFamily)}。规划阶段不用写具体 font-family CSS，但要考虑整体排版的气质与字体匹配（例如 serif 更适合大量文字的正式内容页，mono 更适合技术代码型内容页）。`;
-    const referenceHtmlBriefText = referenceHtmlBrief || (hasReference
-      ? '（已上传参考文件，但本次未能提取到可落盘的 HTML 属性摘要；参考主色/字体/版式等仍以「参考文件视觉覆盖指令」为准）'
-      : '（用户未上传参考文件 HTML）');
-    return PRESENTATION_PLANNING_PROMPT
-      .replace(/\{\{STYLE\}\}/g, style)
-      .replace(/\{\{DENSITY\}\}/g, densityText[density])
-      .replace(/\{\{IMAGE_PREFERENCE\}\}/g, imagePrefText[imagePreference])
-      .replace(/\{\{AUDIENCE\}\}/g, audience || '通用商务受众')
-      .replace(/\{\{TOPIC\}\}/g, topic)
-      .replace(/\{\{SLIDE_COUNT_GUIDANCE\}\}/g, guidance)
-      .replace(/\{\{BACKGROUND_GUIDANCE\}\}/g, (backgroundEnabled ? BACKGROUND_PLANNING_GUIDANCE : '') + structureOverride)
-      .replace(/\{\{COLOR_THEME_HINT\}\}/g, colorThemeHint)
-      .replace(/\{\{EXPECTED_PRIMARY_COLOR\}\}/g, expectedPrimaryHex)
-      .replace(/\{\{ICON_STYLE_HINT\}\}/g, iconStyleHint)
-      .replace(/\{\{FONT_STYLE_HINT\}\}/g, fontFamilyHint)
-      .replace(/\{\{USER_SETTINGS_OVERRIDE\}\}/g, userSettingsOverride)
-      .replace(/\{\{REFERENCE_HTML_BRIEF\}\}/g, referenceHtmlBriefText)
-      .replace(/\{\{CATEGORY_REFERENCE_SUMMARY\}\}/g, categoryReferenceSummary)
-      .replace(/\{\{REFERENCE_STRUCTURE_SNIPPET\}\}/g, referenceStructureSnippet)
-      .replace(/\{\{REFERENCE_COLOR_POLICY\}\}/g, referenceColorPolicy)
-      .replace(/\{\{REFERENCE_LAYOUT_DIVERSITY\}\}/g, referenceLayoutDiversity)
-      // RAG 素材放最后注入：用函数式 replace 避免素材里的 `$&` 被当作替换模式，
-      // 且素材中若含 {{XXX}} 字面量也不会被前面的替换规则二次改写。
-      .replace(/\{\{REFERENCE_TEXT_BRIEF\}\}/g, () => this.buildReferenceTextBrief(referenceText))
-      + `\n\n【输出语言】${
-          this.language === 'en'
-            ? '请使用英文撰写本演示的全部文案（含标题、正文、要点、按钮等可见文本）。'
-            : '请使用中文撰写本演示的全部文案（含标题、正文、要点、按钮等可见文本）。'
-        }`;
+    const referenceHtmlBriefText =
+      referenceHtmlBrief ||
+      (hasReference
+        ? '（已上传参考文件，但本次未能提取到可落盘的 HTML 属性摘要；参考主色/字体/版式等仍以「参考文件视觉覆盖指令」为准）'
+        : '（用户未上传参考文件 HTML）');
+    return (
+      PRESENTATION_PLANNING_PROMPT.replace(/\{\{STYLE\}\}/g, style)
+        .replace(/\{\{DENSITY\}\}/g, densityText[density])
+        .replace(/\{\{IMAGE_PREFERENCE\}\}/g, imagePrefText[imagePreference])
+        .replace(/\{\{AUDIENCE\}\}/g, audience || '通用商务受众')
+        .replace(/\{\{TOPIC\}\}/g, topic)
+        .replace(/\{\{SLIDE_COUNT_GUIDANCE\}\}/g, guidance)
+        .replace(
+          /\{\{BACKGROUND_GUIDANCE\}\}/g,
+          (backgroundEnabled ? BACKGROUND_PLANNING_GUIDANCE : '') + structureOverride,
+        )
+        .replace(/\{\{COLOR_THEME_HINT\}\}/g, colorThemeHint)
+        .replace(/\{\{EXPECTED_PRIMARY_COLOR\}\}/g, expectedPrimaryHex)
+        .replace(/\{\{ICON_STYLE_HINT\}\}/g, iconStyleHint)
+        .replace(/\{\{FONT_STYLE_HINT\}\}/g, fontFamilyHint)
+        .replace(/\{\{USER_SETTINGS_OVERRIDE\}\}/g, userSettingsOverride)
+        .replace(/\{\{REFERENCE_HTML_BRIEF\}\}/g, referenceHtmlBriefText)
+        .replace(/\{\{CATEGORY_REFERENCE_SUMMARY\}\}/g, categoryReferenceSummary)
+        .replace(/\{\{REFERENCE_STRUCTURE_SNIPPET\}\}/g, referenceStructureSnippet)
+        .replace(/\{\{REFERENCE_COLOR_POLICY\}\}/g, referenceColorPolicy)
+        .replace(/\{\{REFERENCE_LAYOUT_DIVERSITY\}\}/g, referenceLayoutDiversity)
+        // RAG 素材放最后注入：用函数式 replace 避免素材里的 `$&` 被当作替换模式，
+        // 且素材中若含 {{XXX}} 字面量也不会被前面的替换规则二次改写。
+        .replace(/\{\{REFERENCE_TEXT_BRIEF\}\}/g, () =>
+          this.buildReferenceTextBrief(referenceText),
+        ) +
+      `\n\n【输出语言】${
+        this.language === 'en'
+          ? '请使用英文撰写本演示的全部文案（含标题、正文、要点、按钮等可见文本）。'
+          : '请使用中文撰写本演示的全部文案（含标题、正文、要点、按钮等可见文本）。'
+      }`
+    );
   }
 
   /**
@@ -1727,8 +2042,10 @@ export class HTMLPresentationAgent {
   ): { titleColor?: string; bodyColor?: string } {
     if (!refAttrs) return { titleColor: undefined, bodyColor: undefined };
     const cat = pageTypeToCategory(pageType ?? '');
-    const titleColor = resolveAttrForPage('titleColor', refAttrs, cat, undefined) as string | undefined;
-    const bodyColor = resolveAttrForPage('bodyColor', refAttrs, cat, undefined) as string | undefined;
+    const titleColor = resolveAttrForPage('titleColor', refAttrs, cat, undefined) as
+      string | undefined;
+    const bodyColor = resolveAttrForPage('bodyColor', refAttrs, cat, undefined) as
+      string | undefined;
     return { titleColor, bodyColor };
   }
 
@@ -1755,10 +2072,12 @@ export class HTMLPresentationAgent {
     hasReference: boolean = false,
     canvasBg?: string,
   ): string {
-    const imageRequirement = plan.needsImage && plan.imagePrompt
-      ? `需要配图，图片描述：${plan.imagePrompt}，图片比例：${plan.imageRatio || '4:3'}`
-      : '不需要图片，纯文字/卡片布局';
-    const keyPointsRaw = plan.keyPoints.map((p, i) => `${i + 1}. ${p}`).join('\n') || '- （展开相关内容）';
+    const imageRequirement =
+      plan.needsImage && plan.imagePrompt
+        ? `需要配图，图片描述：${plan.imagePrompt}，图片比例：${plan.imageRatio || '4:3'}`
+        : '不需要图片，纯文字/卡片布局';
+    const keyPointsRaw =
+      plan.keyPoints.map((p, i) => `${i + 1}. ${p}`).join('\n') || '- （展开相关内容）';
     // 对 content-no-image / 明确不需要配图的页面额外加一道"禁止裸文本"强提醒
     // 覆盖链路：防止 LLM 被 "content-no-image" 误导为"可以写纯文本行，不用列表"
     const needsBareTextAlert =
@@ -1774,34 +2093,51 @@ export class HTMLPresentationAgent {
   ✖️ 禁止：直接写多行 "\n" 分隔的纯文本行。这样属于"裸文本"违规格式，会被后端强制返工。
 `;
     const keyPointsText = needsBareTextAlert ? `${keyPointsRaw}${BARE_TEXT_ALERT}` : keyPointsRaw;
-    const padX = Math.max(32, Math.round((64 * slideWidth / 1280) / 8) * 8);
-    const padY = Math.max(24, Math.round((48 * slideHeight / 720) / 8) * 8);
+    const padX = Math.max(32, Math.round((64 * slideWidth) / 1280 / 8) * 8);
+    const padY = Math.max(24, Math.round((48 * slideHeight) / 720 / 8) * 8);
     const contentWidth = slideWidth - padX * 2;
     const contentHeight = slideHeight - padY * 2;
-    const templates = getPageTemplatesByPageType(plan.pageType, slideWidth, slideHeight, iconStyle, fontFamily);
+    const templates = getPageTemplatesByPageType(
+      plan.pageType,
+      slideWidth,
+      slideHeight,
+      iconStyle,
+      fontFamily,
+    );
 
     // 参数描述插入（P1 / S2 半通修复）
     const colorThemeText: Record<ColorTheme, string> = {
-      blue: '蓝色商务（专业稳重）', purple: '紫色创意（个性活泼）',
-      green: '绿色环保（清新自然）', orange: '橙色活力（醒目热情）',
-      teal: '青色科技（科技感强）', gray: '极简灰度（低调克制）',
+      blue: '蓝色商务（专业稳重）',
+      purple: '紫色创意（个性活泼）',
+      green: '绿色环保（清新自然）',
+      orange: '橙色活力（醒目热情）',
+      teal: '青色科技（科技感强）',
+      gray: '极简灰度（低调克制）',
     };
-    const styleDescriptionText = style === 'creative' ? '创意风格（排版大胆活泼，色彩鲜明）'
-      : style === 'simple' ? '极简风格（大量留白、简洁线条）'
-      : '商务风格（平衡、专业稳重，默认）';
+    const styleDescriptionText =
+      style === 'creative'
+        ? '创意风格（排版大胆活泼，色彩鲜明）'
+        : style === 'simple'
+          ? '极简风格（大量留白、简洁线条）'
+          : '商务风格（平衡、专业稳重，默认）';
     const styleDescription = `【风格（S-1）】：${styleDescriptionText}。所有 CSS 样式、间距、装饰元素都要符合这个整体气质。`;
-    const audienceHint = audience ? `【目标受众（S-10）】：${audience}。用词、专业度深浅、案例风格等都要贴合这个受众。` : '【目标受众（S-10）】：通用商务受众';
+    const audienceHint = audience
+      ? `【目标受众（S-10）】：${audience}。用词、专业度深浅、案例风格等都要贴合这个受众。`
+      : '【目标受众（S-10）】：通用商务受众';
     const colorThemeHint = colorTheme
       ? `【配色主题（S-4）】：${colorThemeText[colorTheme]}。不要硬编码与配色主题冲突的颜色（例如紫色主题里写蓝色 #1D4ED8），primaryColor / primaryColorDarker 已提供正确色值，你可以做色调变化但不要出其他色系。`
       : '【配色主题（S-4）】：未显式设置（以提供的 primaryColor / primaryColorDarker 为准）';
     const iconStyleHintText: Record<IconStyle, string> = {
       auto: '智能匹配（默认使用线性SVG描边图标，简约专业，适合B端/技术/正式场景；根据语义从内置图标库选择匹配图标，整页保持统一风格，禁止混用emoji和SVG）',
       line: '线性SVG描边图标（Lucide风格，简约理性、专业冷静，主色描边+浅色圆角底，适合B端产品、技术PPT、研发平台、多图标并列场景）',
-      filled: '面性SVG填充图标（实心色块，视觉权重高、醒目有力，白色图标+渐变实心底，适合封面、核心结论、大屏展示、重点模块）',
+      filled:
+        '面性SVG填充图标（实心色块，视觉权重高、醒目有力，白色图标+渐变实心底，适合封面、核心结论、大屏展示、重点模块）',
       numbered: '数字序号（渐变圆角方形/圆形 + 白色数字 1/2/3/4，适合步骤/流程/阶段类要点）',
-      bullet: '对勾/圆点（简洁符号类：主色渐变圆形+白色对勾SVG，或主色10px小圆点；优势/特性项用对勾，普通列表项可用圆点）',
+      bullet:
+        '对勾/圆点（简洁符号类：主色渐变圆形+白色对勾SVG，或主色10px小圆点；优势/特性项用对勾，普通列表项可用圆点）',
       lettered: '字母分类（渐变圆形 + 白色字母 A/B/C/D…，适合分类/维度/类型类要点）',
-      emoji: 'Emoji风格（仅适合内部轻松沟通/C端/年轻群体内容；B端技术方案、正式汇报、商务宣讲禁止使用emoji，应改用line线性图标）',
+      emoji:
+        'Emoji风格（仅适合内部轻松沟通/C端/年轻群体内容；B端技术方案、正式汇报、商务宣讲禁止使用emoji，应改用line线性图标）',
       none: '无图标，纯文字列表',
     };
     const iconStyleHint = `【列表图标风格（S-7）】：${iconStyleHintText[iconStyle]}。PAGE_TEMPLATES 中已包含该风格的完整 CSS，你直接选用匹配的 layout 即可，不要自己凭空重新设计。`;
@@ -1816,24 +2152,45 @@ export class HTMLPresentationAgent {
     const backgroundEnabledHint = `【自动背景图（S-3）】：${backgroundEnabled ? '开启（PAGE_TEMPLATES 中 cover / content / summary 等 layout 已预置背景 CSS，你直接套用即可）' : '关闭（不要写额外的背景大图 <img>，用纯色 / 浅色渐变背景即可）'}`;
 
     // ===== L1/L1.5 字段注入：把 Planning 阶段产出的 layoutParams/styleTheme/metricValues 等传给内容生成阶段 =====
-    const layoutParamsRaw = plan.layoutParams && Object.keys(plan.layoutParams).length > 0 ? plan.layoutParams : null;
+    const layoutParamsRaw =
+      plan.layoutParams && Object.keys(plan.layoutParams).length > 0 ? plan.layoutParams : null;
     const styleThemeRaw = plan.styleTheme || null;
-    const metricValuesRaw = Array.isArray(plan.metricValues) && plan.metricValues.length > 0 ? plan.metricValues : null;
-    const advantageIndicesRaw = Array.isArray(plan.advantageIndices) && plan.advantageIndices.length > 0 ? plan.advantageIndices : null;
-    const showcaseMetricsRaw = Array.isArray(plan.showcaseMetrics) && plan.showcaseMetrics.length > 0 ? plan.showcaseMetrics : null;
+    const metricValuesRaw =
+      Array.isArray(plan.metricValues) && plan.metricValues.length > 0 ? plan.metricValues : null;
+    const advantageIndicesRaw =
+      Array.isArray(plan.advantageIndices) && plan.advantageIndices.length > 0
+        ? plan.advantageIndices
+        : null;
+    const showcaseMetricsRaw =
+      Array.isArray(plan.showcaseMetrics) && plan.showcaseMetrics.length > 0
+        ? plan.showcaseMetrics
+        : null;
 
-    const hasL1Fields = layoutParamsRaw || styleThemeRaw || metricValuesRaw || advantageIndicesRaw || showcaseMetricsRaw;
-    const L1_L15_HINT = !hasL1Fields ? '' : `
+    const hasL1Fields =
+      layoutParamsRaw ||
+      styleThemeRaw ||
+      metricValuesRaw ||
+      advantageIndicesRaw ||
+      showcaseMetricsRaw;
+    const L1_L15_HINT = !hasL1Fields
+      ? ''
+      : `
 
 ---
 ## 【L1 布局参数 + L1.5 样式主题 · Planning 阶段显式产出 · 最高优先级】
 本 slide 在规划阶段已指定以下参数，生成 HTML 时**必须严格遵守**（优先级高于 PAGE_TEMPLATES 默认模板选择，高于任何示例的默认布局）：
 
-${layoutParamsRaw ? `- layoutParams（6 维布局调整）：\`\`\`json\n${JSON.stringify(layoutParamsRaw, null, 2)}\n\`\`\`
+${
+  layoutParamsRaw
+    ? `- layoutParams（6 维布局调整）：\`\`\`json\n${JSON.stringify(layoutParamsRaw, null, 2)}\n\`\`\`
   含义：titlePosition=标题位置(top/left/right/inline)、contentDirection=内容流向(column/row/row-reverse)、imageAnchor=图片锚点(none/left/right/top/bottom/background)、cardShape=卡片形状(rounded/pill/glass/gradient-border/solid-block)、contentAlignment=内容对齐(left/center/justify/right)、gridCols=网格列数(auto|2|3|4)。
-  执行方式：如果某维度与 PAGE_TEMPLATES 默认模板不一致，**以 layoutParams 为准**调整 CSS（例：cardShape=glass → 所有卡片背景换成 backdrop-filter 玻璃样式；contentDirection=row → 要点从纵向改为横向排列；imageAnchor=background → 图片作为全屏背景而不是左/右图）。` : ''}
+  执行方式：如果某维度与 PAGE_TEMPLATES 默认模板不一致，**以 layoutParams 为准**调整 CSS（例：cardShape=glass → 所有卡片背景换成 backdrop-filter 玻璃样式；contentDirection=row → 要点从纵向改为横向排列；imageAnchor=background → 图片作为全屏背景而不是左/右图）。`
+    : ''
+}
 
-${styleThemeRaw ? `- styleTheme（L1.5 视觉样式主题）：\`${styleThemeRaw}\`
+${
+  styleThemeRaw
+    ? `- styleTheme（L1.5 视觉样式主题）：\`${styleThemeRaw}\`
   可选值映射：
     - none / 未指定：默认传统卡片
     - glass：所有主要卡片加 backdrop-filter:blur + 半透明白底 + 1px 白边（玻璃拟态）
@@ -1842,16 +2199,30 @@ ${styleThemeRaw ? `- styleTheme（L1.5 视觉样式主题）：\`${styleThemeRaw
     - badges：每个要点配一个胶囊 Badge（主色背景白字），核心数值放大显示
     - colored-cards：多张卡片用蓝/绿/橙/紫/青/灰语义调色板
     - mixed：AI 自由组合以上样式（glass+progress-bars+badges 可同页混用）
-  执行方式：严格按 styleTheme 值选择对应 L1.5 样式组合写 CSS，不要省略进度条/badge/glass 装饰。` : ''}
+  执行方式：严格按 styleTheme 值选择对应 L1.5 样式组合写 CSS，不要省略进度条/badge/glass 装饰。`
+    : ''
+}
 
-${metricValuesRaw ? `- metricValues（进度条百分比数组，长度=要点数/对比项数）：\`[${metricValuesRaw.join(', ')}]\`
-  使用方法：第 N 个要点的进度条 width = metricValues[N-1] + '%'，不要随意编造数值。` : ''}
+${
+  metricValuesRaw
+    ? `- metricValues（进度条百分比数组，长度=要点数/对比项数）：\`[${metricValuesRaw.join(', ')}]\`
+  使用方法：第 N 个要点的进度条 width = metricValues[N-1] + '%'，不要随意编造数值。`
+    : ''
+}
 
-${advantageIndicesRaw ? `- advantageIndices（对比页右栏优势项的索引）：\`[${advantageIndicesRaw.join(', ')}]\`
-  使用方法：comparison-deep-dive 等对比布局中，这些索引对应的对比项要额外显示"徽章+"、绿色对勾、进度条填充更深一档等强化样式。` : ''}
+${
+  advantageIndicesRaw
+    ? `- advantageIndices（对比页右栏优势项的索引）：\`[${advantageIndicesRaw.join(', ')}]\`
+  使用方法：comparison-deep-dive 等对比布局中，这些索引对应的对比项要额外显示"徽章+"、绿色对勾、进度条填充更深一档等强化样式。`
+    : ''
+}
 
-${showcaseMetricsRaw ? `- showcaseMetrics（value-showcase 核心数值）：\`\`\`json\n${JSON.stringify(showcaseMetricsRaw, null, 2)}\n\`\`\`
-  使用方法：每个 {label, value, trend?} 对应一张数值大卡：value 用 72~96px 巨字号 + 渐变文字（background-clip:text），label 放在下方做副标题，trend=up/down/flat 时右上角显示绿/红/灰趋势徽章（↗/↘/→）。grid 列数根据 showcaseMetrics.length 决定。` : ''}
+${
+  showcaseMetricsRaw
+    ? `- showcaseMetrics（value-showcase 核心数值）：\`\`\`json\n${JSON.stringify(showcaseMetricsRaw, null, 2)}\n\`\`\`
+  使用方法：每个 {label, value, trend?} 对应一张数值大卡：value 用 72~96px 巨字号 + 渐变文字（background-clip:text），label 放在下方做副标题，trend=up/down/flat 时右上角显示绿/红/灰趋势徽章（↗/↘/→）。grid 列数根据 showcaseMetrics.length 决定。`
+    : ''
+}
 
 ⚠️ 可编辑性红线：无论用了哪种 L1.5 样式，**装饰性子元素（进度条填充块、Badge 内文字、大 Value 数字 span、渐变装饰 halo/blob、emoji 色块）一律加 pointer-events:none;**；**有意义的容器（玻璃卡、进度条整体、大卡外壳、彩色卡片外层 div）必须显式包含非透明 background / 非零 border / ≥8px border-radius / box-shadow 四者之一**，便于 isVisualContainer 判定可选中。
 ---
@@ -1862,15 +2233,27 @@ ${showcaseMetricsRaw ? `- showcaseMetrics（value-showcase 核心数值）：\`\
     if (plan.pageType === 'comparison-deep-dive') {
       const leftMerged: unknown[] = (plan as any).leftKeyPoints ?? [];
       const rightMerged: unknown[] = (plan as any).rightKeyPoints ?? [];
-      const metrics: number[] = Array.isArray(metricValuesRaw) ? metricValuesRaw : ((plan as any).metricValues ?? []);
-      const advIdx: number[] = Array.isArray(advantageIndicesRaw) ? advantageIndicesRaw : ((plan as any).advantageIndices ?? []);
+      const metrics: number[] = Array.isArray(metricValuesRaw)
+        ? metricValuesRaw
+        : ((plan as any).metricValues ?? []);
+      const advIdx: number[] = Array.isArray(advantageIndicesRaw)
+        ? advantageIndicesRaw
+        : ((plan as any).advantageIndices ?? []);
       const advSet = new Set(advIdx);
       // 缺 leftKeyPoints / rightKeyPoints 时，用 keyPoints 作为统一维度名（左右同套，避免名称错位）
       const fallbackDim = plan.keyPoints ?? [];
-      const leftDims: string[] = leftMerged.length > 0 ? leftMerged.map(String) : fallbackDim.map(String);
-      const rightDims: string[] = rightMerged.length > 0 ? rightMerged.map(String) : fallbackDim.map(String);
+      const leftDims: string[] =
+        leftMerged.length > 0 ? leftMerged.map(String) : fallbackDim.map(String);
+      const rightDims: string[] =
+        rightMerged.length > 0 ? rightMerged.map(String) : fallbackDim.map(String);
       const N = Math.max(leftDims.length, rightDims.length, metrics.length, 3);
-      const padded: Array<{ idx: number; left: string; right: string; metric: number; win: boolean }> = [];
+      const padded: Array<{
+        idx: number;
+        left: string;
+        right: string;
+        metric: number;
+        win: boolean;
+      }> = [];
       for (let i = 0; i < N; i++) {
         padded.push({
           idx: i,
@@ -1892,10 +2275,10 @@ ${showcaseMetricsRaw ? `- showcaseMetrics（value-showcase 核心数值）：\`\
 
 | 索引 i | 左栏维度名（基准方案） | 右栏维度名（升级方案） | 右栏 进度条 metric% | 右栏 胜出（advantageIndices）|
 |--------|----------------------|----------------------|--------------------|---------------------------|
-${padded.map(p => `| ${p.idx} | ${p.left} | ${p.right} | ${p.metric} | ${p.win ? '✅ YES（绿色三件套 + 深一档渐变）' : 'NO（主色三件套 + 主色渐变）'} |`).join('\n')}
+${padded.map((p) => `| ${p.idx} | ${p.left} | ${p.right} | ${p.metric} | ${p.win ? '✅ YES（绿色三件套 + 深一档渐变）' : 'NO（主色三件套 + 主色渐变）'} |`).join('\n')}
 
 ### 胜出索引再强调（advantageIndices = [${advIdx.join(', ')}]）：
-${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（comparison-deep-dive 至少 1 项优势，否则换 pageType）' : advIdx.map(i => `第 ${i} 行 → 右栏胜出（✅）`).join('\n')}
+${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（comparison-deep-dive 至少 1 项优势，否则换 pageType）' : advIdx.map((i) => `第 ${i} 行 → 右栏胜出（✅）`).join('\n')}
 ### 刚性红线速记：
   ① 左右 LI 数 = ${N}，一条不差　② 禁止 LI 内嵌套 <p>　③ 进度条 width 用本表 metric 值　④ 胜出项绿色三件套缺一不可　⑤ 禁止写固定 width/height/left/top/max-width:none
 ---
@@ -1905,48 +2288,59 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
     // === 主题色浅一档推导（PRIMARY_COLOR_LIGHTER：蓝→浅蓝/绿→浅绿/橙→浅橙/紫→浅紫/青→浅青）===
     const primaryColorLighter = derivePrimaryColorLighter(primaryColor);
 
-    const referenceHtmlBriefText = referenceHtmlBrief || (hasReference
-      ? '（已上传参考文件，但本次未能提取到可落盘的 HTML 属性摘要；参考主色/字体/版式等仍以「参考文件视觉覆盖指令」为准）'
-      : '（用户未上传参考文件 HTML）');
+    const referenceHtmlBriefText =
+      referenceHtmlBrief ||
+      (hasReference
+        ? '（已上传参考文件，但本次未能提取到可落盘的 HTML 属性摘要；参考主色/字体/版式等仍以「参考文件视觉覆盖指令」为准）'
+        : '（用户未上传参考文件 HTML）');
 
-    return SLIDE_HTML_GENERATION_PROMPT
-      .replace(/\{\{PRIMARY_COLOR\}\}/g, primaryColor)
-      .replace(/\{\{PRIMARY_COLOR_DARKER\}\}/g, primaryColorDarker)
-      .replace(/\{\{PRIMARY_COLOR_LIGHTER\}\}/g, primaryColorLighter)
-      .replace(/\{\{EXPECTED_PRIMARY_COLOR\}\}/g, primaryColor)
-      .replace(/\{\{TITLE_TEXT_COLOR\}\}/g, titleColor)
-      .replace(/\{\{BODY_TEXT_COLOR\}\}/g, bodyColor)
-      .replace(/\{\{CANVAS_BG_COLOR\}\}/g, canvasBg || '#ffffff')
-      .replace(/\{\{SLIDE_WIDTH\}\}/g, String(slideWidth))
-      .replace(/\{\{SLIDE_HEIGHT\}\}/g, String(slideHeight))
-      .replace(/\{\{PADDING_X\}\}/g, String(padX))
-      .replace(/\{\{PADDING_Y\}\}/g, String(padY))
-      .replace(/\{\{CONTENT_WIDTH\}\}/g, String(contentWidth))
-      .replace(/\{\{CONTENT_HEIGHT\}\}/g, String(contentHeight))
-      .replace(/\{\{PAGE_TEMPLATES\}\}/g, templates + L1_L15_HINT + (plan.pageType === 'comparison-deep-dive' ? COMPARISON_DATA_CARD_HINT : ''))
-      .replace(/\{\{PAGE_TYPE\}\}/g, plan.pageType)
-      .replace(/\{\{PAGE_TITLE\}\}/g, plan.title)
-      .replace(/\{\{KEY_POINTS\}\}/g, keyPointsText || '- （展开相关内容）')
-      .replace(/\{\{IMAGE_REQUIREMENT\}\}/g, imageRequirement)
-      .replace(/\{\{IMAGE_RATIO\}\}/g, plan.imageRatio || (PAGE_TYPE_DEFAULT_IMAGE_RATIO[plan.pageType] || '4:3'))
-      .replace(/\{\{DENSITY\}\}/g, density)
-      .replace(/\{\{ICON_STYLE\}\}/g, iconStyle)
-      .replace(/\{\{STYLE_DESCRIPTION\}\}/g, styleDescription)
-      .replace(/\{\{AUDIENCE_HINT\}\}/g, audienceHint)
-      .replace(/\{\{COLOR_THEME_HINT\}\}/g, colorThemeHint)
-      .replace(/\{\{ICON_STYLE_HINT\}\}/g, iconStyleHint)
-      .replace(/\{\{FONT_STYLE_HINT\}\}/g, fontFamilyHint)
-      .replace(/\{\{IMAGE_PREFERENCE_HINT\}\}/g, imagePreferenceHint)
-      .replace(/\{\{BACKGROUND_ENABLED_HINT\}\}/g, backgroundEnabledHint)
-      .replace(/\{\{REFERENCE_HTML_BRIEF\}\}/g, referenceHtmlBriefText)
-      .replace(/\{\{CATEGORY_REFERENCE_SUMMARY\}\}/g, categoryReferenceSummary)
-      .replace(/\{\{REFERENCE_STRUCTURE_SNIPPET\}\}/g, referenceStructureSnippet)
-      .replace(/\{\{REFERENCE_COLOR_POLICY\}\}/g, referenceColorPolicy)
-      + `\n\n【输出语言】${
-          this.language === 'en'
-            ? '请使用英文撰写本页的全部可见文案（标题、要点、按钮等）。'
-            : '请使用中文撰写本页的全部可见文案（标题、要点、按钮等）。'
-        }`;
+    return (
+      SLIDE_HTML_GENERATION_PROMPT.replace(/\{\{PRIMARY_COLOR\}\}/g, primaryColor)
+        .replace(/\{\{PRIMARY_COLOR_DARKER\}\}/g, primaryColorDarker)
+        .replace(/\{\{PRIMARY_COLOR_LIGHTER\}\}/g, primaryColorLighter)
+        .replace(/\{\{EXPECTED_PRIMARY_COLOR\}\}/g, primaryColor)
+        .replace(/\{\{TITLE_TEXT_COLOR\}\}/g, titleColor)
+        .replace(/\{\{BODY_TEXT_COLOR\}\}/g, bodyColor)
+        .replace(/\{\{CANVAS_BG_COLOR\}\}/g, canvasBg || '#ffffff')
+        .replace(/\{\{SLIDE_WIDTH\}\}/g, String(slideWidth))
+        .replace(/\{\{SLIDE_HEIGHT\}\}/g, String(slideHeight))
+        .replace(/\{\{PADDING_X\}\}/g, String(padX))
+        .replace(/\{\{PADDING_Y\}\}/g, String(padY))
+        .replace(/\{\{CONTENT_WIDTH\}\}/g, String(contentWidth))
+        .replace(/\{\{CONTENT_HEIGHT\}\}/g, String(contentHeight))
+        .replace(
+          /\{\{PAGE_TEMPLATES\}\}/g,
+          templates +
+            L1_L15_HINT +
+            (plan.pageType === 'comparison-deep-dive' ? COMPARISON_DATA_CARD_HINT : ''),
+        )
+        .replace(/\{\{PAGE_TYPE\}\}/g, plan.pageType)
+        .replace(/\{\{PAGE_TITLE\}\}/g, plan.title)
+        .replace(/\{\{KEY_POINTS\}\}/g, keyPointsText || '- （展开相关内容）')
+        .replace(/\{\{IMAGE_REQUIREMENT\}\}/g, imageRequirement)
+        .replace(
+          /\{\{IMAGE_RATIO\}\}/g,
+          plan.imageRatio || PAGE_TYPE_DEFAULT_IMAGE_RATIO[plan.pageType] || '4:3',
+        )
+        .replace(/\{\{DENSITY\}\}/g, density)
+        .replace(/\{\{ICON_STYLE\}\}/g, iconStyle)
+        .replace(/\{\{STYLE_DESCRIPTION\}\}/g, styleDescription)
+        .replace(/\{\{AUDIENCE_HINT\}\}/g, audienceHint)
+        .replace(/\{\{COLOR_THEME_HINT\}\}/g, colorThemeHint)
+        .replace(/\{\{ICON_STYLE_HINT\}\}/g, iconStyleHint)
+        .replace(/\{\{FONT_STYLE_HINT\}\}/g, fontFamilyHint)
+        .replace(/\{\{IMAGE_PREFERENCE_HINT\}\}/g, imagePreferenceHint)
+        .replace(/\{\{BACKGROUND_ENABLED_HINT\}\}/g, backgroundEnabledHint)
+        .replace(/\{\{REFERENCE_HTML_BRIEF\}\}/g, referenceHtmlBriefText)
+        .replace(/\{\{CATEGORY_REFERENCE_SUMMARY\}\}/g, categoryReferenceSummary)
+        .replace(/\{\{REFERENCE_STRUCTURE_SNIPPET\}\}/g, referenceStructureSnippet)
+        .replace(/\{\{REFERENCE_COLOR_POLICY\}\}/g, referenceColorPolicy) +
+      `\n\n【输出语言】${
+        this.language === 'en'
+          ? '请使用英文撰写本页的全部可见文案（标题、要点、按钮等）。'
+          : '请使用中文撰写本页的全部可见文案（标题、要点、按钮等）。'
+      }`
+    );
   }
 
   async generatePlan(
@@ -1959,7 +2353,12 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
     primaryColor: string,
     onProgress?: GenerationCallback,
     backgroundEnabled: boolean = false,
-    pageHints: PageStructureHints = { contentOnly: false, disableCover: false, disableToc: false, disableConclusion: false },
+    pageHints: PageStructureHints = {
+      contentOnly: false,
+      disableCover: false,
+      disableToc: false,
+      disableConclusion: false,
+    },
     iconStyle: IconStyle = 'auto',
     fontFamily: 'sans' | 'serif' | 'mono' = 'sans',
     colorTheme?: ColorTheme,
@@ -1973,20 +2372,40 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
     // "不要封面/目录/总结"指令，则从 topic 解析补齐，避免默认页数策略静默覆盖用户意图。
     // 显式传入的 hints 优先级最高，不会被覆盖。
     let effectiveHints = pageHints;
-    const callerNoPref = !pageHints.contentOnly && !pageHints.disableCover
-      && !pageHints.disableToc && !pageHints.disableConclusion;
+    const callerNoPref =
+      !pageHints.contentOnly &&
+      !pageHints.disableCover &&
+      !pageHints.disableToc &&
+      !pageHints.disableConclusion;
     if (callerNoPref) {
       const topicHints = extractPageStructureHints(topic);
-      if (topicHints.contentOnly || topicHints.disableCover
-        || topicHints.disableToc || topicHints.disableConclusion) {
+      if (
+        topicHints.contentOnly ||
+        topicHints.disableCover ||
+        topicHints.disableToc ||
+        topicHints.disableConclusion
+      ) {
         effectiveHints = topicHints;
       }
     }
     const { planningTotal, displayText } = this.buildSlideCountGuidance(slideSpec);
-    onProgress?.({ phase: 'outline', current: 0, total: planningTotal, message: `正在规划演示结构（${displayText}）...` });
+    onProgress?.({
+      phase: 'outline',
+      current: 0,
+      total: planningTotal,
+      message: `正在规划演示结构（${displayText}）...`,
+    });
     const refDeckPrimary = resolveDeckReferencePrimaryColor(referenceVisualAttributes);
     const userSettingsOverride = this.buildUserSettingsPriorityOverridePrompt({
-      slideCount: slideSpec, style, density, imagePreference, colorTheme, iconStyle, fontFamily, backgroundEnabled, audience,
+      slideCount: slideSpec,
+      style,
+      density,
+      imagePreference,
+      colorTheme,
+      iconStyle,
+      fontFamily,
+      backgroundEnabled,
+      audience,
       referencePrimaryColor: refDeckPrimary,
     });
     // U-17-L · LLM 调用前一致化：
@@ -1997,16 +2416,35 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
     // 彻底消除「system 写 #ea580c / user 写 #2563eb」的 LLM 输入矛盾。
     // FR-2.x：参考主色（deck 级代表）为绝对最高优先级，覆盖 colorTheme 默认的蓝/紫等；
     // 否则回落 computeU17EffectivePrimaryColor（与今天行为一致）。
-    const effectiveColor = refDeckPrimary ?? computeU17EffectivePrimaryColor(style, colorTheme, primaryColor);
+    const effectiveColor =
+      refDeckPrimary ?? computeU17EffectivePrimaryColor(style, colorTheme, primaryColor);
     const categoryReferenceSummary = referenceVisualAttributes
-      ? '【参考文件提取属性 · 绝对最高优先级 · 覆盖用户显式参数与所有示例】\n' + formatReferenceOverrideOverview(referenceVisualAttributes)
+      ? '【参考文件提取属性 · 绝对最高优先级 · 覆盖用户显式参数与所有示例】\n' +
+        formatReferenceOverrideOverview(referenceVisualAttributes)
       : '';
-    const planningSnippet = referenceVisualAttributes ? getReferenceSnippetOverview(referenceVisualAttributes) : '';
-    const planningColorPolicy = referenceVisualAttributes ? getReferenceColorPolicyOverview(referenceVisualAttributes) : '';
-    const planningLayoutDiversity = referenceVisualAttributes ? getReferenceLayoutDiversityHint(referenceVisualAttributes) : '';
+    const planningSnippet = referenceVisualAttributes
+      ? getReferenceSnippetOverview(referenceVisualAttributes)
+      : '';
+    const planningColorPolicy = referenceVisualAttributes
+      ? getReferenceColorPolicyOverview(referenceVisualAttributes)
+      : '';
+    const planningLayoutDiversity = referenceVisualAttributes
+      ? getReferenceLayoutDiversityHint(referenceVisualAttributes)
+      : '';
     let prompt = this.buildPlanningPrompt(
-      topic, style, audience, slideSpec, density, imagePreference, backgroundEnabled, effectiveHints,
-      iconStyle, fontFamily, colorTheme, referenceHtmlBrief, userSettingsOverride,
+      topic,
+      style,
+      audience,
+      slideSpec,
+      density,
+      imagePreference,
+      backgroundEnabled,
+      effectiveHints,
+      iconStyle,
+      fontFamily,
+      colorTheme,
+      referenceHtmlBrief,
+      userSettingsOverride,
       effectiveColor,
       categoryReferenceSummary,
       planningSnippet,
@@ -2021,7 +2459,10 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
       { role: 'user', content: `请规划这个演示文稿，主色调使用：${effectiveColor}` },
     ];
     switchStage(this.planningProvider, 'planning');
-    const response = await this.planningProvider.chat(messages, { temperature: 0.5, maxTokens: 8192 });
+    const response = await this.planningProvider.chat(messages, {
+      temperature: 0.5,
+      maxTokens: 8192,
+    });
     const plan = this.parsePlan(response.content);
     if (!plan.primaryColor || !/^#[0-9a-fA-F]{6}$/.test(plan.primaryColor)) {
       plan.primaryColor = effectiveColor;
@@ -2030,25 +2471,70 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
     //   使用预先计算的 effectiveColor（与上面 messages 用同一值），
     //   保持计算单源、避免重复公式产生漂移。
     if (plan.primaryColor.toLowerCase() !== effectiveColor.toLowerCase()) {
-      const reason = (colorTheme && COLOR_THEMES[colorTheme]) ? `colorTheme=${colorTheme}` : `auto(style=${style})`;
-      console.warn(`[PLAN] parsePlan 返回 primaryColor=${plan.primaryColor}，与 ${reason} 期望 ${effectiveColor} 不一致，已强制覆盖。`);
+      const reason =
+        colorTheme && COLOR_THEMES[colorTheme]
+          ? `colorTheme=${colorTheme}`
+          : `auto(style=${style})`;
+      console.warn(
+        `[PLAN] parsePlan 返回 primaryColor=${plan.primaryColor}，与 ${reason} 期望 ${effectiveColor} 不一致，已强制覆盖。`,
+      );
     }
     plan.primaryColor = effectiveColor;
 
     // 范围/精确页数裁剪 + 结构强制对齐（代码握有最终控制权）
     if ('exact' in slideSpec && slideSpec.exact != null) {
-      plan.slides = this.clampSlidesToCount(plan.slides, slideSpec.exact, effectiveHints, imagePreference);
-      plan.slides = this.enforcePageStructure(plan.slides, slideSpec.exact, effectiveHints, imagePreference);
-    } else if ('min' in slideSpec && 'max' in slideSpec && slideSpec.min != null && slideSpec.max != null) {
+      plan.slides = this.clampSlidesToCount(
+        plan.slides,
+        slideSpec.exact,
+        effectiveHints,
+        imagePreference,
+      );
+      plan.slides = this.enforcePageStructure(
+        plan.slides,
+        slideSpec.exact,
+        effectiveHints,
+        imagePreference,
+      );
+    } else if (
+      'min' in slideSpec &&
+      'max' in slideSpec &&
+      slideSpec.min != null &&
+      slideSpec.max != null
+    ) {
       if (plan.slides.length < slideSpec.min) {
-        plan.slides = this.clampSlidesToCount(plan.slides, slideSpec.min, effectiveHints, imagePreference);
-        plan.slides = this.enforcePageStructure(plan.slides, slideSpec.min, effectiveHints, imagePreference);
+        plan.slides = this.clampSlidesToCount(
+          plan.slides,
+          slideSpec.min,
+          effectiveHints,
+          imagePreference,
+        );
+        plan.slides = this.enforcePageStructure(
+          plan.slides,
+          slideSpec.min,
+          effectiveHints,
+          imagePreference,
+        );
       } else if (plan.slides.length > slideSpec.max) {
-        plan.slides = this.clampSlidesToCount(plan.slides, slideSpec.max, effectiveHints, imagePreference);
-        plan.slides = this.enforcePageStructure(plan.slides, slideSpec.max, effectiveHints, imagePreference);
+        plan.slides = this.clampSlidesToCount(
+          plan.slides,
+          slideSpec.max,
+          effectiveHints,
+          imagePreference,
+        );
+        plan.slides = this.enforcePageStructure(
+          plan.slides,
+          slideSpec.max,
+          effectiveHints,
+          imagePreference,
+        );
       } else {
         // 在范围内，依然强制对齐结构（数量不变，但封面/toc/总结的有无和位置要正确）
-        plan.slides = this.enforcePageStructure(plan.slides, plan.slides.length, effectiveHints, imagePreference);
+        plan.slides = this.enforcePageStructure(
+          plan.slides,
+          plan.slides.length,
+          effectiveHints,
+          imagePreference,
+        );
       }
     }
 
@@ -2075,8 +2561,12 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
       //   - 第一个内容页（即：跳过 cover/toc 后的第 1 个内容页，索引 i>=1）
       //   - 或 LLM 已经选了对比/卡片/列表/表格这类基础页类型（content-compare/content-cards/content-list/content-table）
       //   - 如果正文只有 1 张内容页（总页数 3 = cover + 1 内容 + summary），那就把那张内容页强制升级
-      const nonNavSlides = plan.slides.filter((p) => !['cover', 'toc', 'conclusion', 'summary'].includes(p.pageType));
-      const firstContentIdx = plan.slides.findIndex((p) => !['cover', 'toc', 'conclusion', 'summary'].includes(p.pageType));
+      const nonNavSlides = plan.slides.filter(
+        (p) => !['cover', 'toc', 'conclusion', 'summary'].includes(p.pageType),
+      );
+      const firstContentIdx = plan.slides.findIndex(
+        (p) => !['cover', 'toc', 'conclusion', 'summary'].includes(p.pageType),
+      );
       const forceCount = Math.max(1, Math.min(nonNavSlides.length, 2)); // 至少升级 1 张，最多升级 2 张（避免 summary 也变对比页）
       let upgraded = 0;
       plan.slides = plan.slides.map((page, i) => {
@@ -2084,9 +2574,17 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
         if (isNav) return page;
         if (upgraded >= forceCount) return page;
         // 升级条件：(a) 第一内容页优先 (b) 本身已是对比/卡片/列表类基础页 (c) 该页标题/要点里隐约也有对比词
-        const pageTypeEligible = ['content-compare', 'content-cards', 'content-list', 'content-stats-highlight', 'content-table'].includes(page.pageType);
-        const titleHit = typeof page.title === 'string' && detectComparisonIntent(page.title).isComparison;
-        const isFirstContentPages = (firstContentIdx >= 0 && i >= firstContentIdx && i < firstContentIdx + forceCount);
+        const pageTypeEligible = [
+          'content-compare',
+          'content-cards',
+          'content-list',
+          'content-stats-highlight',
+          'content-table',
+        ].includes(page.pageType);
+        const titleHit =
+          typeof page.title === 'string' && detectComparisonIntent(page.title).isComparison;
+        const isFirstContentPages =
+          firstContentIdx >= 0 && i >= firstContentIdx && i < firstContentIdx + forceCount;
         if (pageTypeEligible || titleHit || isFirstContentPages) {
           upgraded++;
           return autoCompleteComparisonPage(page);
@@ -2118,36 +2616,64 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
     pageIndexInCategory: number = 0,
   ): Promise<string> {
     const pageReferenceOverride = referenceVisualAttributes
-      ? formatReferenceOverrideForPage(referenceVisualAttributes, plan.pageType, pageIndexInCategory)
+      ? formatReferenceOverrideForPage(
+          referenceVisualAttributes,
+          plan.pageType,
+          pageIndexInCategory,
+        )
       : '';
     const categoryReferenceSummary = pageReferenceOverride
       ? '【参考文件提取属性 · 绝对最高优先级 · 覆盖用户显式参数】\n' + pageReferenceOverride
       : '';
     // FR-参考克隆：本页只注入自身分类的参考指令（消除多份 brief 互相打架），并附骨架片段与色彩豁免
-    const referenceSnippet = referenceVisualAttributes ? getReferenceSnippetForPage(referenceVisualAttributes, plan.pageType, pageIndexInCategory) : '';
-    const colorPolicy = referenceVisualAttributes ? getReferenceColorPolicyForPage(referenceVisualAttributes, plan.pageType) : '';
+    const referenceSnippet = referenceVisualAttributes
+      ? getReferenceSnippetForPage(referenceVisualAttributes, plan.pageType, pageIndexInCategory)
+      : '';
+    const colorPolicy = referenceVisualAttributes
+      ? getReferenceColorPolicyForPage(referenceVisualAttributes, plan.pageType)
+      : '';
     const refTextColors = this.resolveReferenceTextColors(referenceVisualAttributes, plan.pageType);
     let prompt = this.buildSlideHtmlPrompt(
-      plan, primaryColor, primaryColorDarker, density, iconStyle, slideWidth, slideHeight,
-      style, audience, colorTheme, fontFamily, imagePreference, backgroundEnabled, pageReferenceOverride || referenceHtmlBrief,
-      refTextColors.titleColor, refTextColors.bodyColor,
+      plan,
+      primaryColor,
+      primaryColorDarker,
+      density,
+      iconStyle,
+      slideWidth,
+      slideHeight,
+      style,
+      audience,
+      colorTheme,
+      fontFamily,
+      imagePreference,
+      backgroundEnabled,
+      pageReferenceOverride || referenceHtmlBrief,
+      refTextColors.titleColor,
+      refTextColors.bodyColor,
       categoryReferenceSummary,
       referenceSnippet,
       colorPolicy,
       !!referenceVisualAttributes,
-      referenceVisualAttributes?.byCategory?.cover?.palette?.canvasBg
-        || referenceVisualAttributes?.global?.palette?.canvasBg
-        || undefined,
+      referenceVisualAttributes?.byCategory?.cover?.palette?.canvasBg ||
+        referenceVisualAttributes?.global?.palette?.canvasBg ||
+        undefined,
     );
     if (extraFeedback) {
       prompt = prompt + '\n\n' + extraFeedback;
     }
     const messages: ChatMessage[] = [
-      { role: 'system', content: '你是一个严格遵循HTML规范和设计系统的前端代码生成器。只输出HTML代码，不要任何其他内容。' },
+      {
+        role: 'system',
+        content:
+          '你是一个严格遵循HTML规范和设计系统的前端代码生成器。只输出HTML代码，不要任何其他内容。',
+      },
       { role: 'user', content: prompt },
     ];
     switchStage(this.contentProvider, 'content');
-    const response = await this.contentProvider.chat(messages, { temperature: 0.4, maxTokens: 8192 });
+    const response = await this.contentProvider.chat(messages, {
+      temperature: 0.4,
+      maxTokens: 8192,
+    });
     return this.extractHtml(response.content);
   }
 
@@ -2210,12 +2736,25 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
       };
     }
     const cat = pageTypeToCategory(slidePlan.pageType);
-    const primaryColor = resolveAttrForPage('primaryColor', rva, cat, base.primaryColor, DEF.primaryColor) ?? base.primaryColor;
-    const density = resolveAttrForPage('contentDensity', rva, cat, base.density, DEF.density) ?? base.density;
-    const iconStyle = resolveAttrForPage('iconStyle', rva, cat, base.iconStyle, DEF.iconStyle) ?? base.iconStyle;
-    const fontFamily = resolveAttrForPage('fontFamily', rva, cat, base.fontFamily, DEF.fontFamily) ?? base.fontFamily;
+    const primaryColor =
+      resolveAttrForPage('primaryColor', rva, cat, base.primaryColor, DEF.primaryColor) ??
+      base.primaryColor;
+    const density =
+      resolveAttrForPage('contentDensity', rva, cat, base.density, DEF.density) ?? base.density;
+    const iconStyle =
+      resolveAttrForPage('iconStyle', rva, cat, base.iconStyle, DEF.iconStyle) ?? base.iconStyle;
+    const fontFamily =
+      resolveAttrForPage('fontFamily', rva, cat, base.fontFamily, DEF.fontFamily) ??
+      base.fontFamily;
     const style = resolveAttrForPage('style', rva, cat, base.style, DEF.style) ?? base.style;
-    const imagePreference = resolveAttrForPage('imagePreference', rva, cat, base.imagePreference ?? DEF.imagePreference, DEF.imagePreference) ?? DEF.imagePreference;
+    const imagePreference =
+      resolveAttrForPage(
+        'imagePreference',
+        rva,
+        cat,
+        base.imagePreference ?? DEF.imagePreference,
+        DEF.imagePreference,
+      ) ?? DEF.imagePreference;
     // 语义拆分（根治）：渲染链路中的 backgroundEnabled 仅代表用户「自动生成背景图」开关
     // （来自 base / UserSettings，即 01-request-config.json 的 backgroundEnabled）。
     // 它**不继承**参考图解析出的 style.backgroundEnabled——后者仅描述「参考图/HTML 是否自带背景」，
@@ -2244,11 +2783,7 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
    * - 重要项（如对比度 < 4.5:1）作为 issue 记录，但不强制否决。
    * 该函数就地修改 critique 对象，调用时机应在每次 critiqueSlide 返回后。
    */
-  private applyL0ToCritique(
-    critique: SlideCritique,
-    html: string,
-    pageType: string,
-  ): void {
+  private applyL0ToCritique(critique: SlideCritique, html: string, pageType: string): void {
     const l0 = l0ValidateSlide(html, pageType);
     if (l0.length === 0) return;
     for (const issue of l0) {
@@ -2277,22 +2812,28 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
    */
   private sanitizeStyleSyntax(html: string): string {
     // 1) 常规闭合 style 属性处理（幂等：只补分隔符）
-    const processed = html.replace(/(style=)(['"])([\s\S]*?)\2/gi, (whole, _k: string, _q: string, styleBody: string) => {
-      let fixed = styleBody;
-      // ① 值→下一属性名粘接（仅当值末尾无空格且下一字符为字母/连字符）
-      fixed = fixed.replace(/([0-9.]+(?:px|em|rem|%))(?![0-9.\s;"'])([A-Za-z-])/g, '$1;$2');
-      // ② px 后直接 属性名+:  (第一规则可能因数字带小数点未覆盖，此处兜底)
-      fixed = fixed.replace(/(\d+px)([A-Za-z-]{2,}:)/g, '$1;$2');
-      // ③ rgba(...)/var(...) 的 ) 后直接下一属性名:
-      fixed = fixed.replace(/(\))([A-Za-z-]{2,}:)/g, '$1;$2');
-      return fixed === styleBody ? whole : whole.replace(styleBody, fixed);
-    });
+    const processed = html.replace(
+      /(style=)(['"])([\s\S]*?)\2/gi,
+      (whole, _k: string, _q: string, styleBody: string) => {
+        let fixed = styleBody;
+        // ① 值→下一属性名粘接（仅当值末尾无空格且下一字符为字母/连字符）
+        fixed = fixed.replace(/([0-9.]+(?:px|em|rem|%))(?![0-9.\s;"'])([A-Za-z-])/g, '$1;$2');
+        // ② px 后直接 属性名+:  (第一规则可能因数字带小数点未覆盖，此处兜底)
+        fixed = fixed.replace(/(\d+px)([A-Za-z-]{2,}:)/g, '$1;$2');
+        // ③ rgba(...)/var(...) 的 ) 后直接下一属性名:
+        fixed = fixed.replace(/(\))([A-Za-z-]{2,}:)/g, '$1;$2');
+        return fixed === styleBody ? whole : whole.replace(styleBody, fixed);
+      },
+    );
 
     // 2) 未闭合引号检测（到下一个 > 前无配对引号）→ 不做强拆，仅告警
-    processed.replace(/(style=)(['"])((?:[^"'>]|(?!\2))*?)(>)/gi, (whole, _k: string, q: string, inner: string) => {
-      console.warn('[STYLE] 未闭合引号，跳过整形:', `${q}${inner.slice(0, 60)}`);
-      return whole;
-    });
+    processed.replace(
+      /(style=)(['"])((?:[^"'>]|(?!\2))*?)(>)/gi,
+      (whole, _k: string, q: string, inner: string) => {
+        console.warn('[STYLE] 未闭合引号，跳过整形:', `${q}${inner.slice(0, 60)}`);
+        return whole;
+      },
+    );
 
     return processed;
   }
@@ -2304,9 +2845,22 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
    */
   public postProcessHtmlSnapshot(
     html: string,
-    opts: { primaryColor?: string; primaryColorDarker?: string; slideWidth?: number; slideHeight?: number; backgroundEnabled?: boolean; fontFamily?: 'sans' | 'serif' | 'mono'; referenceVisualAttributes?: ReferenceVisualAttributes; pageType?: string } = {},
+    opts: {
+      primaryColor?: string;
+      primaryColorDarker?: string;
+      slideWidth?: number;
+      slideHeight?: number;
+      backgroundEnabled?: boolean;
+      fontFamily?: 'sans' | 'serif' | 'mono';
+      referenceVisualAttributes?: ReferenceVisualAttributes;
+      pageType?: string;
+    } = {},
   ): string {
-    const primaryColor = (opts.primaryColor && /^#[0-9a-fA-F]{6}$/.test(opts.primaryColor) ? opts.primaryColor : '#2563eb').toLowerCase();
+    const primaryColor = (
+      opts.primaryColor && /^#[0-9a-fA-F]{6}$/.test(opts.primaryColor)
+        ? opts.primaryColor
+        : '#2563eb'
+    ).toLowerCase();
     const primaryColorDarker = opts.primaryColorDarker || darkenColor(primaryColor, 20);
     const slideWidth = opts.slideWidth || 1280;
     const slideHeight = opts.slideHeight || 720;
@@ -2343,11 +2897,19 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
     const steps: string[] = [];
     // 配色策略（后处理唯一颜色真源）：把参考撞色板 / 标题色 / 正文色 / 描边色作为显式白名单。
     // 未显式传入时由参考视觉属性按页推导；无参考则回落主色系（与历史行为一致）。
-    const cp: SlideColorPolicy = colorPolicy ||
-      resolveColorPolicyForPage(referenceVisualAttributes, slidePlan.pageType, primaryColor, primaryColorDarker);
+    const cp: SlideColorPolicy =
+      colorPolicy ||
+      resolveColorPolicyForPage(
+        referenceVisualAttributes,
+        slidePlan.pageType,
+        primaryColor,
+        primaryColorDarker,
+      );
     try {
-      result = this.sanitizeSlideHtml(result); steps.push('sanitizeSlideHtml');
-      result = this.sanitizeStyleSyntax(result); steps.push('sanitizeStyleSyntax');
+      result = this.sanitizeSlideHtml(result);
+      steps.push('sanitizeSlideHtml');
+      result = this.sanitizeStyleSyntax(result);
+      steps.push('sanitizeStyleSyntax');
       // FR-B（回归修复）：配色自洽检测。若 HTML 已形成单一色相族 + 中性灰阶的自洽配色
       // （参考图驱动生成的红色系页面即属此类），则整体跳过 sanitizeGradientColors / enforceSinglePalette
       // 的颜色重写，仅在确属多色相混杂（"脏"页面）时才执行归一。这样即使终局重放取色失源
@@ -2359,22 +2921,50 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
       if (paletteHarmonious) {
         steps.push(`palette-harmonious(skip${cp.isMultiColor ? '/reference-multicolor' : ''})`);
       } else {
-        result = this.sanitizeGradientColors(result, primaryColor, primaryColorDarker, cp); steps.push('sanitizeGradientColors');
-        result = this.enforceSinglePalette(result, primaryColor, primaryColorDarker, cp); steps.push('enforceSinglePalette');
+        result = this.sanitizeGradientColors(result, primaryColor, primaryColorDarker, cp);
+        steps.push('sanitizeGradientColors');
+        result = this.enforceSinglePalette(result, primaryColor, primaryColorDarker, cp);
+        steps.push('enforceSinglePalette');
       }
-      result = this.enforceBodyFontSize(result); steps.push('enforceBodyFontSize');
-      result = this.enforce8ptGrid(result); steps.push('enforce8ptGrid');
-      result = this.fixRowImageMargins(result); steps.push('fixRowImageMargins');
-      result = this.wrapTextNodes(result); steps.push('wrapTextNodes');
-      result = this.flattenMeaninglessNesting(result); steps.push('flattenMeaninglessNesting');
-      result = this.ensureSemanticWrapping(result); steps.push('ensureSemanticWrapping');
+      result = this.enforceBodyFontSize(result);
+      steps.push('enforceBodyFontSize');
+      result = this.enforce8ptGrid(result);
+      steps.push('enforce8ptGrid');
+      result = this.fixRowImageMargins(result);
+      steps.push('fixRowImageMargins');
+      result = this.wrapTextNodes(result);
+      steps.push('wrapTextNodes');
+      result = this.flattenMeaninglessNesting(result);
+      steps.push('flattenMeaninglessNesting');
+      result = this.ensureSemanticWrapping(result);
+      steps.push('ensureSemanticWrapping');
       // FR-4: 图片包裹完整性兜底。若前两步 flatten/semanticWrap 之后 img 仍裸奔在 flex:column 根下，强制重包。
-      result = this.ensureImageProperWrapper(result); steps.push('ensureImageProperWrapper');
-      const postTitleColor = this.resolveReferenceTextColors(referenceVisualAttributes, slidePlan.pageType).titleColor;
-      const composition = resolveReferenceComposition(referenceVisualAttributes, slidePlan.pageType);
-      result = this.postProcessLayout(result, slidePlan.pageType, slideWidth, slideHeight, primaryColor, fontFamily, postTitleColor, cp, composition); steps.push('postProcessLayout');
-      result = this.ensureImageRatio(result, slidePlan); steps.push('ensureImageRatio');
-      result = this.enforceSingleColumn(result, slidePlan.pageType || ''); steps.push('enforceSingleColumn');
+      result = this.ensureImageProperWrapper(result);
+      steps.push('ensureImageProperWrapper');
+      const postTitleColor = this.resolveReferenceTextColors(
+        referenceVisualAttributes,
+        slidePlan.pageType,
+      ).titleColor;
+      const composition = resolveReferenceComposition(
+        referenceVisualAttributes,
+        slidePlan.pageType,
+      );
+      result = this.postProcessLayout(
+        result,
+        slidePlan.pageType,
+        slideWidth,
+        slideHeight,
+        primaryColor,
+        fontFamily,
+        postTitleColor,
+        cp,
+        composition,
+      );
+      steps.push('postProcessLayout');
+      result = this.ensureImageRatio(result, slidePlan);
+      steps.push('ensureImageRatio');
+      result = this.enforceSingleColumn(result, slidePlan.pageType || '');
+      steps.push('enforceSingleColumn');
       if (backgroundEnabled && slidePlan.backgroundPrompt) {
         result = this.injectBackgroundPlaceholder(result);
       }
@@ -2382,9 +2972,13 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
       result = this.assertGrid8pt(result); // 最终防线：8pt 网格规整兜底自检
       steps.push('assertGrid8pt');
       // FR-18 §18.5：按 chart/architecture 注入受控内联 SVG（Q12/Q13；NFR-2 静默降级）
-      result = this.injectStructuredGraphics(result, slidePlan, primaryColor, primaryColorDarker); steps.push('injectStructuredGraphics');
+      result = this.injectStructuredGraphics(result, slidePlan, primaryColor, primaryColorDarker);
+      steps.push('injectStructuredGraphics');
     } catch (e) {
-      console.warn(`[POST] 链异常（已执行 ${steps.join('>') || '无'}），保留已处理产物:`, e instanceof Error ? e.message : e);
+      console.warn(
+        `[POST] 链异常（已执行 ${steps.join('>') || '无'}），保留已处理产物:`,
+        e instanceof Error ? e.message : e,
+      );
     }
     return result;
   }
@@ -2426,7 +3020,14 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
             svg = renderCycleSvg(slidePlan.keyPoints || [], opts);
           } else if (slot === 'dashboard' && pt === 'content-dashboard') {
             svg = renderDashboardSvg(slidePlan.showcaseMetrics || [], opts, slidePlan.chart);
-          } else if (slidePlan.chart && (slot === 'chart' || slot === 'bar' || slot === 'line' || slot === 'pie' || slot === 'donut')) {
+          } else if (
+            slidePlan.chart &&
+            (slot === 'chart' ||
+              slot === 'bar' ||
+              slot === 'line' ||
+              slot === 'pie' ||
+              slot === 'donut')
+          ) {
             svg = renderChartSvg(slidePlan.chart, opts);
           }
         } catch {
@@ -2437,11 +3038,18 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
         return `<div class="structured-graphic" data-graphic-slot="${slot}">${svg}</div>`;
       });
       if (injected) {
-        console.log('[POST][injectStructuredGraphics] 已注入受控 SVG 图形（pageType=' + (slidePlan.pageType || '?') + '）');
+        console.log(
+          '[POST][injectStructuredGraphics] 已注入受控 SVG 图形（pageType=' +
+            (slidePlan.pageType || '?') +
+            '）',
+        );
       }
       return out;
     } catch (e) {
-      console.warn(`[POST][injectStructuredGraphics] 注入失败，降级跳过:`, e instanceof Error ? e.message : e);
+      console.warn(
+        `[POST][injectStructuredGraphics] 注入失败，降级跳过:`,
+        e instanceof Error ? e.message : e,
+      );
       return html;
     }
   }
@@ -2468,7 +3076,10 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
       // a) display:grid → display:flex
       fixed = fixed.replace(/display\s*:\s*grid/gi, 'display:flex');
       // b) grid-template-columns:repeat(2|3,1fr) → flex-direction:column
-      fixed = fixed.replace(/grid-template-columns\s*:\s*repeat\(\s*[23]\s*,\s*1fr\s*\)/gi, 'flex-direction:column');
+      fixed = fixed.replace(
+        /grid-template-columns\s*:\s*repeat\(\s*[23]\s*,\s*1fr\s*\)/gi,
+        'flex-direction:column',
+      );
       // c) 双值 gap（空格分隔）→ gap:24px
       fixed = fixed.replace(/gap\s*:\s*\d+(?:\.\d+)?px\s+\d+(?:\.\d+)?px/gi, 'gap:24px');
       // d) 其余 grid-template-columns 变体（repeat(3,..) / repeat(auto-fill|auto-fit|minmax(...,...)) 等）→ 删除该属性
@@ -2487,7 +3098,12 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
    * 重生成外部反馈规范化：把用户/评审反馈里的“要双列”“要改某个具体 #hex 色”等与模板固定红线冲突的指令，
    * 软化为“保持本页单列 / 使用当前主题主色”的指导句。采用“追加规范化句 + 软化冲突子串”，不激进删句（保语义）。
    */
-  private sanitizeRegenerationFeedback(feedback: string, pageType: string, primaryColor: string, allowedColors: string[] = []): string {
+  private sanitizeRegenerationFeedback(
+    feedback: string,
+    pageType: string,
+    primaryColor: string,
+    allowedColors: string[] = [],
+  ): string {
     if (!feedback) return feedback;
     let text = feedback;
 
@@ -2507,7 +3123,9 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
     // 2) 颜色建议：出现具体 #hex 且非“已修复”描述语境 → 软化为主题主色
     if (/#[0-9a-fA-F]{6}/.test(text) && !/已修复/i.test(text)) {
       const allowed = new Set(allowedColors.map((c) => (c || '').toLowerCase()));
-      text = text.replace(/#[0-9a-fA-F]{6}/gi, (m) => (allowed.has(m.toLowerCase()) ? m : `${primaryColor || '{{PRIMARY_COLOR}}'}`));
+      text = text.replace(/#[0-9a-fA-F]{6}/gi, (m) =>
+        allowed.has(m.toLowerCase()) ? m : `${primaryColor || '{{PRIMARY_COLOR}}'}`,
+      );
       const darker = primaryColor ? darkenColor(primaryColor, 20) : '{{PRIMARY_COLOR_DARKER}}';
       text = `${text}\n【使用当前主题主色】不要引入其他十六进制色，仅用 ${primaryColor || '{{PRIMARY_COLOR}}'}/${darker} 与中性灰阶。`;
     }
@@ -2517,7 +3135,8 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
     //    LLM 会把后者解释成全局 20px 上限，造成 regenerate 永远生成 20px 的 H2。
     //    本段显式把标题/metric 的合法白名单写在 safeFeedback 末尾（LLM 对末段服从度更高）。
     if (/字号|font-size|font-weight|H1|H2|H3|标题|层级|过小|过大|违规/.test(text)) {
-      text = `${text}\n⚠️ 【最高优先级兜底】无论上面的反馈或建议如何描述，以下字号层级白名单必须严格遵守，不得混淆、不得降格：\n` +
+      text =
+        `${text}\n⚠️ 【最高优先级兜底】无论上面的反馈或建议如何描述，以下字号层级白名单必须严格遵守，不得混淆、不得降格：\n` +
         `· H1 封面主标题：font-size 必须 = 88~92px；\n` +
         `· H2 页面标题：font-size 必须 = 50 或 52px（绝对禁止 H2 ≤ 20px，会被审核 fatal）；\n` +
         `· H3 卡片标题：font-size 必须 = 28~32px（绝对禁止 H3 ≤ 20px）；\n` +
@@ -2563,13 +3182,17 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
     const body = styleBody.toLowerCase();
     // (a)
     const fw800 = /font-weight\s*:\s*(?:800|900|bold|extra-bold|extrabold|black)/i.test(styleBody);
-    const lh1 = /line-height\s*:\s*1(?:\.0+)?(?:px)?\s*;?\s*$/.test(body) ||
+    const lh1 =
+      /line-height\s*:\s*1(?:\.0+)?(?:px)?\s*;?\s*$/.test(body) ||
       /line-height\s*:\s*1(?:\.0+)?\s*(?:;|$)/.test(body);
     if (fw800 && lh1 && fontSizePx >= 36) return true;
     // (b)
     if (/pointer-events\s*:\s*none/i.test(styleBody) && fontSizePx >= 36) return true;
     // (c) 中性色（#000 / #111827 / #1F2937 / #374151 / #4B5563 / #6B7280 等）+ 粗体
-    const neutralColor = /color\s*:\s*(?:#000000\b|#000\b|#111827\b|#1F2937\b|#374151\b|#4B5563\b|#6B7280\b|#111\b|#222\b|#333\b|rgba?\(\s*0\s*,\s*0\s*,\s*0\b|black\b|#1e293b\b|#0f172a\b)/i.test(styleBody);
+    const neutralColor =
+      /color\s*:\s*(?:#000000\b|#000\b|#111827\b|#1F2937\b|#374151\b|#4B5563\b|#6B7280\b|#111\b|#222\b|#333\b|rgba?\(\s*0\s*,\s*0\s*,\s*0\b|black\b|#1e293b\b|#0f172a\b)/i.test(
+        styleBody,
+      );
     if (neutralColor && fw800 && fontSizePx >= 48) return true;
     return false;
   }
@@ -2611,7 +3234,8 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
       else if (v < BODY_FONT_SIZE_MIN) clamped = BODY_FONT_SIZE_MIN;
       if (clamped === null) return full;
       modifiedRef.count++;
-      if (modifiedRef.samples.length < 5) modifiedRef.samples.push(`${tagHint}:${Math.round(v)}→${clamped}`);
+      if (modifiedRef.samples.length < 5)
+        modifiedRef.samples.push(`${tagHint}:${Math.round(v)}→${clamped}`);
       return `${fsKey}${clamped}${unit}`;
     });
   }
@@ -2631,20 +3255,47 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
   ): string {
     // SVG 常见子元素（非 HTML，font-size 本不应用于其上，但若 LLM 把 style 写到它们也要避免 clamp 误命中）
     const SVG_RAW_TAGS = new Set([
-      'SVG','PATH','CIRCLE','RECT','LINE','POLYLINE','POLYGON','ELLIPSE','USE','DEFS','STOP',
-      'CLIPPATH','MASK','PATTERN','LINEARGRADIENT','RADIALGRADIENT','ANIMATE','TEXT','TSPAN',
-      'IMAGE','MARKER','SYMBOL','G','TITLE','DESC','FE*','FILTER',
+      'SVG',
+      'PATH',
+      'CIRCLE',
+      'RECT',
+      'LINE',
+      'POLYLINE',
+      'POLYGON',
+      'ELLIPSE',
+      'USE',
+      'DEFS',
+      'STOP',
+      'CLIPPATH',
+      'MASK',
+      'PATTERN',
+      'LINEARGRADIENT',
+      'RADIALGRADIENT',
+      'ANIMATE',
+      'TEXT',
+      'TSPAN',
+      'IMAGE',
+      'MARKER',
+      'SYMBOL',
+      'G',
+      'TITLE',
+      'DESC',
+      'FE*',
+      'FILTER',
     ]);
     // —— 同时对 <tagName attrs ... style="..." 做一次捕获
     const re = /<([a-zA-Z][\w:-]*)(\s+[^>]*)?\bstyle\s*=\s*(['"])([\s\S]*?)\3/gi;
-    return htmlFragment.replace(re, (match, tag: string, before: string | undefined, q: string, styleBody: string) => {
-      const upper = tag.toUpperCase();
-      if (SVG_RAW_TAGS.has(upper) || /^FE[A-Z]/.test(upper)) return match;
-      const attrsFull = `${before ?? ''} `.replace(/\s+/g, ' '); // 归一空格，便于 isHeadingExempt 抓 class/role
-      const newBody = this.clampStyleFontSize(styleBody, upper, modifiedRef, attrsFull);
-      if (newBody === styleBody) return match;
-      return `<${tag}${before ?? ''}style=${q}${newBody}${q}`;
-    });
+    return htmlFragment.replace(
+      re,
+      (match, tag: string, before: string | undefined, q: string, styleBody: string) => {
+        const upper = tag.toUpperCase();
+        if (SVG_RAW_TAGS.has(upper) || /^FE[A-Z]/.test(upper)) return match;
+        const attrsFull = `${before ?? ''} `.replace(/\s+/g, ' '); // 归一空格，便于 isHeadingExempt 抓 class/role
+        const newBody = this.clampStyleFontSize(styleBody, upper, modifiedRef, attrsFull);
+        if (newBody === styleBody) return match;
+        return `<${tag}${before ?? ''}style=${q}${newBody}${q}`;
+      },
+    );
   }
 
   /**
@@ -2677,29 +3328,34 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
     const blockRegex = new RegExp(`<(${tagPattern})\\b([^>]*)>([\\s\\S]*?)<\\/\\1>`, 'gi');
     const styleAttrRe = /\bstyle\s*=\s*(['"])([\s\S]*?)\1/gi;
 
-    result = result.replace(blockRegex, (m, tag: string, attrs: string, inner: string, offset: number) => {
-      const upper = tag.toUpperCase();
-      // BODY_CLAMP_TAGS 不含 H1-6，但作为兜底仍保留判断
-      if (BODY_FONT_SIZE_EXEMPT_TAGS.has(upper) || this.isHeadingExempt(attrs)) return m;
-      // 决策 4（续）：封面容器整体保留。blockRegex 惰性匹配只会选中外层容器（如最外层 div），
-      // 嵌套的副标题 <p> 不会被顶层匹配，会经由 clampAllStylesByTag(inner) 被误夹到 20px ——
-      // 既压平封面字号层级，又使后续 8pt 间距豁免（依赖 font-size ≥ 24px）失效、把封面间距规整。
-      // 故对「含 h1 的封面容器」整块 return m，保留 LLM 设定的封面海报字号与间距。
-      if (isCoverPage && /<h1[^>]*>/i.test(inner)) return m;
-      // 决策 4：封面副标题豁免（h1 之后、font-size ≥ 24px 的 p 整块保留，含 inner，不 clamp）
-      if (isCoverPage && upper === 'P' && h1CloseIdx >= 0 && offset >= h1CloseIdx) {
-        const fs = parseFloat((attrs.match(/font-size\s*:\s*(\d+(?:\.\d+)?)px/i) || [])[1] || '0');
-        if (fs >= 24) return m;
-      }
-      // 1) 开标签自身 attrs 中的 style → clamp（传真实 tagHint 与 attrs，启用 heading/metric 豁免）
-      const newAttrs = attrs.replace(styleAttrRe, (_sm, q: string, body: string) => {
-        return `style=${q}${this.clampStyleFontSize(body, upper, modifiedRef, attrs)}${q}`;
-      });
-      // 2) 内部所有 style：逐个定位到所属子标签名 clamp（不再传 '*'，修复 R1）
-      const newInner = this.clampAllStylesByTag(inner, modifiedRef);
-      if (newAttrs === attrs && newInner === inner) return m;
-      return `<${tag}${newAttrs}>${newInner}</${tag}>`;
-    });
+    result = result.replace(
+      blockRegex,
+      (m, tag: string, attrs: string, inner: string, offset: number) => {
+        const upper = tag.toUpperCase();
+        // BODY_CLAMP_TAGS 不含 H1-6，但作为兜底仍保留判断
+        if (BODY_FONT_SIZE_EXEMPT_TAGS.has(upper) || this.isHeadingExempt(attrs)) return m;
+        // 决策 4（续）：封面容器整体保留。blockRegex 惰性匹配只会选中外层容器（如最外层 div），
+        // 嵌套的副标题 <p> 不会被顶层匹配，会经由 clampAllStylesByTag(inner) 被误夹到 20px ——
+        // 既压平封面字号层级，又使后续 8pt 间距豁免（依赖 font-size ≥ 24px）失效、把封面间距规整。
+        // 故对「含 h1 的封面容器」整块 return m，保留 LLM 设定的封面海报字号与间距。
+        if (isCoverPage && /<h1[^>]*>/i.test(inner)) return m;
+        // 决策 4：封面副标题豁免（h1 之后、font-size ≥ 24px 的 p 整块保留，含 inner，不 clamp）
+        if (isCoverPage && upper === 'P' && h1CloseIdx >= 0 && offset >= h1CloseIdx) {
+          const fs = parseFloat(
+            (attrs.match(/font-size\s*:\s*(\d+(?:\.\d+)?)px/i) || [])[1] || '0',
+          );
+          if (fs >= 24) return m;
+        }
+        // 1) 开标签自身 attrs 中的 style → clamp（传真实 tagHint 与 attrs，启用 heading/metric 豁免）
+        const newAttrs = attrs.replace(styleAttrRe, (_sm, q: string, body: string) => {
+          return `style=${q}${this.clampStyleFontSize(body, upper, modifiedRef, attrs)}${q}`;
+        });
+        // 2) 内部所有 style：逐个定位到所属子标签名 clamp（不再传 '*'，修复 R1）
+        const newInner = this.clampAllStylesByTag(inner, modifiedRef);
+        if (newAttrs === attrs && newInner === inner) return m;
+        return `<${tag}${newAttrs}>${newInner}</${tag}>`;
+      },
+    );
 
     if (modifiedRef.count > 0) {
       const round = options?.round ?? 1;
@@ -2748,7 +3404,9 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
     return (ctx) => {
       if (ctx.tag.toUpperCase() !== 'P') return false;
       if (ctx.offset < h1CloseIdx) return false;
-      const fs = parseFloat((ctx.styleBody.match(/font-size\s*:\s*(\d+(?:\.\d+)?)px/i) || [])[1] || '0');
+      const fs = parseFloat(
+        (ctx.styleBody.match(/font-size\s*:\s*(\d+(?:\.\d+)?)px/i) || [])[1] || '0',
+      );
       return fs >= 24;
     };
   }
@@ -2759,25 +3417,39 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
    * 布局（flex:0 0 33%/40%），其 margin-bottom 保留。
    */
   private fixRowImageMargins(html: string): string {
-    return html.replace(/(<div[^>]*style=")([^"]*)("[^>]*>\s*<img[^>]*data-image-ratio)/gi, (full, pre: string, styleBody: string, rest: string) => {
-      const bm = /flex:\s*0\s+0\s+(\d{1,3})%/.exec(styleBody);
-      const pct = bm ? parseInt(bm[1], 10) : 0;
-      if (!(pct === 45 || pct === 50 || pct === 55)) return full; // 仅 row 两列切分
-      const next = styleBody.replace(/(\s*(?:margin-top|margin-bottom)\s*:\s*[^;"']*?;?)/gi, '');
-      if (next === styleBody) return full;
-      return `${pre}${next}${rest}`;
-    });
+    return html.replace(
+      /(<div[^>]*style=")([^"]*)("[^>]*>\s*<img[^>]*data-image-ratio)/gi,
+      (full, pre: string, styleBody: string, rest: string) => {
+        const bm = /flex:\s*0\s+0\s+(\d{1,3})%/.exec(styleBody);
+        const pct = bm ? parseInt(bm[1], 10) : 0;
+        if (!(pct === 45 || pct === 50 || pct === 55)) return full; // 仅 row 两列切分
+        const next = styleBody.replace(/(\s*(?:margin-top|margin-bottom)\s*:\s*[^;"']*?;?)/gi, '');
+        if (next === styleBody) return full;
+        return `${pre}${next}${rest}`;
+      },
+    );
   }
 
-  async generatePresentation(topic: string, options?: PresentationGenerationOptions): Promise<HTMLPresentation> {
+  async generatePresentation(
+    topic: string,
+    options?: PresentationGenerationOptions,
+  ): Promise<HTMLPresentation> {
     const startBeijingTime = formatBeijingTime();
     let timestamp = formatBeijingTime();
-    console.log(`\n[${timestamp}] [AGENT] ========== Starting presentation generation (v2 two-phase) ==========`);
+    console.log(
+      `\n[${timestamp}] [AGENT] ========== Starting presentation generation (v2 two-phase) ==========`,
+    );
     console.log(`[${timestamp}] [AGENT] Start time (Beijing): ${startBeijingTime}`);
     console.log(`[${timestamp}] [AGENT] Topic: ${topic}`);
-    console.log(`[${timestamp}] [AGENT] Planning model: ${this.planningProvider.name}/${this.planningProvider.config.model}`);
-    console.log(`[${timestamp}] [AGENT] Content model: ${this.contentProvider.name}/${this.contentProvider.config.model}`);
-    console.log(`[${timestamp}] [AGENT] Editing model: ${this.editingProvider.name}/${this.editingProvider.config.model}`);
+    console.log(
+      `[${timestamp}] [AGENT] Planning model: ${this.planningProvider.name}/${this.planningProvider.config.model}`,
+    );
+    console.log(
+      `[${timestamp}] [AGENT] Content model: ${this.contentProvider.name}/${this.contentProvider.config.model}`,
+    );
+    console.log(
+      `[${timestamp}] [AGENT] Editing model: ${this.editingProvider.name}/${this.editingProvider.config.model}`,
+    );
 
     const style = options?.style || 'business';
     const audience = options?.audience || '';
@@ -2785,7 +3457,10 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
     const imagePreference = options?.imagePreference || 'content-only';
     // 归一化iconStyle：将旧值checkmark/minimal映射到bullet（向后兼容本地存储旧值）
     const rawIconStyle = (options?.iconStyle || 'auto') as string;
-    const iconStyle: IconStyle = (rawIconStyle === 'checkmark' || rawIconStyle === 'minimal') ? 'bullet' : (rawIconStyle as IconStyle);
+    const iconStyle: IconStyle =
+      rawIconStyle === 'checkmark' || rawIconStyle === 'minimal'
+        ? 'bullet'
+        : (rawIconStyle as IconStyle);
     const fontFamily = options?.fontFamily || 'sans';
     const referenceHtml = options?.referenceHtml || '';
     const colorTheme = options?.colorTheme;
@@ -2812,21 +3487,34 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
     const pageStructureHints = extractPageStructureHints(topic);
 
     // S5：检测 topic 中与高级选项冲突的描述（仅日志，不删除不修改）
-    this.sanitizeTopicSettingsConflict(topic, { slideCount: slideSpec, colorTheme, style, imagePreference });
+    this.sanitizeTopicSettingsConflict(topic, {
+      slideCount: slideSpec,
+      colorTheme,
+      style,
+      imagePreference,
+    });
 
     const primaryColor = this.getPrimaryColor(style, colorTheme, options?.primaryColor);
     const imageEnabled = options?.imageOptions?.enabled && imagePreference !== 'none';
     const backgroundEnabled = options?.backgroundEnabled || false;
 
     // S1：生成 referenceHtml 摘要（≤500 字符），两侧 prompt 都注入
-    const referenceHtmlBrief = options?.referenceHtmlBrief || this.summarizeReferenceHtmlBrief(referenceHtml);
+    const referenceHtmlBrief =
+      options?.referenceHtmlBrief || this.summarizeReferenceHtmlBrief(referenceHtml);
     const referenceVisualAttributes = options?.referenceVisualAttributes;
 
-    const slideDesc = 'exact' in slideSpec ? `${slideSpec.exact} 页` : `${slideSpec.min}-${slideSpec.max} 页`;
-    console.log(`[${timestamp}] [AGENT] Params: style=${style}, density=${density}, imagePref=${imagePreference}, slides=${slideDesc} (slideSpec=${JSON.stringify(slideSpec)}), primaryColor=${primaryColor}, fontFamily=${fontFamily}, iconStyle=${iconStyle}, audience=${audience || '(empty)'}, colorTheme=${colorTheme || '(none)'}, refHtmlLen=${referenceHtml.length}, bg=${backgroundEnabled}`);
-    console.log(`[${timestamp}] [AGENT] Image generation: ${imageEnabled ? 'enabled' : 'disabled'}, Background: ${backgroundEnabled ? 'enabled' : 'disabled'}, pageHints=${JSON.stringify(pageStructureHints)}`);
+    const slideDesc =
+      'exact' in slideSpec ? `${slideSpec.exact} 页` : `${slideSpec.min}-${slideSpec.max} 页`;
+    console.log(
+      `[${timestamp}] [AGENT] Params: style=${style}, density=${density}, imagePref=${imagePreference}, slides=${slideDesc} (slideSpec=${JSON.stringify(slideSpec)}), primaryColor=${primaryColor}, fontFamily=${fontFamily}, iconStyle=${iconStyle}, audience=${audience || '(empty)'}, colorTheme=${colorTheme || '(none)'}, refHtmlLen=${referenceHtml.length}, bg=${backgroundEnabled}`,
+    );
+    console.log(
+      `[${timestamp}] [AGENT] Image generation: ${imageEnabled ? 'enabled' : 'disabled'}, Background: ${backgroundEnabled ? 'enabled' : 'disabled'}, pageHints=${JSON.stringify(pageStructureHints)}`,
+    );
     if (imageEnabled && options?.imageOptions) {
-      console.log(`[${timestamp}] [AGENT] Image model: ${options.imageOptions.model}, defaultSize: ${options.imageOptions.size}`);
+      console.log(
+        `[${timestamp}] [AGENT] Image model: ${options.imageOptions.model}, defaultSize: ${options.imageOptions.size}`,
+      );
     }
 
     const onProgress = options?.onProgress;
@@ -2846,9 +3534,20 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
     resetRetryCount(keyOf(traceSessionId));
 
     const plan = await this.generatePlan(
-      topic, style, audience, slideSpec, density, imagePreference, primaryColor,
-      onProgress, backgroundEnabled, pageStructureHints, iconStyle, fontFamily,
-      colorTheme, referenceHtmlBrief,
+      topic,
+      style,
+      audience,
+      slideSpec,
+      density,
+      imagePreference,
+      primaryColor,
+      onProgress,
+      backgroundEnabled,
+      pageStructureHints,
+      iconStyle,
+      fontFamily,
+      colorTheme,
+      referenceHtmlBrief,
       // generatePlan 内的 normalizePlanByImagePreference 需要判断开关是否开启
       // （注意：imageOptions.enabled 是布尔 + imagePreference !== 'none' 的逻辑组合在调用方已处理，
       //       这里只传 imageOptions.enabled 本身即可）
@@ -2857,7 +3556,9 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
       options?.referenceText || '',
     );
     timestamp = formatBeijingTime();
-    console.log(`[${timestamp}] [AGENT] Plan generated: ${plan.slides.length} slides, title: "${plan.title}", primaryColor: ${plan.primaryColor}`);
+    console.log(
+      `[${timestamp}] [AGENT] Plan generated: ${plan.slides.length} slides, title: "${plan.title}", primaryColor: ${plan.primaryColor}`,
+    );
 
     try {
       return await this.generateFromPlan(topic, plan, options, traceSessionId);
@@ -2878,7 +3579,10 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
     const density = options?.density || 'normal';
     // 归一化iconStyle：将旧值checkmark/minimal映射到bullet（向后兼容本地存储旧值）
     const rawIconStyle = (options?.iconStyle || 'auto') as string;
-    const iconStyle: IconStyle = (rawIconStyle === 'checkmark' || rawIconStyle === 'minimal') ? 'bullet' : (rawIconStyle as IconStyle);
+    const iconStyle: IconStyle =
+      rawIconStyle === 'checkmark' || rawIconStyle === 'minimal'
+        ? 'bullet'
+        : (rawIconStyle as IconStyle);
     const fontFamily = options?.fontFamily || 'sans';
     const colorTheme = options?.colorTheme;
 
@@ -2893,7 +3597,7 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
       description: '',
       primaryColor,
       colorTheme: colorTheme || undefined,
-      fontFamily: fontFamily as 'sans'|'serif'|'mono',
+      fontFamily: fontFamily as 'sans' | 'serif' | 'mono',
       styleTheme: 'mixed',
       density: density as ContentDensity,
       iconStyle: iconStyle as IconStyle,
@@ -2909,8 +3613,22 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
 
     try {
       const rendered = await this.renderSlides(topic, plan, design, options, traceSessionId);
-      const assembled = await this.assembleImages(topic, rendered, plan, design, options, traceSessionId);
-      const presentation = await this.finalizePresentation(topic, assembled, plan, design, options, traceSessionId);
+      const assembled = await this.assembleImages(
+        topic,
+        rendered,
+        plan,
+        design,
+        options,
+        traceSessionId,
+      );
+      const presentation = await this.finalizePresentation(
+        topic,
+        assembled,
+        plan,
+        design,
+        options,
+        traceSessionId,
+      );
       presentation.plan = plan;
       presentation.design = design;
       return presentation;
@@ -2934,7 +3652,10 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
     const imagePreference = options?.imagePreference || 'content-only';
     // 归一化iconStyle：将旧值checkmark/minimal映射到bullet（向后兼容本地存储旧值）
     const finalIconStyle = (options?.iconStyle || design.iconStyle || 'auto') as string;
-    const iconStyle: IconStyle = (finalIconStyle === 'checkmark' || finalIconStyle === 'minimal') ? 'bullet' : (finalIconStyle as IconStyle);
+    const iconStyle: IconStyle =
+      finalIconStyle === 'checkmark' || finalIconStyle === 'minimal'
+        ? 'bullet'
+        : (finalIconStyle as IconStyle);
     const fontFamily = options?.fontFamily || design.fontFamily;
     const referenceHtml = options?.referenceHtml || '';
     const colorTheme = options?.colorTheme || design.colorTheme;
@@ -2947,11 +3668,20 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
     const primaryColor = refDeckPrimary ?? resolveEffectivePrimaryColor(options, design, '#2563eb');
 
     // 设计参数生效日志：展示 renderSlides 实际使用的 effective 参数
-    console.log(`[DESIGN] effective: style=${style} colorTheme=${colorTheme} primaryColor=${primaryColor}(single-source${refDeckPrimary ? ', reference-first' : ''}) iconStyle=${iconStyle} fontFamily=${fontFamily} audience=${audience || ''}`);
+    console.log(
+      `[DESIGN] effective: style=${style} colorTheme=${colorTheme} primaryColor=${primaryColor}(single-source${refDeckPrimary ? ', reference-first' : ''}) iconStyle=${iconStyle} fontFamily=${fontFamily} audience=${audience || ''}`,
+    );
     // 一致性告警（防线）：用户显式给了 colorTheme 但未显式给 primaryColor 时，effective 主色应等于 theme 色。
     // 参考主色生效属预期不一致（参考 > 用户全局设置），跳过以避免噪音掩盖真实问题。
-    if (!refDeckPrimary && options?.colorTheme && !options?.primaryColor && primaryColor.toLowerCase() !== (COLOR_THEMES[options.colorTheme] || '').toLowerCase()) {
-      console.warn(`[DESIGN] primaryColor(${primaryColor}) 与 colorTheme(${options.colorTheme}) 不一致，应为 ${COLOR_THEMES[options.colorTheme]}（用户未显式指定主色时）。`);
+    if (
+      !refDeckPrimary &&
+      options?.colorTheme &&
+      !options?.primaryColor &&
+      primaryColor.toLowerCase() !== (COLOR_THEMES[options.colorTheme] || '').toLowerCase()
+    ) {
+      console.warn(
+        `[DESIGN] primaryColor(${primaryColor}) 与 colorTheme(${options.colorTheme}) 不一致，应为 ${COLOR_THEMES[options.colorTheme]}（用户未显式指定主色时）。`,
+      );
     }
 
     const imgProvider = (options?.imageProvider || this.provider) as AIModelProvider;
@@ -2961,7 +3691,8 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
     const slideHeight = options?.slideHeight || 720;
 
     // S1：生成 referenceHtml 摘要（≤500 字符），两侧 prompt 都注入
-    const referenceHtmlBrief = options?.referenceHtmlBrief || this.summarizeReferenceHtmlBrief(referenceHtml);
+    const referenceHtmlBrief =
+      options?.referenceHtmlBrief || this.summarizeReferenceHtmlBrief(referenceHtml);
 
     const onProgress = options?.onProgress;
 
@@ -2979,283 +3710,376 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
     }
 
     try {
-    const startIdx = Math.max(0, options?.startIndex ?? 0);
-    const endIdx = Math.min(plan.slides.length, options?.endIndex ?? plan.slides.length);
-    const indicesToRender: number[] = [];
-    for (let i = startIdx; i < endIdx; i++) indicesToRender.push(i);
-    const renderCount = indicesToRender.length;
+      const startIdx = Math.max(0, options?.startIndex ?? 0);
+      const endIdx = Math.min(plan.slides.length, options?.endIndex ?? plan.slides.length);
+      const indicesToRender: number[] = [];
+      for (let i = startIdx; i < endIdx; i++) indicesToRender.push(i);
+      const renderCount = indicesToRender.length;
 
-    const limit = pLimit(Math.min(3, Math.max(1, renderCount)));
-    const critiqueEnabled = options?.critique?.enabled ?? false;
-    const critiqueThreshold = options?.critique?.threshold ?? DEFAULT_THRESHOLD;
-    const critiqueMaxRetries = options?.critique?.maxRetries ?? DEFAULT_MAX_RETRIES;
-    const llmCritiqueEnabled = critiqueEnabled && (options?.critique?.llmCritique ?? true);
-    onProgress?.({ phase: 'content', current: 0, total: renderCount, message: '正在生成幻灯片内容...' });
-    const htmlResults = await Promise.all(
-      indicesToRender.map((originalIdx) =>
-        limit(async () => {
-          const slidePlan = plan.slides[originalIdx];
-          const baseCat: PageCategory = pageTypeToCategory(slidePlan.pageType);
-          // 计算本页在所属分类内的序号（第 0 页才克隆参考结构），供布局映射与逐页参考指令复用（共享函数：等价内联）
-          const pageIndexInCategory = computePageIndexInCategory(plan.slides, originalIdx);
-          const referenceContext: ReferenceContext = buildReferenceContext(referenceVisualAttributes);
-          let master: ReferenceMaster | undefined = referenceVisualAttributes
-            ? resolveMasterForPage(referenceVisualAttributes, baseCat)
-            : undefined;
-          // FR-0：把参考原图作为整页背景（CSS 开窗），封面/总结页强制插图
-          if (slidePlan.referenceHeroImage?.src) {
-            master = {
-              ...(master ?? {}),
-              heroImage: {
-                src: slidePlan.referenceHeroImage.src,
-                ...(slidePlan.referenceHeroImage.bbox ?? {}),
-              },
-            } as ReferenceMaster;
-          }
-          // FR-0/FR-4：逐页用参考主色覆盖（参考 > deck 级兜底），与内容阶段 formatReferenceOverrideForPage 逐页语义一致
-          const pageRefPrimary = resolveReferencePrimaryColor(referenceVisualAttributes, String(slidePlan.pageType ?? ''));
-          const pagePrimary = pageRefPrimary ?? primaryColor;
-          const rp = this.resolvePageReferenceStyleAttrs(slidePlan, referenceVisualAttributes, {
-            primaryColor: pagePrimary, fontFamily, iconStyle, style, density,
-            imagePreference, backgroundEnabled,
-          });
-          // Q4（FR-0 兜底配图）：用户关闭 AI 生图（imagePreference==='none'）且参考图含图时，
-          // 把该分类参考原图作为「兜底配图」挂到本页（复用现有 hero 注入链路，带蒙版），
-          // 避免内容页全篇无图。可被 options.referenceFallbackImage=false 关闭。
-          const fallbackEnabled = ((options as any)?.referenceFallbackImage ?? true) && rp.imagePreference === 'none';
-          if (fallbackEnabled && !slidePlan.referenceHeroImage?.src) {
-            const refHero = resolveHeroImageForPage(referenceVisualAttributes, slidePlan.pageType);
-            if (refHero?.src) {
-              slidePlan.referenceHeroImage = { src: refHero.src, ...(refHero.bbox ?? {}) };
+      const limit = pLimit(Math.min(3, Math.max(1, renderCount)));
+      const critiqueEnabled = options?.critique?.enabled ?? false;
+      const critiqueThreshold = options?.critique?.threshold ?? DEFAULT_THRESHOLD;
+      const critiqueMaxRetries = options?.critique?.maxRetries ?? DEFAULT_MAX_RETRIES;
+      const llmCritiqueEnabled = critiqueEnabled && (options?.critique?.llmCritique ?? true);
+      onProgress?.({
+        phase: 'content',
+        current: 0,
+        total: renderCount,
+        message: '正在生成幻灯片内容...',
+      });
+      const htmlResults = await Promise.all(
+        indicesToRender.map((originalIdx) =>
+          limit(async () => {
+            const slidePlan = plan.slides[originalIdx];
+            const baseCat: PageCategory = pageTypeToCategory(slidePlan.pageType);
+            // 计算本页在所属分类内的序号（第 0 页才克隆参考结构），供布局映射与逐页参考指令复用（共享函数：等价内联）
+            const pageIndexInCategory = computePageIndexInCategory(plan.slides, originalIdx);
+            const referenceContext: ReferenceContext =
+              buildReferenceContext(referenceVisualAttributes);
+            let master: ReferenceMaster | undefined = referenceVisualAttributes
+              ? resolveMasterForPage(referenceVisualAttributes, baseCat)
+              : undefined;
+            // FR-0：把参考原图作为整页背景（CSS 开窗），封面/总结页强制插图
+            if (slidePlan.referenceHeroImage?.src) {
               master = {
                 ...(master ?? {}),
-                heroImage: { src: refHero.src, ...(refHero.bbox ?? {}) },
+                heroImage: {
+                  src: slidePlan.referenceHeroImage.src,
+                  ...(slidePlan.referenceHeroImage.bbox ?? {}),
+                },
               } as ReferenceMaster;
             }
-          }
-          // Task5 · 布局字段写入（FR-18 §18.2）：参考 layout 1:1 映射为内置 pageType，按分类作用域生效（复用 pageIndexInCategory）
-          if (referenceVisualAttributes) {
-            const resolvedLayout = resolveLayoutForPage(referenceVisualAttributes, baseCat, pageIndexInCategory, slidePlan.pageType);
-            if (resolvedLayout) slidePlan.pageType = resolvedLayout;
-          }
-          // FR-0/FR-4 兜底：保证 slidePlan.pageType 非空，使生成结果与终局防线能按页取到正确分类
-          // （空 pageType 会让 pageTypeToCategory 回落 'content'，封面/总结无法取到各自参考色；且 undefined 不会落盘）。
-          if (!slidePlan.pageType) {
-            slidePlan.pageType =
-              originalIdx === 0 ? 'cover'
-                : originalIdx === plan.slides.length - 1 ? 'summary'
-                  : 'content-no-image';
-          }
-          const designContext = { style: rp.style, primaryColor: rp.primaryColor, fontFamily: rp.fontFamily, iconStyle: rp.iconStyle };
-          const t0 = formatBeijingTime();
-          console.log(`[${t0}] [AGENT] Generating HTML for slide ${originalIdx + 1} (${slidePlan.pageType}): "${slidePlan.title}"`);
-          try {
-            let html = await this.generateSlideHtmlSafe(slidePlan, rp, slideWidth, slideHeight, audience, colorTheme, referenceHtmlBrief, undefined, referenceVisualAttributes, pageIndexInCategory);
-            html = this.postProcessSlideHtml(html, slidePlan, rp.primaryColor, rp.primaryColorDarker, slideWidth, slideHeight, rp.backgroundEnabled, rp.fontFamily, referenceVisualAttributes);
-
-            let critiqueResult: SlideCritique | null = null;
-            let attempts = 1;
-
-            if (llmCritiqueEnabled) {
-              critiqueResult = await critiqueSlide(
-                this.contentProvider,
-                slidePlan.title || `幻灯片 ${originalIdx + 1}`,
-                html,
-                slidePlan.pageType || 'content-no-image',
-                designContext,
-                { threshold: critiqueThreshold, maxRetries: critiqueMaxRetries, slideWidth, slideHeight, referenceContext },
+            // FR-0/FR-4：逐页用参考主色覆盖（参考 > deck 级兜底），与内容阶段 formatReferenceOverrideForPage 逐页语义一致
+            const pageRefPrimary = resolveReferencePrimaryColor(
+              referenceVisualAttributes,
+              String(slidePlan.pageType ?? ''),
+            );
+            const pagePrimary = pageRefPrimary ?? primaryColor;
+            const rp = this.resolvePageReferenceStyleAttrs(slidePlan, referenceVisualAttributes, {
+              primaryColor: pagePrimary,
+              fontFamily,
+              iconStyle,
+              style,
+              density,
+              imagePreference,
+              backgroundEnabled,
+            });
+            // Q4（FR-0 兜底配图）：用户关闭 AI 生图（imagePreference==='none'）且参考图含图时，
+            // 把该分类参考原图作为「兜底配图」挂到本页（复用现有 hero 注入链路，带蒙版），
+            // 避免内容页全篇无图。可被 options.referenceFallbackImage=false 关闭。
+            const fallbackEnabled =
+              ((options as any)?.referenceFallbackImage ?? true) && rp.imagePreference === 'none';
+            if (fallbackEnabled && !slidePlan.referenceHeroImage?.src) {
+              const refHero = resolveHeroImageForPage(
+                referenceVisualAttributes,
+                slidePlan.pageType,
               );
-              if (critiqueResult) this.applyL0ToCritique(critiqueResult, html, slidePlan.pageType || 'content-no-image');
-              attempts = 1;
+              if (refHero?.src) {
+                slidePlan.referenceHeroImage = { src: refHero.src, ...(refHero.bbox ?? {}) };
+                master = {
+                  ...(master ?? {}),
+                  heroImage: { src: refHero.src, ...(refHero.bbox ?? {}) },
+                } as ReferenceMaster;
+              }
+            }
+            // Task5 · 布局字段写入（FR-18 §18.2）：参考 layout 1:1 映射为内置 pageType，按分类作用域生效（复用 pageIndexInCategory）
+            if (referenceVisualAttributes) {
+              const resolvedLayout = resolveLayoutForPage(
+                referenceVisualAttributes,
+                baseCat,
+                pageIndexInCategory,
+                slidePlan.pageType,
+              );
+              if (resolvedLayout) slidePlan.pageType = resolvedLayout;
+            }
+            // FR-0/FR-4 兜底：保证 slidePlan.pageType 非空，使生成结果与终局防线能按页取到正确分类
+            // （空 pageType 会让 pageTypeToCategory 回落 'content'，封面/总结无法取到各自参考色；且 undefined 不会落盘）。
+            if (!slidePlan.pageType) {
+              slidePlan.pageType =
+                originalIdx === 0
+                  ? 'cover'
+                  : originalIdx === plan.slides.length - 1
+                    ? 'summary'
+                    : 'content-no-image';
+            }
+            const designContext = {
+              style: rp.style,
+              primaryColor: rp.primaryColor,
+              fontFamily: rp.fontFamily,
+              iconStyle: rp.iconStyle,
+            };
+            const t0 = formatBeijingTime();
+            console.log(
+              `[${t0}] [AGENT] Generating HTML for slide ${originalIdx + 1} (${slidePlan.pageType}): "${slidePlan.title}"`,
+            );
+            try {
+              let html = await this.generateSlideHtmlSafe(
+                slidePlan,
+                rp,
+                slideWidth,
+                slideHeight,
+                audience,
+                colorTheme,
+                referenceHtmlBrief,
+                undefined,
+                referenceVisualAttributes,
+                pageIndexInCategory,
+              );
+              html = this.postProcessSlideHtml(
+                html,
+                slidePlan,
+                rp.primaryColor,
+                rp.primaryColorDarker,
+                slideWidth,
+                slideHeight,
+                rp.backgroundEnabled,
+                rp.fontFamily,
+                referenceVisualAttributes,
+              );
 
-              while (!critiqueResult.passed && attempts <= critiqueMaxRetries) {
-                const st = incRetryCount(keyOf(traceSessionId), originalIdx, 'critique');
-                console.log(`[RETRY] page=${originalIdx + 1} stage=critique attempt=${st.channelCount} total=${st.total} score=${critiqueResult.overallScore}`);
-                if (st.channelCount > CHANNEL_BUDGET.critique) {
-                  console.warn(`[RETRY] 通道 critique 配额已尽（${CHANNEL_BUDGET.critique}），页 ${originalIdx + 1} 保留当前版本不再重试（regenerationLimited）`);
-                  break;
-                }
-                if (st.total >= MAX_RETRY_PER_SLIDE) {
-                  console.warn(`[RETRY] 页 ${originalIdx + 1} 已达重试上限 ${MAX_RETRY_PER_SLIDE}，保留当前版本不再重试（regenerationLimited）`);
-                  break;
-                }
-                attempts++;
-                onProgress?.({
-                  phase: 'critique',
-                  current: originalIdx,
-                  total: renderCount,
-                  message: `第 ${originalIdx + 1} 页评审未通过（${critiqueResult.overallScore}分），第 ${attempts} 次重新生成...`,
-                  critique: {
-                    slideIndex: originalIdx,
-                    slideTitle: slidePlan.title || `幻灯片 ${originalIdx + 1}`,
-                    attempt: attempts,
-                    maxAttempts: critiqueMaxRetries + 1,
-                    score: critiqueResult.overallScore,
-                    passed: false,
-                    issues: critiqueResult.issues.map(i => i.title),
-                  },
-                });
-                console.log(`[${formatBeijingTime()}] [CRITIQUE] Slide ${originalIdx + 1} score=${critiqueResult.overallScore}, retry ${attempts}/${critiqueMaxRetries + 1}. Issues: ${critiqueResult.issues.map(i => i.title).join('; ')}`);
+              let critiqueResult: SlideCritique | null = null;
+              let attempts = 1;
 
-                const feedback = buildCritiqueFeedback(critiqueResult);
-
-                html = await this.generateSlideHtmlSafe(slidePlan, rp, slideWidth, slideHeight, audience, colorTheme, referenceHtmlBrief, feedback, referenceVisualAttributes, pageIndexInCategory);
-                html = this.postProcessSlideHtml(html, slidePlan, rp.primaryColor, rp.primaryColorDarker, slideWidth, slideHeight, backgroundEnabled, rp.fontFamily, referenceVisualAttributes);
-
+              if (llmCritiqueEnabled) {
                 critiqueResult = await critiqueSlide(
                   this.contentProvider,
                   slidePlan.title || `幻灯片 ${originalIdx + 1}`,
                   html,
                   slidePlan.pageType || 'content-no-image',
                   designContext,
-                  { threshold: critiqueThreshold, maxRetries: critiqueMaxRetries, slideWidth, slideHeight, referenceContext },
+                  {
+                    threshold: critiqueThreshold,
+                    maxRetries: critiqueMaxRetries,
+                    slideWidth,
+                    slideHeight,
+                    referenceContext,
+                  },
                 );
-                if (critiqueResult) this.applyL0ToCritique(critiqueResult, html, slidePlan.pageType || 'content-no-image');
+                if (critiqueResult)
+                  this.applyL0ToCritique(
+                    critiqueResult,
+                    html,
+                    slidePlan.pageType || 'content-no-image',
+                  );
+                attempts = 1;
+
+                while (!critiqueResult.passed && attempts <= critiqueMaxRetries) {
+                  const st = incRetryCount(keyOf(traceSessionId), originalIdx, 'critique');
+                  console.log(
+                    `[RETRY] page=${originalIdx + 1} stage=critique attempt=${st.channelCount} total=${st.total} score=${critiqueResult.overallScore}`,
+                  );
+                  if (st.channelCount > CHANNEL_BUDGET.critique) {
+                    console.warn(
+                      `[RETRY] 通道 critique 配额已尽（${CHANNEL_BUDGET.critique}），页 ${originalIdx + 1} 保留当前版本不再重试（regenerationLimited）`,
+                    );
+                    break;
+                  }
+                  if (st.total >= MAX_RETRY_PER_SLIDE) {
+                    console.warn(
+                      `[RETRY] 页 ${originalIdx + 1} 已达重试上限 ${MAX_RETRY_PER_SLIDE}，保留当前版本不再重试（regenerationLimited）`,
+                    );
+                    break;
+                  }
+                  attempts++;
+                  onProgress?.({
+                    phase: 'critique',
+                    current: originalIdx,
+                    total: renderCount,
+                    message: `第 ${originalIdx + 1} 页评审未通过（${critiqueResult.overallScore}分），第 ${attempts} 次重新生成...`,
+                    critique: {
+                      slideIndex: originalIdx,
+                      slideTitle: slidePlan.title || `幻灯片 ${originalIdx + 1}`,
+                      attempt: attempts,
+                      maxAttempts: critiqueMaxRetries + 1,
+                      score: critiqueResult.overallScore,
+                      passed: false,
+                      issues: critiqueResult.issues.map((i) => i.title),
+                    },
+                  });
+                  console.log(
+                    `[${formatBeijingTime()}] [CRITIQUE] Slide ${originalIdx + 1} score=${critiqueResult.overallScore}, retry ${attempts}/${critiqueMaxRetries + 1}. Issues: ${critiqueResult.issues.map((i) => i.title).join('; ')}`,
+                  );
+
+                  const feedback = buildCritiqueFeedback(critiqueResult);
+
+                  html = await this.generateSlideHtmlSafe(
+                    slidePlan,
+                    rp,
+                    slideWidth,
+                    slideHeight,
+                    audience,
+                    colorTheme,
+                    referenceHtmlBrief,
+                    feedback,
+                    referenceVisualAttributes,
+                    pageIndexInCategory,
+                  );
+                  html = this.postProcessSlideHtml(
+                    html,
+                    slidePlan,
+                    rp.primaryColor,
+                    rp.primaryColorDarker,
+                    slideWidth,
+                    slideHeight,
+                    backgroundEnabled,
+                    rp.fontFamily,
+                    referenceVisualAttributes,
+                  );
+
+                  critiqueResult = await critiqueSlide(
+                    this.contentProvider,
+                    slidePlan.title || `幻灯片 ${originalIdx + 1}`,
+                    html,
+                    slidePlan.pageType || 'content-no-image',
+                    designContext,
+                    {
+                      threshold: critiqueThreshold,
+                      maxRetries: critiqueMaxRetries,
+                      slideWidth,
+                      slideHeight,
+                      referenceContext,
+                    },
+                  );
+                  if (critiqueResult)
+                    this.applyL0ToCritique(
+                      critiqueResult,
+                      html,
+                      slidePlan.pageType || 'content-no-image',
+                    );
+                }
+
+                if (critiqueResult.passed) {
+                  console.log(
+                    `[${formatBeijingTime()}] [CRITIQUE] Slide ${originalIdx + 1} PASSED with score=${critiqueResult.overallScore} after ${attempts} attempt(s)`,
+                  );
+                } else {
+                  console.warn(
+                    `[${formatBeijingTime()}] [CRITIQUE] Slide ${originalIdx + 1} still failing after ${attempts} attempts (score=${critiqueResult.overallScore}), using best available version`,
+                  );
+                }
+
+                onProgress?.({
+                  phase: 'critique',
+                  current: originalIdx,
+                  total: renderCount,
+                  message: `第 ${originalIdx + 1} 页评审${critiqueResult.passed ? '通过' : '未通过'}（${critiqueResult.overallScore}分）`,
+                  critique: {
+                    slideIndex: originalIdx,
+                    slideTitle: slidePlan.title || `幻灯片 ${originalIdx + 1}`,
+                    attempt: attempts,
+                    maxAttempts: critiqueMaxRetries + 1,
+                    score: critiqueResult.overallScore,
+                    passed: critiqueResult.passed,
+                    issues: critiqueResult.issues.map((i) => i.title),
+                  },
+                });
               }
 
-              if (critiqueResult.passed) {
-                console.log(`[${formatBeijingTime()}] [CRITIQUE] Slide ${originalIdx + 1} PASSED with score=${critiqueResult.overallScore} after ${attempts} attempt(s)`);
-              } else {
-                console.warn(`[${formatBeijingTime()}] [CRITIQUE] Slide ${originalIdx + 1} still failing after ${attempts} attempts (score=${critiqueResult.overallScore}), using best available version`);
-              }
-
+              console.log(
+                `[${formatBeijingTime()}] [AGENT] Slide ${originalIdx + 1} HTML generated (${html.length} chars, critique=${critiqueResult?.overallScore ?? 'N/A'})`,
+              );
               onProgress?.({
-                phase: 'critique',
-                current: originalIdx,
+                phase: 'content',
+                current: originalIdx + 1,
                 total: renderCount,
-                message: `第 ${originalIdx + 1} 页评审${critiqueResult.passed ? '通过' : '未通过'}（${critiqueResult.overallScore}分）`,
-                critique: {
-                  slideIndex: originalIdx,
-                  slideTitle: slidePlan.title || `幻灯片 ${originalIdx + 1}`,
-                  attempt: attempts,
-                  maxAttempts: critiqueMaxRetries + 1,
-                  score: critiqueResult.overallScore,
-                  passed: critiqueResult.passed,
-                  issues: critiqueResult.issues.map(i => i.title),
-                },
+                message: `已生成 ${originalIdx + 1}/${plan.slides.length} 页内容`,
               });
+              // Task5 · 母版 DOM 硬注入（FR-3）：critique 之后、return 之前
+              html = applyMasterToSlideHtml(html, master);
+              return {
+                success: true as const,
+                html,
+                plan: slidePlan,
+                originalIdx,
+                imagePreference: rp.imagePreference,
+                backgroundEnabled: rp.backgroundEnabled,
+                critique: critiqueResult
+                  ? {
+                      score: critiqueResult.overallScore,
+                      passed: critiqueResult.passed,
+                      attempts,
+                      issues: critiqueResult.issues.map((i) => i.title),
+                    }
+                  : undefined,
+              };
+            } catch (e) {
+              console.warn(
+                `[${formatBeijingTime()}] [AGENT] Failed to generate slide ${originalIdx + 1}, using fallback:`,
+                e,
+              );
+              const fallback = this.generateFallbackSlide(
+                slidePlan,
+                rp.primaryColor,
+                slideWidth,
+                slideHeight,
+                rp.fontFamily,
+                rp.iconStyle,
+              );
+              // Task5 · fallback 分支同样注入母版（AC-18 五页全覆盖）
+              return {
+                success: true as const,
+                html: applyMasterToSlideHtml(fallback, master),
+                plan: slidePlan,
+                originalIdx,
+              };
             }
+          }),
+        ),
+      );
 
-            console.log(`[${formatBeijingTime()}] [AGENT] Slide ${originalIdx + 1} HTML generated (${html.length} chars, critique=${critiqueResult?.overallScore ?? 'N/A'})`);
-            onProgress?.({ phase: 'content', current: originalIdx + 1, total: renderCount, message: `已生成 ${originalIdx + 1}/${plan.slides.length} 页内容` });
-            // Task5 · 母版 DOM 硬注入（FR-3）：critique 之后、return 之前
-            html = applyMasterToSlideHtml(html, master);
-            return {
-              success: true as const,
-              html,
-              plan: slidePlan,
-              originalIdx,
-              imagePreference: rp.imagePreference,
-              backgroundEnabled: rp.backgroundEnabled,
-              critique: critiqueResult ? {
-                score: critiqueResult.overallScore,
-                passed: critiqueResult.passed,
-                attempts,
-                issues: critiqueResult.issues.map(i => i.title),
-              } : undefined,
-            };
-          } catch (e) {
-            console.warn(`[${formatBeijingTime()}] [AGENT] Failed to generate slide ${originalIdx + 1}, using fallback:`, e);
-            const fallback = this.generateFallbackSlide(slidePlan, rp.primaryColor, slideWidth, slideHeight, rp.fontFamily, rp.iconStyle);
-            // Task5 · fallback 分支同样注入母版（AC-18 五页全覆盖）
-            return { success: true as const, html: applyMasterToSlideHtml(fallback, master), plan: slidePlan, originalIdx };
-          }
-        })
-      )
-    );
-
-    const slides: HTMLSlide[] = htmlResults.map((r) => {
-      // 统一出口幂等兜底：确保每一页都注入母版层 / 背景（覆盖任何绕过逐页注入的支路，如历史样本 slide-03）。
-      // 同一份 html 上重复 applyMasterToSlideHtml 是幂等的（已含 data-master / noppt-master-layer 则跳过）。
-      const sp = r.plan;
-      const cat = pageTypeToCategory(sp.pageType || 'content');
-      let m: ReferenceMaster | undefined = referenceVisualAttributes
-        ? resolveMasterForPage(referenceVisualAttributes, cat)
-        : undefined;
-      if (m && sp.referenceHeroImage?.src) {
-        m = { ...m, heroImage: { src: sp.referenceHeroImage.src, ...(sp.referenceHeroImage.bbox ?? {}) } } as ReferenceMaster;
-      }
-      let html = r.html;
-      if (m) html = applyMasterToSlideHtml(html, m);
-      return {
-        title: sp.title || plan.slides[r.originalIdx]?.title || `幻灯片 ${r.originalIdx + 1}`,
-        html,
-        pageType: sp.pageType,
-        imagePrompt: sp.imagePrompt,
-        imageRatio: sp.imageRatio || PAGE_TYPE_DEFAULT_IMAGE_RATIO[sp.pageType] || undefined,
-        notes: undefined,
-        critique: (r as any).critique,
-        imagePreference: (r as any).imagePreference,
-        backgroundEnabled: (r as any).backgroundEnabled,
-        _originalIdx: r.originalIdx,
-      };
-    });
-
-    // ========== 兜底 1：当用户明确偏好配图时，将"纯文字/非带图类型 slide"升级为带图布局 ==========
-    if (imageEnabled && (imagePreference === 'content-only' || imagePreference === 'all')) {
-      for (const s of slides) {
-        const originalIdx = (s as any)._originalIdx as number;
-        const sp = plan.slides[originalIdx];
-        const pt = s.pageType || 'content-no-image';
-        const alreadyHasImg = /<img\b/i.test(s.html);
-        if (alreadyHasImg) continue;
-        const isImageType = pt === 'content-image-left' || pt === 'content-image-right' || pt === 'content-image-top';
-        const isStructure = pt === 'cover' || pt === 'toc' || pt === 'summary';
-        const slideImgPref: ImagePreference = (s as any).imagePreference || imagePreference;
-        let shouldUpgrade = false;
-        if (slideImgPref === 'all') {
-          shouldUpgrade = !isImageType;
-        } else {
-          shouldUpgrade = !isStructure && !isImageType;
+      const slides: HTMLSlide[] = htmlResults.map((r) => {
+        // 统一出口幂等兜底：确保每一页都注入母版层 / 背景（覆盖任何绕过逐页注入的支路，如历史样本 slide-03）。
+        // 同一份 html 上重复 applyMasterToSlideHtml 是幂等的（已含 data-master / noppt-master-layer 则跳过）。
+        const sp = r.plan;
+        const cat = pageTypeToCategory(sp.pageType || 'content');
+        let m: ReferenceMaster | undefined = referenceVisualAttributes
+          ? resolveMasterForPage(referenceVisualAttributes, cat)
+          : undefined;
+        if (m && sp.referenceHeroImage?.src) {
+          m = {
+            ...m,
+            heroImage: { src: sp.referenceHeroImage.src, ...(sp.referenceHeroImage.bbox ?? {}) },
+          } as ReferenceMaster;
         }
-        if (!shouldUpgrade) continue;
-        // ——— FR-1 (fix-slide-comparison-image-disaster)：L1 高级版式（含 cards/compare/timeline）一律不升级为带图布局 ———
-        const NEVER_UPGRADE_FOR_IMAGE: ReadonlySet<string> = new Set([
-          'comparison-deep-dive',
-          'content-value-showcase',
-          'content-stats-highlight',
-          'content-image-background',
-          'content-zigzag',
-          'content-cards',
-          'content-compare',
-          'content-timeline',
-          'content-table',
-          // ===== FR-18 扩展（全部 needsImage=false，禁止强制升带图）=====
-          'content-flowchart',
-          'content-org-chart',
-          'content-pyramid',
-          'content-matrix',
-          'content-quote',
-          'content-three-section',
-          'content-process-steps',
-          'content-icon-grid',
-          'content-section-divider',
-          'content-testimonial',
-          'content-chart-bar',
-          'content-chart-line',
-          'content-chart-pie',
-          'content-chart-donut',
-          'content-cycle',
-          'content-dashboard',
-        ]);
-        if (NEVER_UPGRADE_FOR_IMAGE.has(pt)) continue;
-        const meaningfulBody =
-          isStructure
-            ? this.slideHasMeaningfulBody(s.html) || Boolean(s.title)
-            : this.slideHasMeaningfulBody(s.html);
-        if (!meaningfulBody) continue;
+        let html = r.html;
+        if (m) html = applyMasterToSlideHtml(html, m);
+        return {
+          title: sp.title || plan.slides[r.originalIdx]?.title || `幻灯片 ${r.originalIdx + 1}`,
+          html,
+          pageType: sp.pageType,
+          imagePrompt: sp.imagePrompt,
+          imageRatio: sp.imageRatio || PAGE_TYPE_DEFAULT_IMAGE_RATIO[sp.pageType] || undefined,
+          notes: undefined,
+          critique: (r as any).critique,
+          imagePreference: (r as any).imagePreference,
+          backgroundEnabled: (r as any).backgroundEnabled,
+          _originalIdx: r.originalIdx,
+        };
+      });
 
-        let layoutPageType: 'content-image-left' | 'content-image-top' = 'content-image-left';
-        let targetImageRatio: '4:3' | '16:9' = '4:3';
-        if (pt === 'cover' || pt === 'summary') {
-          layoutPageType = 'content-image-top';
-          targetImageRatio = '16:9';
-        } else if (pt === 'toc') {
-          layoutPageType = 'content-image-top';
-          targetImageRatio = '16:9';
-        } else {
-          // ——— FR-1 双锁：保护版式本不该进这里，再判一次避免被绕过 ———
-          const NEVER_UPGRADE_FOR_IMAGE2: ReadonlySet<string> = new Set([
+      // ========== 兜底 1：当用户明确偏好配图时，将"纯文字/非带图类型 slide"升级为带图布局 ==========
+      if (imageEnabled && (imagePreference === 'content-only' || imagePreference === 'all')) {
+        for (const s of slides) {
+          const originalIdx = (s as any)._originalIdx as number;
+          const sp = plan.slides[originalIdx];
+          const pt = s.pageType || 'content-no-image';
+          const alreadyHasImg = /<img\b/i.test(s.html);
+          if (alreadyHasImg) continue;
+          const isImageType =
+            pt === 'content-image-left' ||
+            pt === 'content-image-right' ||
+            pt === 'content-image-top';
+          const isStructure = pt === 'cover' || pt === 'toc' || pt === 'summary';
+          const slideImgPref: ImagePreference = (s as any).imagePreference || imagePreference;
+          let shouldUpgrade = false;
+          if (slideImgPref === 'all') {
+            shouldUpgrade = !isImageType;
+          } else {
+            shouldUpgrade = !isStructure && !isImageType;
+          }
+          if (!shouldUpgrade) continue;
+          // ——— FR-1 (fix-slide-comparison-image-disaster)：L1 高级版式（含 cards/compare/timeline）一律不升级为带图布局 ———
+          const NEVER_UPGRADE_FOR_IMAGE: ReadonlySet<string> = new Set([
             'comparison-deep-dive',
             'content-value-showcase',
             'content-stats-highlight',
@@ -3265,72 +4089,140 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
             'content-compare',
             'content-timeline',
             'content-table',
+            // ===== FR-18 扩展（全部 needsImage=false，禁止强制升带图）=====
+            'content-flowchart',
+            'content-org-chart',
+            'content-pyramid',
+            'content-matrix',
+            'content-quote',
+            'content-three-section',
+            'content-process-steps',
+            'content-icon-grid',
+            'content-section-divider',
+            'content-testimonial',
+            'content-chart-bar',
+            'content-chart-line',
+            'content-chart-pie',
+            'content-chart-donut',
+            'content-cycle',
+            'content-dashboard',
           ]);
-          if (NEVER_UPGRADE_FOR_IMAGE2.has(pt)) continue;
-          layoutPageType = 'content-image-left';
-          targetImageRatio = '4:3';
-        }
+          if (NEVER_UPGRADE_FOR_IMAGE.has(pt)) continue;
+          const meaningfulBody = isStructure
+            ? this.slideHasMeaningfulBody(s.html) || Boolean(s.title)
+            : this.slideHasMeaningfulBody(s.html);
+          if (!meaningfulBody) continue;
 
-        const upgraded = this.injectImagePlaceholderForContentSlide(s.html, layoutPageType, plan.primaryColor);
-        if (upgraded !== s.html) {
-          console.log(`[${formatBeijingTime()}] [AGENT] Slide ${originalIdx + 1} "${s.title}" (${pt}): upgrading → ${layoutPageType} (placeholder injected, imagePref=${imagePreference})`);
-          s.html = upgraded;
-          if (!s.imageRatio) s.imageRatio = targetImageRatio;
-          s.pageType = layoutPageType;
-          if (sp) {
-            sp.pageType = layoutPageType;
-            sp.needsImage = true;
-            if (!sp.imageRatio) sp.imageRatio = targetImageRatio;
-          }
-        }
-      }
-    }
-
-    // ========== 兜底 2：占位符一致性强制校验 ==========
-    if (imageEnabled && imgProvider.generateImage) {
-      for (const s of slides) {
-        const originalIdx = (s as any)._originalIdx as number;
-        const sp = plan.slides[originalIdx];
-        const needsPerPlan = sp?.needsImage && sp?.pageType && PAGE_TYPE_DEFAULT_IMAGE_RATIO[sp.pageType] !== null;
-        const hasImageInHtml = /<img\b/i.test(s.html);
-        const hasPlaceholder = s.html.includes(IMAGE_PLACEHOLDER);
-        // 参考逐页 imagePreference='none' 的页面不应被强制注入占位符
-        const slideImgPref2: ImagePreference = (s as any).imagePreference || imagePreference;
-        if (needsPerPlan && slideImgPref2 !== 'none' && !hasImageInHtml && !hasPlaceholder && sp?.pageType) {
-          const injected = this.injectImagePlaceholderForContentSlide(s.html, sp.pageType, plan.primaryColor);
-          if (injected !== s.html) {
-            console.log(`[${formatBeijingTime()}] [AGENT] Slide ${originalIdx + 1} "${s.title}": pre-image-gen check FAIL → placeholder injected (pageType=${sp.pageType})`);
-            s.html = injected;
-            if (!s.imageRatio) s.imageRatio = PAGE_TYPE_DEFAULT_IMAGE_RATIO[sp.pageType] || '4:3';
+          let layoutPageType: 'content-image-left' | 'content-image-top' = 'content-image-left';
+          let targetImageRatio: '4:3' | '16:9' = '4:3';
+          if (pt === 'cover' || pt === 'summary') {
+            layoutPageType = 'content-image-top';
+            targetImageRatio = '16:9';
+          } else if (pt === 'toc') {
+            layoutPageType = 'content-image-top';
+            targetImageRatio = '16:9';
           } else {
-            console.warn(`[${formatBeijingTime()}] [AGENT] Slide ${originalIdx + 1} "${s.title}": pre-image-gen placeholder injection FAILED (layout irregular), will fallback to orphan rescue on server side`);
+            // ——— FR-1 双锁：保护版式本不该进这里，再判一次避免被绕过 ———
+            const NEVER_UPGRADE_FOR_IMAGE2: ReadonlySet<string> = new Set([
+              'comparison-deep-dive',
+              'content-value-showcase',
+              'content-stats-highlight',
+              'content-image-background',
+              'content-zigzag',
+              'content-cards',
+              'content-compare',
+              'content-timeline',
+              'content-table',
+            ]);
+            if (NEVER_UPGRADE_FOR_IMAGE2.has(pt)) continue;
+            layoutPageType = 'content-image-left';
+            targetImageRatio = '4:3';
+          }
+
+          const upgraded = this.injectImagePlaceholderForContentSlide(
+            s.html,
+            layoutPageType,
+            plan.primaryColor,
+          );
+          if (upgraded !== s.html) {
+            console.log(
+              `[${formatBeijingTime()}] [AGENT] Slide ${originalIdx + 1} "${s.title}" (${pt}): upgrading → ${layoutPageType} (placeholder injected, imagePref=${imagePreference})`,
+            );
+            s.html = upgraded;
+            if (!s.imageRatio) s.imageRatio = targetImageRatio;
+            s.pageType = layoutPageType;
+            if (sp) {
+              sp.pageType = layoutPageType;
+              sp.needsImage = true;
+              if (!sp.imageRatio) sp.imageRatio = targetImageRatio;
+            }
           }
         }
       }
-    }
 
-    let rendered: RenderedSlide[] = slides.map((s) => {
-      const originalIdx = (s as any)._originalIdx as number;
-      return {
-        title: s.title,
-        html: s.html,
-        pageType: s.pageType!,
-        imagePrompt: s.imagePrompt,
-        imageRatio: s.imageRatio,
-        backgroundPrompt: plan.slides[originalIdx]?.backgroundPrompt,
-        critique: s.critique,
-      };
-    });
-
-    if (options?.postHtmlAuditHook) {
-      try {
-        rendered = await options.postHtmlAuditHook(rendered, { plan, design, traceSessionId });
-      } catch (e) {
-        console.warn(`[${formatBeijingTime()}] [AGENT] postHtmlAuditHook failed, fallback to original slides:`, e instanceof Error ? e.message : e);
+      // ========== 兜底 2：占位符一致性强制校验 ==========
+      if (imageEnabled && imgProvider.generateImage) {
+        for (const s of slides) {
+          const originalIdx = (s as any)._originalIdx as number;
+          const sp = plan.slides[originalIdx];
+          const needsPerPlan =
+            sp?.needsImage && sp?.pageType && PAGE_TYPE_DEFAULT_IMAGE_RATIO[sp.pageType] !== null;
+          const hasImageInHtml = /<img\b/i.test(s.html);
+          const hasPlaceholder = s.html.includes(IMAGE_PLACEHOLDER);
+          // 参考逐页 imagePreference='none' 的页面不应被强制注入占位符
+          const slideImgPref2: ImagePreference = (s as any).imagePreference || imagePreference;
+          if (
+            needsPerPlan &&
+            slideImgPref2 !== 'none' &&
+            !hasImageInHtml &&
+            !hasPlaceholder &&
+            sp?.pageType
+          ) {
+            const injected = this.injectImagePlaceholderForContentSlide(
+              s.html,
+              sp.pageType,
+              plan.primaryColor,
+            );
+            if (injected !== s.html) {
+              console.log(
+                `[${formatBeijingTime()}] [AGENT] Slide ${originalIdx + 1} "${s.title}": pre-image-gen check FAIL → placeholder injected (pageType=${sp.pageType})`,
+              );
+              s.html = injected;
+              if (!s.imageRatio) s.imageRatio = PAGE_TYPE_DEFAULT_IMAGE_RATIO[sp.pageType] || '4:3';
+            } else {
+              console.warn(
+                `[${formatBeijingTime()}] [AGENT] Slide ${originalIdx + 1} "${s.title}": pre-image-gen placeholder injection FAILED (layout irregular), will fallback to orphan rescue on server side`,
+              );
+            }
+          }
+        }
       }
-    }
 
-    return rendered;
+      let rendered: RenderedSlide[] = slides.map((s) => {
+        const originalIdx = (s as any)._originalIdx as number;
+        return {
+          title: s.title,
+          html: s.html,
+          pageType: s.pageType!,
+          imagePrompt: s.imagePrompt,
+          imageRatio: s.imageRatio,
+          backgroundPrompt: plan.slides[originalIdx]?.backgroundPrompt,
+          critique: s.critique,
+        };
+      });
+
+      if (options?.postHtmlAuditHook) {
+        try {
+          rendered = await options.postHtmlAuditHook(rendered, { plan, design, traceSessionId });
+        } catch (e) {
+          console.warn(
+            `[${formatBeijingTime()}] [AGENT] postHtmlAuditHook failed, fallback to original slides:`,
+            e instanceof Error ? e.message : e,
+          );
+        }
+      }
+
+      return rendered;
     } finally {
       if (ownTraceSession && traceSessionId) {
         closeTraceSession(traceSessionId);
@@ -3354,7 +4246,10 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
     const density = design.density;
     const imagePreference = options?.imagePreference || 'content-only';
     const rawIconStyle = (design.iconStyle || 'auto') as string;
-    const iconStyle: IconStyle = (rawIconStyle === 'checkmark' || rawIconStyle === 'minimal') ? 'bullet' : (rawIconStyle as IconStyle);
+    const iconStyle: IconStyle =
+      rawIconStyle === 'checkmark' || rawIconStyle === 'minimal'
+        ? 'bullet'
+        : (rawIconStyle as IconStyle);
     const fontFamily = design.fontFamily;
     const referenceHtml = options?.referenceHtml || '';
     const colorTheme = design.colorTheme;
@@ -3364,11 +4259,14 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
     const refDeckPrimary = resolveDeckReferencePrimaryColor(referenceVisualAttributes);
     const primaryColor = refDeckPrimary ?? resolveEffectivePrimaryColor(options, design, '#2563eb');
     const primaryColorDarker = darkenColor(primaryColor, 20);
-    console.log(`[DESIGN] effective: style=${style} colorTheme=${colorTheme} primaryColor=${primaryColor}(single-source${refDeckPrimary ? ', reference-first' : ''})`);
+    console.log(
+      `[DESIGN] effective: style=${style} colorTheme=${colorTheme} primaryColor=${primaryColor}(single-source${refDeckPrimary ? ', reference-first' : ''})`,
+    );
     const backgroundEnabled = options?.backgroundEnabled || false;
     const slideWidth = options?.slideWidth || 1280;
     const slideHeight = options?.slideHeight || 720;
-    const referenceHtmlBrief = options?.referenceHtmlBrief || this.summarizeReferenceHtmlBrief(referenceHtml);
+    const referenceHtmlBrief =
+      options?.referenceHtmlBrief || this.summarizeReferenceHtmlBrief(referenceHtml);
     const critiqueEnabled = options?.critique?.enabled ?? false;
     const critiqueThreshold = options?.critique?.threshold ?? DEFAULT_THRESHOLD;
     const critiqueMaxRetries = options?.critique?.maxRetries ?? DEFAULT_MAX_RETRIES;
@@ -3390,20 +4288,38 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
       } as ReferenceMaster;
     }
     // FR-0/FR-4：逐页用参考主色覆盖（参考 > deck 级兜底）
-    const pageRefPrimary = resolveReferencePrimaryColor(referenceVisualAttributes, String(slidePlan.pageType ?? ''));
+    const pageRefPrimary = resolveReferencePrimaryColor(
+      referenceVisualAttributes,
+      String(slidePlan.pageType ?? ''),
+    );
     const pagePrimary = pageRefPrimary ?? primaryColor;
     const rp = this.resolvePageReferenceStyleAttrs(slidePlan, referenceVisualAttributes, {
-      primaryColor: pagePrimary, fontFamily, iconStyle, style, density,
-      imagePreference, backgroundEnabled,
+      primaryColor: pagePrimary,
+      fontFamily,
+      iconStyle,
+      style,
+      density,
+      imagePreference,
+      backgroundEnabled,
     });
     // 计算本页在所属分类内的序号（第 0 页才克隆参考结构），供布局映射与逐页参考指令复用（共享函数：等价内联，置于 if 块外对下方 generateSlideHtml 可见）
     const pageIndexInCategory = computePageIndexInCategory(plan.slides, slideIndex);
     // Task5 · 布局字段写入（FR-18 §18.2）：参考 layout 1:1 映射为内置 pageType，单页按分类作用域生效
     if (referenceVisualAttributes) {
-      const resolvedLayout = resolveLayoutForPage(referenceVisualAttributes, baseCat, pageIndexInCategory, slidePlan.pageType);
+      const resolvedLayout = resolveLayoutForPage(
+        referenceVisualAttributes,
+        baseCat,
+        pageIndexInCategory,
+        slidePlan.pageType,
+      );
       if (resolvedLayout) slidePlan.pageType = resolvedLayout;
     }
-    const designContext = { style: rp.style, primaryColor: rp.primaryColor, fontFamily: rp.fontFamily, iconStyle: rp.iconStyle };
+    const designContext = {
+      style: rp.style,
+      primaryColor: rp.primaryColor,
+      fontFamily: rp.fontFamily,
+      iconStyle: rp.iconStyle,
+    };
 
     if (!slidePlan) {
       throw new Error(`Slide index ${slideIndex} not found in plan`);
@@ -3420,35 +4336,74 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
     try {
       // 每页重生成熔断（与 renderSlides critique 循环 / generatePresentation 共享预算；按通道独立配额限流）
       const st = incRetryCount(keyOf(traceSessionId), slideIndex, channel);
-      console.log(`[RETRY] page=${slideIndex + 1} stage=${channel} attempt=${st.channelCount} total=${st.total}`);
+      console.log(
+        `[RETRY] page=${slideIndex + 1} stage=${channel} attempt=${st.channelCount} total=${st.total}`,
+      );
       const channelBudget = CHANNEL_BUDGET[channel] ?? 1;
       const limitedResult = (limitedHtml: string): RenderedSlide => ({
         title: slidePlan.title || `幻灯片 ${slideIndex + 1}`,
         html: limitedHtml,
         pageType: slidePlan.pageType,
         imagePrompt: slidePlan.imagePrompt,
-        imageRatio: slidePlan.imageRatio || PAGE_TYPE_DEFAULT_IMAGE_RATIO[slidePlan.pageType] || undefined,
+        imageRatio:
+          slidePlan.imageRatio || PAGE_TYPE_DEFAULT_IMAGE_RATIO[slidePlan.pageType] || undefined,
         backgroundPrompt: plan.slides[slideIndex]?.backgroundPrompt,
       });
       if (st.channelCount > channelBudget) {
-        console.warn(`[RETRY] 通道 ${channel} 配额已尽（${channelBudget}），页 ${slideIndex + 1} 跳过本次重生成（regenerationLimited）`);
+        console.warn(
+          `[RETRY] 通道 ${channel} 配额已尽（${channelBudget}），页 ${slideIndex + 1} 跳过本次重生成（regenerationLimited）`,
+        );
         // AC-6 / Task6 / FR-5: budget 超支时保留 originalHtml（如果有）作为最优可用形态，
         // 而不是替换为 generateFallbackSlide（纯文本极简），否则会与 VLM warn 叠加触发 finalGuard 再降级到灰药丸（灾难级）。
         if (originalHtml && typeof originalHtml === 'string' && originalHtml.trim().length > 0) {
-          console.log(`[RETRY] 页 ${slideIndex + 1} 命中 originalHtml，保留原始 HTML（放弃 generateFallbackSlide 降级）。`);
+          console.log(
+            `[RETRY] 页 ${slideIndex + 1} 命中 originalHtml，保留原始 HTML（放弃 generateFallbackSlide 降级）。`,
+          );
           return limitedResult(applyMasterToSlideHtml(originalHtml, master));
         }
-        console.warn(`[RETRY] 页 ${slideIndex + 1} originalHtml 未传，被迫使用 generateFallbackSlide（请补齐调用方 originalHtml）。`);
-        return limitedResult(applyMasterToSlideHtml(this.generateFallbackSlide(slidePlan, rp.primaryColor, slideWidth, slideHeight, rp.fontFamily, rp.iconStyle), master));
+        console.warn(
+          `[RETRY] 页 ${slideIndex + 1} originalHtml 未传，被迫使用 generateFallbackSlide（请补齐调用方 originalHtml）。`,
+        );
+        return limitedResult(
+          applyMasterToSlideHtml(
+            this.generateFallbackSlide(
+              slidePlan,
+              rp.primaryColor,
+              slideWidth,
+              slideHeight,
+              rp.fontFamily,
+              rp.iconStyle,
+            ),
+            master,
+          ),
+        );
       }
       if (st.total >= MAX_RETRY_PER_SLIDE) {
-        console.warn(`[RETRY] 页 ${slideIndex + 1} 已达上限，跳过本次重生成（regenerationLimited）`);
+        console.warn(
+          `[RETRY] 页 ${slideIndex + 1} 已达上限，跳过本次重生成（regenerationLimited）`,
+        );
         if (originalHtml && typeof originalHtml === 'string' && originalHtml.trim().length > 0) {
-          console.log(`[RETRY] 页 ${slideIndex + 1} 命中 originalHtml，保留原始 HTML（MAX_RETRY_PER_SLIDE 熔断）。`);
+          console.log(
+            `[RETRY] 页 ${slideIndex + 1} 命中 originalHtml，保留原始 HTML（MAX_RETRY_PER_SLIDE 熔断）。`,
+          );
           return limitedResult(applyMasterToSlideHtml(originalHtml, master));
         }
-        console.warn(`[RETRY] 页 ${slideIndex + 1} originalHtml 未传，被迫使用 generateFallbackSlide（MAX_RETRY_PER_SLIDE）。`);
-        return limitedResult(applyMasterToSlideHtml(this.generateFallbackSlide(slidePlan, rp.primaryColor, slideWidth, slideHeight, rp.fontFamily, rp.iconStyle), master));
+        console.warn(
+          `[RETRY] 页 ${slideIndex + 1} originalHtml 未传，被迫使用 generateFallbackSlide（MAX_RETRY_PER_SLIDE）。`,
+        );
+        return limitedResult(
+          applyMasterToSlideHtml(
+            this.generateFallbackSlide(
+              slidePlan,
+              rp.primaryColor,
+              slideWidth,
+              slideHeight,
+              rp.fontFamily,
+              rp.iconStyle,
+            ),
+            master,
+          ),
+        );
       }
 
       // 重生成外部反馈规范化 + 固定约束块（始终在场）
@@ -3458,7 +4413,12 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
       const regenPageType = slidePlan.pageType || '';
       const refText = this.resolveReferenceTextColors(referenceVisualAttributes, regenPageType);
       const safeFeedback = externalFeedback
-        ? this.sanitizeRegenerationFeedback(externalFeedback, regenPageType, primaryColor, [refText.titleColor, refText.bodyColor].filter((c): c is string => !!c))
+        ? this.sanitizeRegenerationFeedback(
+            externalFeedback,
+            regenPageType,
+            primaryColor,
+            [refText.titleColor, refText.bodyColor].filter((c): c is string => !!c),
+          )
         : '';
       const fixedConstraints =
         `[本页固定约束] pageType=${regenPageType} | 列数=图片页单列(flex-column) | 主色=${primaryColor} / darker=${primaryColorDarker}\n` +
@@ -3467,15 +4427,40 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
         `  ④ Metric 数值大字徽章（单 span 展示的 +N℃ / 百分比）：≥ 48px，常为 56px，font-weight:900 + line-height:1；\n` +
         `  ⑤ 正文 li/p/span：仅允许 18 / 19 / 20px 三种（仅此三种适用 20px 上限）；\n` +
         `  ⑥ 辅助文字 / badge 胶囊：16~18px。`;
-      const regenerationGuidance = safeFeedback ? `${fixedConstraints}\n\n${safeFeedback}` : fixedConstraints;
+      const regenerationGuidance = safeFeedback
+        ? `${fixedConstraints}\n\n${safeFeedback}`
+        : fixedConstraints;
 
       let html = await this.generateSlideHtml(
-        slidePlan, rp.primaryColor, rp.primaryColorDarker, rp.density, rp.iconStyle,
-        slideWidth, slideHeight, rp.style, audience, colorTheme, rp.fontFamily,
-        rp.imagePreference, rp.backgroundEnabled, referenceHtmlBrief,
-        regenerationGuidance, referenceVisualAttributes, pageIndexInCategory,
+        slidePlan,
+        rp.primaryColor,
+        rp.primaryColorDarker,
+        rp.density,
+        rp.iconStyle,
+        slideWidth,
+        slideHeight,
+        rp.style,
+        audience,
+        colorTheme,
+        rp.fontFamily,
+        rp.imagePreference,
+        rp.backgroundEnabled,
+        referenceHtmlBrief,
+        regenerationGuidance,
+        referenceVisualAttributes,
+        pageIndexInCategory,
       );
-      html = this.postProcessSlideHtml(html, slidePlan, rp.primaryColor, rp.primaryColorDarker, slideWidth, slideHeight, rp.backgroundEnabled, rp.fontFamily, referenceVisualAttributes);
+      html = this.postProcessSlideHtml(
+        html,
+        slidePlan,
+        rp.primaryColor,
+        rp.primaryColorDarker,
+        slideWidth,
+        slideHeight,
+        rp.backgroundEnabled,
+        rp.fontFamily,
+        referenceVisualAttributes,
+      );
 
       let critiqueResult: SlideCritique | null = null;
       let attempts = 1;
@@ -3489,29 +4474,66 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
           html,
           slidePlan.pageType || 'content-no-image',
           designContext,
-          { threshold: critiqueThreshold, maxRetries: critiqueMaxRetries, slideWidth, slideHeight, referenceContext },
+          {
+            threshold: critiqueThreshold,
+            maxRetries: critiqueMaxRetries,
+            slideWidth,
+            slideHeight,
+            referenceContext,
+          },
         );
-        if (critiqueResult) this.applyL0ToCritique(critiqueResult, html, slidePlan.pageType || 'content-no-image');
+        if (critiqueResult)
+          this.applyL0ToCritique(critiqueResult, html, slidePlan.pageType || 'content-no-image');
 
         while (!critiqueResult.passed && attempts <= critiqueMaxRetries) {
           attempts++;
           const feedback = combinedFeedback(buildCritiqueFeedback(critiqueResult));
           html = await this.generateSlideHtml(
-            slidePlan, rp.primaryColor, rp.primaryColorDarker, rp.density, rp.iconStyle,
-            slideWidth, slideHeight, rp.style, audience, colorTheme, rp.fontFamily,
-            rp.imagePreference, rp.backgroundEnabled, referenceHtmlBrief, feedback,
-            referenceVisualAttributes, pageIndexInCategory,
+            slidePlan,
+            rp.primaryColor,
+            rp.primaryColorDarker,
+            rp.density,
+            rp.iconStyle,
+            slideWidth,
+            slideHeight,
+            rp.style,
+            audience,
+            colorTheme,
+            rp.fontFamily,
+            rp.imagePreference,
+            rp.backgroundEnabled,
+            referenceHtmlBrief,
+            feedback,
+            referenceVisualAttributes,
+            pageIndexInCategory,
           );
-          html = this.postProcessSlideHtml(html, slidePlan, rp.primaryColor, rp.primaryColorDarker, slideWidth, slideHeight, rp.backgroundEnabled, rp.fontFamily, referenceVisualAttributes);
+          html = this.postProcessSlideHtml(
+            html,
+            slidePlan,
+            rp.primaryColor,
+            rp.primaryColorDarker,
+            slideWidth,
+            slideHeight,
+            rp.backgroundEnabled,
+            rp.fontFamily,
+            referenceVisualAttributes,
+          );
           critiqueResult = await critiqueSlide(
             this.contentProvider,
             slidePlan.title || `幻灯片 ${slideIndex + 1}`,
             html,
             slidePlan.pageType || 'content-no-image',
             designContext,
-            { threshold: critiqueThreshold, maxRetries: critiqueMaxRetries, slideWidth, slideHeight, referenceContext },
+            {
+              threshold: critiqueThreshold,
+              maxRetries: critiqueMaxRetries,
+              slideWidth,
+              slideHeight,
+              referenceContext,
+            },
           );
-          if (critiqueResult) this.applyL0ToCritique(critiqueResult, html, slidePlan.pageType || 'content-no-image');
+          if (critiqueResult)
+            this.applyL0ToCritique(critiqueResult, html, slidePlan.pageType || 'content-no-image');
         }
       }
 
@@ -3522,14 +4544,17 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
         html,
         pageType: slidePlan.pageType,
         imagePrompt: slidePlan.imagePrompt,
-        imageRatio: slidePlan.imageRatio || PAGE_TYPE_DEFAULT_IMAGE_RATIO[slidePlan.pageType] || undefined,
+        imageRatio:
+          slidePlan.imageRatio || PAGE_TYPE_DEFAULT_IMAGE_RATIO[slidePlan.pageType] || undefined,
         backgroundPrompt: plan.slides[slideIndex]?.backgroundPrompt,
-        critique: critiqueResult ? {
-          score: critiqueResult.overallScore,
-          passed: critiqueResult.passed,
-          attempts,
-          issues: critiqueResult.issues.map(i => i.title),
-        } : undefined,
+        critique: critiqueResult
+          ? {
+              score: critiqueResult.overallScore,
+              passed: critiqueResult.passed,
+              attempts,
+              issues: critiqueResult.issues.map((i) => i.title),
+            }
+          : undefined,
       };
     } finally {
       if (ownTraceSession && traceSessionId) {
@@ -3546,7 +4571,7 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
     options?: PresentationGenerationOptions,
     traceSessionId?: string,
   ): Promise<RenderedSlide[]> {
-    const slides: HTMLSlide[] = renderedSlides.map(s => ({
+    const slides: HTMLSlide[] = renderedSlides.map((s) => ({
       title: s.title,
       html: s.html,
       pageType: s.pageType,
@@ -3575,266 +4600,152 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
     }
 
     try {
-    if (imageEnabled && imgProvider.generateImage) {
-      // 切换 LLM trace 阶段标签为 images，便于后续日志分离
-      switchStage(imgProvider, 'images');
-      const timestamp = formatBeijingTime();
-      console.log(`[${timestamp}] [AGENT] Starting parallel image generation...`);
-      onProgress?.({ phase: 'images', current: 0, total: slides.length, message: '正在生成配图...' });
+      if (imageEnabled && imgProvider.generateImage) {
+        // 切换 LLM trace 阶段标签为 images，便于后续日志分离
+        switchStage(imgProvider, 'images');
+        const timestamp = formatBeijingTime();
+        console.log(`[${timestamp}] [AGENT] Starting parallel image generation...`);
+        onProgress?.({
+          phase: 'images',
+          current: 0,
+          total: slides.length,
+          message: '正在生成配图...',
+        });
 
-      const imgLimit = pLimit(2);
-      let successCount = 0;
-      let failCount = 0;
+        const imgLimit = pLimit(2);
+        let successCount = 0;
+        let failCount = 0;
 
-      await Promise.all(
-        slides.map((slide, idx) =>
-          imgLimit(async () => {
-            const slidePlan = plan.slides[idx];
-            const needsImagePerPlan = slidePlan?.needsImage && slidePlan.pageType && PAGE_TYPE_DEFAULT_IMAGE_RATIO[slidePlan.pageType] !== null;
-            let hasPlaceholder = slide.html.includes(IMAGE_PLACEHOLDER);
-            // 兜底 A：计划明确说要配图，但 LLM 生成 HTML 时漏写占位符 → 现在注入后继续生成
-            if (needsImagePerPlan && !hasPlaceholder && slidePlan?.pageType) {
-              const injected = this.injectImagePlaceholderForContentSlide(slide.html, slidePlan.pageType, plan.primaryColor);
-              if (injected !== slide.html) {
-                console.log(`[${formatBeijingTime()}] [AGENT] Slide ${idx + 1} "${slide.title}": plan needs image but placeholder missing → injected, will generate`);
-                slide.html = injected;
-                hasPlaceholder = true;
-              }
-            }
-            // 兜底 B：即便计划没说要，但 HTML 里已经有了占位符（来自升级逻辑或 LLM 自发）→ 也生成
-            const shouldGenerate = (needsImagePerPlan || hasPlaceholder) && hasPlaceholder;
-            if (!shouldGenerate) {
-              onProgress?.({ phase: 'images', current: idx + 1, total: slides.length, message: `配图进度 ${idx + 1}/${slides.length}` });
-              return;
-            }
-            const ratio = slide.imageRatio || slidePlan?.imageRatio || PAGE_TYPE_DEFAULT_IMAGE_RATIO[slidePlan.pageType!] || '4:3';
-            const allModels = options?.imageOptions?.allModels || [];
-            const routing = options?.imageOptions?.routing;
-            const defaultModel = options?.imageOptions?.model || imgProvider.config.model;
-            const { modelName: selectedModel } = selectImageModel(
-              allModels.map((m, i) => ({ ...m, index: i })),
-              slidePlan.pageType!,
-              ratio as ImageRatio,
-              routing,
-              defaultModel,
-            );
-            const selectedModelObj = allModels.find(m => m.modelName === selectedModel);
-            const selectedModelSizes = selectedModelObj?.sizes;
-            const selectedModelPixelRanges = selectedModelObj?.pixelRanges;
-            // —— 运行时诊断：用户现在看到 size=2048x2048 时到底卡在哪一步了 ——
-            // —— 核心原则（用户要求 "严格以 ratio 优先，无法确定才用默认尺寸"）：
-            //    当 ratio 明确存在（非 1:1 或 任意已确定的 ImageRatio），一律信任 ratio，
-            //    除非 ratio=1:1 或 ratio 完全拿不到（plan+HTML 都没写）才用 imageOptions.size。
-            //    这样：imageOptions.size 只是"方形兜底默认尺寸"，不再作为全局覆盖一切的强约束。
-            const __beforeTargetSize = options?.imageOptions?.size as ImageSize | undefined;
-            // 分析配置 size 本身的比例（如果存在）
-            const cfgW = __beforeTargetSize && /^(\d+)x(\d+)$/.test(__beforeTargetSize)
-              ? parseInt(__beforeTargetSize.match(/^(\d+)x(\d+)$/)![1], 10) : 0;
-            const cfgH = __beforeTargetSize && /^(\d+)x(\d+)$/.test(__beforeTargetSize)
-              ? parseInt(__beforeTargetSize.match(/^(\d+)x(\d+)$/)![2], 10) : 0;
-            const cfgIsSquare = cfgW > 0 && cfgH > 0 && cfgW === cfgH;
-            // 判断"ratio 是否明确可信任"：只有 ratio=1:1 或 ratio 根本取不到才尊重配置 size
-            const ratioKnown: boolean =
-              ratio === '1:1' || ratio === '4:3' || ratio === '3:4' || ratio === '16:9' ||
-              ratio === '9:16' || ratio === '3:2' || ratio === '2:3' || ratio === '21:9';
-            // 尊重配置 size 的条件：
-            //   a) ratio=1:1 且 cfg 是方形 → cfg 就是 1:1 尺寸的精确指定；
-            //   b) ratio 未知 → cfg 是默认尺寸。
-            // 其他情况：ratio 明确，一律交给 getImageSizeForRatio，不被 cfg 覆盖
-            let effectiveFixedSize: ImageSize | undefined;
-            let whyIgnoredCfg = '';
-            if (ratio === '1:1') {
-              if (cfgIsSquare) {
-                effectiveFixedSize = __beforeTargetSize; // ratio=1:1 且 cfg 方形 → 尊重
-              } else {
-                effectiveFixedSize = undefined; // ratio=1:1 但 cfg 非方形 → 信任 ratio=1:1，忽略 cfg
-                whyIgnoredCfg = `ratio=1:1 但 cfgSize(${__beforeTargetSize}) 非方形，忽略cfg`;
-              }
-            } else if (!ratioKnown) {
-              effectiveFixedSize = __beforeTargetSize; // ratio 拿不到 → cfg 做默认
-            } else {
-              // ratio 已知且非 1:1 → 严格以 ratio 为准，不管 cfg size 是什么
-              effectiveFixedSize = undefined;
-              whyIgnoredCfg = `ratio=${ratio}，严格按ratio计算尺寸，忽略cfgSize=${__beforeTargetSize ?? '<none>'}`;
-            }
-            // 本地调试时，只要有机会走智能尺寸就打完整链路诊断日志
-            if (!effectiveFixedSize || /^(\d+)x(\d+)$/.test(effectiveFixedSize)) {
-              const msg = (() => {
-                const hasSizes = !!(selectedModelSizes && selectedModelSizes.length);
-                const hasRanges = !!(selectedModelPixelRanges && selectedModelPixelRanges.length);
-                const sizeList = hasSizes ? selectedModelSizes!.map(s => `${s.width}x${s.height}`).join(',') : '<empty>';
-                const rangeList = hasRanges ? selectedModelPixelRanges!.map(r => `${(r.minPixels/1048576).toFixed(2)}-${(r.maxPixels/1048576).toFixed(2)}M`).join(',') : '<empty>';
-                return `seedSize-dbg slide=${idx + 1} model=${selectedModel} ratio=${ratio} hasSizes=${hasSizes}(${sizeList}) hasRanges=${hasRanges}(${rangeList}) cfgSize=${__beforeTargetSize ?? '<none>'} useCfgAsIs=${Boolean(effectiveFixedSize)} whyIgnored=${whyIgnoredCfg || '<ratio respected>'}`;
-              })();
-              console.log(`[${formatBeijingTime()}] [AGENT] ${msg}`);
-            }
-            const targetSize = effectiveFixedSize || getImageSizeForRatio(selectedModel, ratio as ImageRatio, selectedModelSizes, selectedModelPixelRanges);
-            const rawImagePrompt = slidePlan?.imagePrompt || `${topic} - ${slide.title}，商务级专业插画品质，细腻细节，高完成度画面，整体配色与主题协调`;
-            const imagePrompt = this.sanitizeImagePrompt(rawImagePrompt, plan.primaryColor);
-            try {
-              const images = await imgProvider.generateImage!(imagePrompt, {
-                model: selectedModel,
-                size: targetSize,
-                quality: options?.imageOptions?.quality,
-                n: 1,
-                referenceImage: options?.referenceImage,
-                // FR-15：按 slide pageType 选取对应分类的参考图作为 img2img seed（provider 内部按分类选取）
-                referenceImageByCategory: this.buildReferenceSeedMap(options),
-                referenceCategory: slide.pageType,
-                // 扩展字段：给 imageProvider 的 trace 使用，便于日志定位 slide 页号和标题
-                ...({ scene: `slide-${idx + 1} "${slide.title}" (primary, ratio=${ratio})` } as any),
-              });
-              if (images && images.length > 0 && images[0].url) {
-                slide.html = replaceImagePlaceholderWithRealSrc(slide.html, images[0].url, ratio as ImageRatio);
-                successCount++;
-                console.log(`[${formatBeijingTime()}] [AGENT] Slide ${idx + 1}: image generated with ${selectedModel} (targetSize=${targetSize}, ratio=${ratio})`);
-              } else {
-                failCount++;
-                this.removeImagePlaceholder(slide);
-              }
-            } catch (e) {
-              failCount++;
-              console.warn(`[${formatBeijingTime()}] [AGENT] Slide ${idx + 1} image generation failed (${selectedModel}), removing placeholder:`, e);
-              this.removeImagePlaceholder(slide);
-            }
-            onProgress?.({ phase: 'images', current: idx + 1, total: slides.length, message: `配图进度 ${idx + 1}/${slides.length}` });
-          })
-        )
-      );
-      console.log(`[${formatBeijingTime()}] [AGENT] Image generation complete: ${successCount} succeeded, ${failCount} failed`);
-    } else if (!imageEnabled) {
-      for (const slide of slides) {
-        this.removeImagePlaceholder(slide);
-      }
-    }
-
-    // ========== 兜底 2+（B-2）：imagePreference 终局校验 —— 图片生成后扫描漏网之鱼，重新注入+再生成 ==========
-    // 修复：LLM HTML 既没有 <img>，也没有占位符，即使 A-3/B-1 都过了也有可能在极端情况下（占位符替换时 remove 掉了）出现裸文本 slide
-    // 扫描范围：imagePreference=all 时所有 slide；content-only 时非结构页的 slide
-    if ((imagePreference === 'all' || imagePreference === 'content-only') && imgProvider.generateImage) {
-      const toReInject: Array<{ slide: HTMLSlide; sp: SlidePlan; idx: number; layout: 'content-image-left' | 'content-image-top' }> = [];
-      const finalNeedImage = (pt: SlidePageType | undefined, _idx2: number): 'content-image-left' | 'content-image-top' | null => {
-        // ——— FR-1 (fix-slide-comparison-image-disaster)：L1 高级版式 + cards/compare/timeline/table 一概不补图 ———
-        const NEVER_UPGRADE_FOR_IMAGE: ReadonlySet<string> = new Set([
-          'comparison-deep-dive',
-          'content-value-showcase',
-          'content-stats-highlight',
-          'content-image-background',
-          'content-zigzag',
-          'content-cards',
-          'content-compare',
-          'content-timeline',
-          'content-table',
-          // ===== FR-18 扩展（全部 needsImage=false，禁止强制升带图）=====
-          'content-flowchart',
-          'content-org-chart',
-          'content-pyramid',
-          'content-matrix',
-          'content-quote',
-          'content-three-section',
-          'content-process-steps',
-          'content-icon-grid',
-          'content-section-divider',
-          'content-testimonial',
-          'content-chart-bar',
-          'content-chart-line',
-          'content-chart-pie',
-          'content-chart-donut',
-          'content-cycle',
-          'content-dashboard',
-        ]);
-        if (pt && NEVER_UPGRADE_FOR_IMAGE.has(pt)) return null;
-        if (imagePreference === 'all') {
-          // all → 封面/总结/目录用 top；其余默认 left
-          return pt === 'cover' || pt === 'summary' || pt === 'toc'
-            ? 'content-image-top'
-            : 'content-image-left';
-        }
-        // content-only → 非结构页
-        const isStructure = pt === 'cover' || pt === 'toc' || pt === 'summary';
-        if (isStructure) return null;
-        return 'content-image-left';
-      };
-      for (let i = 0; i < slides.length; i++) {
-        const s = slides[i];
-        const sp = plan.slides[i];
-        const hasImg = /<img\b[^>]*src\s*=\s*["'](?!.*NOPPT_IMAGE_PLACEHOLDER)[^"']+["']/i.test(s.html);
-        if (hasImg) continue;
-        const layout = finalNeedImage(s.pageType || sp?.pageType, i);
-        if (!layout) continue;
-        // 这张 slide 在终局没有有效 <img src>
-        const meaningfulB =
-          s.pageType === 'cover' || s.pageType === 'toc' || s.pageType === 'summary'
-            ? Boolean(s.title) || this.slideHasMeaningfulBody(s.html)
-            : this.slideHasMeaningfulBody(s.html);
-        if (!meaningfulB) continue;
-        toReInject.push({ slide: s, sp, idx: i, layout });
-      }
-      if (toReInject.length > 0) {
-        console.log(`[${formatBeijingTime()}] [AGENT] B-2 FINAL CHECK: found ${toReInject.length} slide(s) without image, re-injecting & re-generating...`);
-        onProgress?.({ phase: 'images', current: slides.length, total: slides.length + toReInject.length, message: `发现 ${toReInject.length} 张漏网无图页，正在补图...` });
-        const imgLimit2 = pLimit(2);
         await Promise.all(
-          toReInject.map((entry) =>
-            imgLimit2(async () => {
-              const { slide, sp, idx, layout } = entry;
-              const injected = this.injectImagePlaceholderForContentSlide(slide.html, layout, plan.primaryColor);
-              slide.html = injected;
-              if (!slide.imageRatio) slide.imageRatio = layout === 'content-image-top' ? '21:9' : '4:3';
-              slide.pageType = layout;
-              if (sp) {
-                sp.pageType = layout;
-                sp.needsImage = true;
-                if (!sp.imageRatio) sp.imageRatio = slide.imageRatio;
+          slides.map((slide, idx) =>
+            imgLimit(async () => {
+              const slidePlan = plan.slides[idx];
+              const needsImagePerPlan =
+                slidePlan?.needsImage &&
+                slidePlan.pageType &&
+                PAGE_TYPE_DEFAULT_IMAGE_RATIO[slidePlan.pageType] !== null;
+              let hasPlaceholder = slide.html.includes(IMAGE_PLACEHOLDER);
+              // 兜底 A：计划明确说要配图，但 LLM 生成 HTML 时漏写占位符 → 现在注入后继续生成
+              if (needsImagePerPlan && !hasPlaceholder && slidePlan?.pageType) {
+                const injected = this.injectImagePlaceholderForContentSlide(
+                  slide.html,
+                  slidePlan.pageType,
+                  plan.primaryColor,
+                );
+                if (injected !== slide.html) {
+                  console.log(
+                    `[${formatBeijingTime()}] [AGENT] Slide ${idx + 1} "${slide.title}": plan needs image but placeholder missing → injected, will generate`,
+                  );
+                  slide.html = injected;
+                  hasPlaceholder = true;
+                }
               }
-              // 再跑一次生成
-              const ratio = slide.imageRatio || sp?.imageRatio || (layout === 'content-image-top' ? '21:9' : '4:3');
+              // 兜底 B：即便计划没说要，但 HTML 里已经有了占位符（来自升级逻辑或 LLM 自发）→ 也生成
+              const shouldGenerate = (needsImagePerPlan || hasPlaceholder) && hasPlaceholder;
+              if (!shouldGenerate) {
+                onProgress?.({
+                  phase: 'images',
+                  current: idx + 1,
+                  total: slides.length,
+                  message: `配图进度 ${idx + 1}/${slides.length}`,
+                });
+                return;
+              }
+              const ratio =
+                slide.imageRatio ||
+                slidePlan?.imageRatio ||
+                PAGE_TYPE_DEFAULT_IMAGE_RATIO[slidePlan.pageType!] ||
+                '4:3';
               const allModels = options?.imageOptions?.allModels || [];
               const routing = options?.imageOptions?.routing;
               const defaultModel = options?.imageOptions?.model || imgProvider.config.model;
               const { modelName: selectedModel } = selectImageModel(
                 allModels.map((m, i) => ({ ...m, index: i })),
-                layout,
+                slidePlan.pageType!,
                 ratio as ImageRatio,
                 routing,
                 defaultModel,
               );
-              const selectedModelObj = allModels.find(m => m.modelName === selectedModel);
+              const selectedModelObj = allModels.find((m) => m.modelName === selectedModel);
               const selectedModelSizes = selectedModelObj?.sizes;
               const selectedModelPixelRanges = selectedModelObj?.pixelRanges;
-              // —— B-2 补图路径：严格按 ratio 优先（与主配图路径规则完全一致）
-              const __beforeTargetSizeB2 = options?.imageOptions?.size as ImageSize | undefined;
-              const cfgWB2 = __beforeTargetSizeB2 && /^(\d+)x(\d+)$/.test(__beforeTargetSizeB2)
-                ? parseInt(__beforeTargetSizeB2.match(/^(\d+)x(\d+)$/)![1], 10) : 0;
-              const cfgHB2 = __beforeTargetSizeB2 && /^(\d+)x(\d+)$/.test(__beforeTargetSizeB2)
-                ? parseInt(__beforeTargetSizeB2.match(/^(\d+)x(\d+)$/)![2], 10) : 0;
-              const cfgIsSquareB2 = cfgWB2 > 0 && cfgHB2 > 0 && cfgWB2 === cfgHB2;
-              const ratioKnownB2: boolean =
-                ratio === '1:1' || ratio === '4:3' || ratio === '3:4' || ratio === '16:9' ||
-                ratio === '9:16' || ratio === '3:2' || ratio === '2:3' || ratio === '21:9';
-              let effectiveFixedSizeB2: ImageSize | undefined;
-              let whyIgnoredCfgB2 = '';
+              // —— 运行时诊断：用户现在看到 size=2048x2048 时到底卡在哪一步了 ——
+              // —— 核心原则（用户要求 "严格以 ratio 优先，无法确定才用默认尺寸"）：
+              //    当 ratio 明确存在（非 1:1 或 任意已确定的 ImageRatio），一律信任 ratio，
+              //    除非 ratio=1:1 或 ratio 完全拿不到（plan+HTML 都没写）才用 imageOptions.size。
+              //    这样：imageOptions.size 只是"方形兜底默认尺寸"，不再作为全局覆盖一切的强约束。
+              const __beforeTargetSize = options?.imageOptions?.size as ImageSize | undefined;
+              // 分析配置 size 本身的比例（如果存在）
+              const cfgW =
+                __beforeTargetSize && /^(\d+)x(\d+)$/.test(__beforeTargetSize)
+                  ? parseInt(__beforeTargetSize.match(/^(\d+)x(\d+)$/)![1], 10)
+                  : 0;
+              const cfgH =
+                __beforeTargetSize && /^(\d+)x(\d+)$/.test(__beforeTargetSize)
+                  ? parseInt(__beforeTargetSize.match(/^(\d+)x(\d+)$/)![2], 10)
+                  : 0;
+              const cfgIsSquare = cfgW > 0 && cfgH > 0 && cfgW === cfgH;
+              // 判断"ratio 是否明确可信任"：只有 ratio=1:1 或 ratio 根本取不到才尊重配置 size
+              const ratioKnown: boolean =
+                ratio === '1:1' ||
+                ratio === '4:3' ||
+                ratio === '3:4' ||
+                ratio === '16:9' ||
+                ratio === '9:16' ||
+                ratio === '3:2' ||
+                ratio === '2:3' ||
+                ratio === '21:9';
+              // 尊重配置 size 的条件：
+              //   a) ratio=1:1 且 cfg 是方形 → cfg 就是 1:1 尺寸的精确指定；
+              //   b) ratio 未知 → cfg 是默认尺寸。
+              // 其他情况：ratio 明确，一律交给 getImageSizeForRatio，不被 cfg 覆盖
+              let effectiveFixedSize: ImageSize | undefined;
+              let whyIgnoredCfg = '';
               if (ratio === '1:1') {
-                if (cfgIsSquareB2) effectiveFixedSizeB2 = __beforeTargetSizeB2;
-                else { effectiveFixedSizeB2 = undefined; whyIgnoredCfgB2 = `ratio=1:1但cfgSize非方形，忽略cfg`; }
-              } else if (!ratioKnownB2) {
-                effectiveFixedSizeB2 = __beforeTargetSizeB2;
+                if (cfgIsSquare) {
+                  effectiveFixedSize = __beforeTargetSize; // ratio=1:1 且 cfg 方形 → 尊重
+                } else {
+                  effectiveFixedSize = undefined; // ratio=1:1 但 cfg 非方形 → 信任 ratio=1:1，忽略 cfg
+                  whyIgnoredCfg = `ratio=1:1 但 cfgSize(${__beforeTargetSize}) 非方形，忽略cfg`;
+                }
+              } else if (!ratioKnown) {
+                effectiveFixedSize = __beforeTargetSize; // ratio 拿不到 → cfg 做默认
               } else {
-                effectiveFixedSizeB2 = undefined;
-                whyIgnoredCfgB2 = `ratio=${ratio}，严格按ratio计算尺寸，忽略cfgSize=${__beforeTargetSizeB2 ?? '<none>'}`;
+                // ratio 已知且非 1:1 → 严格以 ratio 为准，不管 cfg size 是什么
+                effectiveFixedSize = undefined;
+                whyIgnoredCfg = `ratio=${ratio}，严格按ratio计算尺寸，忽略cfgSize=${__beforeTargetSize ?? '<none>'}`;
               }
-              if (!effectiveFixedSizeB2 || /^(\d+)x(\d+)$/.test(effectiveFixedSizeB2)) {
+              // 本地调试时，只要有机会走智能尺寸就打完整链路诊断日志
+              if (!effectiveFixedSize || /^(\d+)x(\d+)$/.test(effectiveFixedSize)) {
                 const msg = (() => {
                   const hasSizes = !!(selectedModelSizes && selectedModelSizes.length);
                   const hasRanges = !!(selectedModelPixelRanges && selectedModelPixelRanges.length);
-                  const sizeList = hasSizes ? selectedModelSizes!.map(s => `${s.width}x${s.height}`).join(',') : '<empty>';
-                  const rangeList = hasRanges ? selectedModelPixelRanges!.map(r => `${(r.minPixels/1048576).toFixed(2)}-${(r.maxPixels/1048576).toFixed(2)}M`).join(',') : '<empty>';
-                  return `seedSize-dbg(B-2) slide=${idx + 1} model=${selectedModel} ratio=${ratio} layout=${layout} hasSizes=${hasSizes}(${sizeList}) hasRanges=${hasRanges}(${rangeList}) cfgSize=${__beforeTargetSizeB2 ?? '<none>'} useCfgAsIs=${Boolean(effectiveFixedSizeB2)} whyIgnored=${whyIgnoredCfgB2 || '<ratio respected>'}`;
+                  const sizeList = hasSizes
+                    ? selectedModelSizes!.map((s) => `${s.width}x${s.height}`).join(',')
+                    : '<empty>';
+                  const rangeList = hasRanges
+                    ? selectedModelPixelRanges!
+                        .map(
+                          (r) =>
+                            `${(r.minPixels / 1048576).toFixed(2)}-${(r.maxPixels / 1048576).toFixed(2)}M`,
+                        )
+                        .join(',')
+                    : '<empty>';
+                  return `seedSize-dbg slide=${idx + 1} model=${selectedModel} ratio=${ratio} hasSizes=${hasSizes}(${sizeList}) hasRanges=${hasRanges}(${rangeList}) cfgSize=${__beforeTargetSize ?? '<none>'} useCfgAsIs=${Boolean(effectiveFixedSize)} whyIgnored=${whyIgnoredCfg || '<ratio respected>'}`;
                 })();
                 console.log(`[${formatBeijingTime()}] [AGENT] ${msg}`);
               }
-              const targetSize = effectiveFixedSizeB2 || getImageSizeForRatio(selectedModel, ratio as ImageRatio, selectedModelSizes, selectedModelPixelRanges);
-              const rawImagePrompt = sp?.imagePrompt || `${topic} - ${slide.title}，商务级专业插画品质，细腻细节，高完成度画面，整体配色与主题协调`;
+              const targetSize =
+                effectiveFixedSize ||
+                getImageSizeForRatio(
+                  selectedModel,
+                  ratio as ImageRatio,
+                  selectedModelSizes,
+                  selectedModelPixelRanges,
+                );
+              const rawImagePrompt =
+                slidePlan?.imagePrompt ||
+                `${topic} - ${slide.title}，商务级专业插画品质，细腻细节，高完成度画面，整体配色与主题协调`;
               const imagePrompt = this.sanitizeImagePrompt(rawImagePrompt, plan.primaryColor);
               try {
                 const images = await imgProvider.generateImage!(imagePrompt, {
@@ -3843,162 +4754,492 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
                   quality: options?.imageOptions?.quality,
                   n: 1,
                   referenceImage: options?.referenceImage,
-                  // FR-15：按 slide pageType 选取对应分类的参考图作为 img2img seed
+                  // FR-15：按 slide pageType 选取对应分类的参考图作为 img2img seed（provider 内部按分类选取）
                   referenceImageByCategory: this.buildReferenceSeedMap(options),
                   referenceCategory: slide.pageType,
-                  ...({ scene: `slide-${idx + 1} "${slide.title}" (B-2-rescue, layout=${layout})` } as any),
+                  // 扩展字段：给 imageProvider 的 trace 使用，便于日志定位 slide 页号和标题
+                  ...({
+                    scene: `slide-${idx + 1} "${slide.title}" (primary, ratio=${ratio})`,
+                  } as any),
                 });
                 if (images && images.length > 0 && images[0].url) {
-                  slide.html = replaceImagePlaceholderWithRealSrc(slide.html, images[0].url, ratio as ImageRatio);
-                  console.log(`[${formatBeijingTime()}] [AGENT] Slide ${idx + 1} B-2 补图成功 (${selectedModel}, targetSize=${targetSize}, ratio=${ratio})`);
+                  slide.html = replaceImagePlaceholderWithRealSrc(
+                    slide.html,
+                    images[0].url,
+                    ratio as ImageRatio,
+                  );
+                  successCount++;
+                  console.log(
+                    `[${formatBeijingTime()}] [AGENT] Slide ${idx + 1}: image generated with ${selectedModel} (targetSize=${targetSize}, ratio=${ratio})`,
+                  );
                 } else {
-                  // 再失败：移除 placeholder，交给 server 端孤儿救援（它会把其他生成的孤儿图片塞进来）
+                  failCount++;
                   this.removeImagePlaceholder(slide);
-                  console.warn(`[${formatBeijingTime()}] [AGENT] Slide ${idx + 1} B-2 补图无结果，等待 server 端孤儿救援...`);
                 }
               } catch (e) {
+                failCount++;
+                console.warn(
+                  `[${formatBeijingTime()}] [AGENT] Slide ${idx + 1} image generation failed (${selectedModel}), removing placeholder:`,
+                  e,
+                );
                 this.removeImagePlaceholder(slide);
-                console.warn(`[${formatBeijingTime()}] [AGENT] Slide ${idx + 1} B-2 补图异常，等待 server 端孤儿救援:`, e);
               }
-              onProgress?.({ phase: 'images', current: slides.length + (idx + 1), total: slides.length + toReInject.length, message: `补图进度 ${entry.idx + 1}/${toReInject.length}` });
-            })
-          )
+              onProgress?.({
+                phase: 'images',
+                current: idx + 1,
+                total: slides.length,
+                message: `配图进度 ${idx + 1}/${slides.length}`,
+              });
+            }),
+          ),
         );
-      }
-    }
-
-    if (backgroundEnabled && imgProvider.generateImage) {
-      const timestamp = formatBeijingTime();
-      console.log(`[${timestamp}] [AGENT] Starting background image generation...`);
-      onProgress?.({ phase: 'images', current: 0, total: 4, message: '正在生成背景图...' });
-
-      const BG_PLACEHOLDER = 'https://NOPPT_BG_PLACEHOLDER';
-      //【缺陷修复 1】cover/toc/summary 也必须 HTML 里真正存在 BG_PLACEHOLDER 才入队，
-      // 否则即使 pageType 匹配也会白白调用 generateImage，再 replace 时 0 命中，导致"打了 trace 但图片没注入"的假象
-      const coverSlide = slides.find(s => s.pageType === 'cover' && s.html.includes(BG_PLACEHOLDER));
-      const tocSlide = slides.find(s => s.pageType === 'toc' && s.html.includes(BG_PLACEHOLDER));
-      const contentSlide = slides.find(s => s.pageType && s.pageType.startsWith('content-') && s.html.includes(BG_PLACEHOLDER));
-      const summarySlide = slides.find(s => s.pageType === 'summary' && s.html.includes(BG_PLACEHOLDER));
-
-      const bgTasks: { label: string; slide: HTMLSlide; prompt: string }[] = [];
-      const contentPrompt = plan.slides.find(s => s.pageType?.startsWith('content-'))?.backgroundPrompt;
-
-      if (coverSlide) {
-        const p = plan.slides.find(s => s.pageType === 'cover')?.backgroundPrompt;
-        if (p) bgTasks.push({ label: '封面', slide: coverSlide, prompt: p });
-      }
-      if (tocSlide) {
-        const p = plan.slides.find(s => s.pageType === 'toc')?.backgroundPrompt;
-        if (p) bgTasks.push({ label: '目录', slide: tocSlide, prompt: p });
-      }
-      //【缺陷修复 2】内容背景：contentPrompt 存在但没有任何 content 页含 BG_PLACEHOLDER 时，
-      // 之前整个"内容"任务被跳过（连 generateImage 都不打 trace），用户以为没执行。
-      // 改为：找任意 content 页当"主落点 slide"，后续 replace 仍遍历所有 content 页。
-      if (contentPrompt) {
-        if (contentSlide) {
-          bgTasks.push({ label: '内容', slide: contentSlide, prompt: contentPrompt });
-        } else {
-          const fallbackContentSlide = slides.find(s => s.pageType && s.pageType.startsWith('content-'));
-          if (fallbackContentSlide) {
-            console.warn(`[${formatBeijingTime()}] [AGENT] Background(content): contentPrompt 存在但没有 content 页包含 BG_PLACEHOLDER，仍然尝试生成背景图，后续将遍历所有 content 页用 background-image 注入`);
-            bgTasks.push({ label: '内容', slide: fallbackContentSlide, prompt: contentPrompt });
-          } else {
-            console.warn(`[${formatBeijingTime()}] [AGENT] Background(content): contentPrompt 存在，但没有 pageType=content-* 的 slide，跳过内容背景`);
-          }
+        console.log(
+          `[${formatBeijingTime()}] [AGENT] Image generation complete: ${successCount} succeeded, ${failCount} failed`,
+        );
+      } else if (!imageEnabled) {
+        for (const slide of slides) {
+          this.removeImagePlaceholder(slide);
         }
-      } else {
-        //【缺陷修复 3】planning 没输出 backgroundPrompt 时给出显性日志
-        console.warn(`[${formatBeijingTime()}] [AGENT] Background(content): plan.slides 中所有 content-* 页均没有 backgroundPrompt，请检查 planning 输出是否包含 backgroundPrompt`);
-      }
-      if (summarySlide) {
-        const p = plan.slides.find(s => s.pageType === 'summary')?.backgroundPrompt;
-        if (p) bgTasks.push({ label: '总结', slide: summarySlide, prompt: p });
       }
 
-      //【缺陷修复 4】最终入队 0 条时，给出"为什么没生成"的汇总日志 + progress 更新，避免一条 trace 都没有、
-      // 用户就像本 issue 一样困惑："为什么 ai-log 里找不到背景图报文"
-      if (bgTasks.length === 0) {
-        console.warn(`[${formatBeijingTime()}] [AGENT] Background: 最终入队 bgTasks=0，以下均为可能原因：① slide HTML 里没有 NOPPT_BG_PLACEHOLDER；② planning 没输出 backgroundPrompt；③ 没有 cover/toc/content-*/summary 等目标 pageType。请逐一核实`);
-        onProgress?.({ phase: 'images', current: 1, total: 1, message: '背景图无需生成（无 BG_PLACEHOLDER 或未规划 backgroundPrompt）' });
-      } else {
-        let bgIdx = 0;
-        for (const task of bgTasks) {
-          try {
-            const bgImgPrompt = this.sanitizeImagePrompt(task.prompt, plan.primaryColor);
-            const allModels = options?.imageOptions?.allModels || [];
-            const defaultModel = options?.imageOptions?.model || imgProvider.config.model;
-            let selectedModel = defaultModel;
-            let selectedModelSizes = allModels.find(m => m.modelName === selectedModel)?.sizes;
-            const bgSize: ImageSize = '1792x1024';
-            const actualSize = selectedModelSizes?.some(s => `${s.width}x${s.height}` === bgSize) ? bgSize : (options?.imageOptions?.size as ImageSize) || '1792x1024';
-
-            const images = await imgProvider.generateImage!(bgImgPrompt, {
-              model: selectedModel,
-              size: actualSize,
-              quality: options?.imageOptions?.quality,
-              n: 1,
-              ...({ scene: `background-${task.label}` } as any),
-            });
-            if (images && images.length > 0 && images[0].url) {
-              const hitsBefore = task.label === '内容'
-                ? slides.filter(s => s.pageType?.startsWith('content-')).reduce((acc, s) => acc + (s.html.match(/NOPPT_BG_PLACEHOLDER/gi)?.length ?? 0), 0)
-                : (task.slide.html.match(/NOPPT_BG_PLACEHOLDER/gi)?.length ?? 0);
-              if (task.label === '内容') {
-                for (const slide of slides) {
-                  if (slide.pageType?.startsWith('content-')) {
-                    slide.html = slide.html.replace(/url\(['"]?https:\/\/NOPPT_BG_PLACEHOLDER['"]?\)/gi, `url('${images[0].url}')`);
+      // ========== 兜底 2+（B-2）：imagePreference 终局校验 —— 图片生成后扫描漏网之鱼，重新注入+再生成 ==========
+      // 修复：LLM HTML 既没有 <img>，也没有占位符，即使 A-3/B-1 都过了也有可能在极端情况下（占位符替换时 remove 掉了）出现裸文本 slide
+      // 扫描范围：imagePreference=all 时所有 slide；content-only 时非结构页的 slide
+      if (
+        (imagePreference === 'all' || imagePreference === 'content-only') &&
+        imgProvider.generateImage
+      ) {
+        const toReInject: Array<{
+          slide: HTMLSlide;
+          sp: SlidePlan;
+          idx: number;
+          layout: 'content-image-left' | 'content-image-top';
+        }> = [];
+        const finalNeedImage = (
+          pt: SlidePageType | undefined,
+          _idx2: number,
+        ): 'content-image-left' | 'content-image-top' | null => {
+          // ——— FR-1 (fix-slide-comparison-image-disaster)：L1 高级版式 + cards/compare/timeline/table 一概不补图 ———
+          const NEVER_UPGRADE_FOR_IMAGE: ReadonlySet<string> = new Set([
+            'comparison-deep-dive',
+            'content-value-showcase',
+            'content-stats-highlight',
+            'content-image-background',
+            'content-zigzag',
+            'content-cards',
+            'content-compare',
+            'content-timeline',
+            'content-table',
+            // ===== FR-18 扩展（全部 needsImage=false，禁止强制升带图）=====
+            'content-flowchart',
+            'content-org-chart',
+            'content-pyramid',
+            'content-matrix',
+            'content-quote',
+            'content-three-section',
+            'content-process-steps',
+            'content-icon-grid',
+            'content-section-divider',
+            'content-testimonial',
+            'content-chart-bar',
+            'content-chart-line',
+            'content-chart-pie',
+            'content-chart-donut',
+            'content-cycle',
+            'content-dashboard',
+          ]);
+          if (pt && NEVER_UPGRADE_FOR_IMAGE.has(pt)) return null;
+          if (imagePreference === 'all') {
+            // all → 封面/总结/目录用 top；其余默认 left
+            return pt === 'cover' || pt === 'summary' || pt === 'toc'
+              ? 'content-image-top'
+              : 'content-image-left';
+          }
+          // content-only → 非结构页
+          const isStructure = pt === 'cover' || pt === 'toc' || pt === 'summary';
+          if (isStructure) return null;
+          return 'content-image-left';
+        };
+        for (let i = 0; i < slides.length; i++) {
+          const s = slides[i];
+          const sp = plan.slides[i];
+          const hasImg = /<img\b[^>]*src\s*=\s*["'](?!.*NOPPT_IMAGE_PLACEHOLDER)[^"']+["']/i.test(
+            s.html,
+          );
+          if (hasImg) continue;
+          const layout = finalNeedImage(s.pageType || sp?.pageType, i);
+          if (!layout) continue;
+          // 这张 slide 在终局没有有效 <img src>
+          const meaningfulB =
+            s.pageType === 'cover' || s.pageType === 'toc' || s.pageType === 'summary'
+              ? Boolean(s.title) || this.slideHasMeaningfulBody(s.html)
+              : this.slideHasMeaningfulBody(s.html);
+          if (!meaningfulB) continue;
+          toReInject.push({ slide: s, sp, idx: i, layout });
+        }
+        if (toReInject.length > 0) {
+          console.log(
+            `[${formatBeijingTime()}] [AGENT] B-2 FINAL CHECK: found ${toReInject.length} slide(s) without image, re-injecting & re-generating...`,
+          );
+          onProgress?.({
+            phase: 'images',
+            current: slides.length,
+            total: slides.length + toReInject.length,
+            message: `发现 ${toReInject.length} 张漏网无图页，正在补图...`,
+          });
+          const imgLimit2 = pLimit(2);
+          await Promise.all(
+            toReInject.map((entry) =>
+              imgLimit2(async () => {
+                const { slide, sp, idx, layout } = entry;
+                const injected = this.injectImagePlaceholderForContentSlide(
+                  slide.html,
+                  layout,
+                  plan.primaryColor,
+                );
+                slide.html = injected;
+                if (!slide.imageRatio)
+                  slide.imageRatio = layout === 'content-image-top' ? '21:9' : '4:3';
+                slide.pageType = layout;
+                if (sp) {
+                  sp.pageType = layout;
+                  sp.needsImage = true;
+                  if (!sp.imageRatio) sp.imageRatio = slide.imageRatio;
+                }
+                // 再跑一次生成
+                const ratio =
+                  slide.imageRatio ||
+                  sp?.imageRatio ||
+                  (layout === 'content-image-top' ? '21:9' : '4:3');
+                const allModels = options?.imageOptions?.allModels || [];
+                const routing = options?.imageOptions?.routing;
+                const defaultModel = options?.imageOptions?.model || imgProvider.config.model;
+                const { modelName: selectedModel } = selectImageModel(
+                  allModels.map((m, i) => ({ ...m, index: i })),
+                  layout,
+                  ratio as ImageRatio,
+                  routing,
+                  defaultModel,
+                );
+                const selectedModelObj = allModels.find((m) => m.modelName === selectedModel);
+                const selectedModelSizes = selectedModelObj?.sizes;
+                const selectedModelPixelRanges = selectedModelObj?.pixelRanges;
+                // —— B-2 补图路径：严格按 ratio 优先（与主配图路径规则完全一致）
+                const __beforeTargetSizeB2 = options?.imageOptions?.size as ImageSize | undefined;
+                const cfgWB2 =
+                  __beforeTargetSizeB2 && /^(\d+)x(\d+)$/.test(__beforeTargetSizeB2)
+                    ? parseInt(__beforeTargetSizeB2.match(/^(\d+)x(\d+)$/)![1], 10)
+                    : 0;
+                const cfgHB2 =
+                  __beforeTargetSizeB2 && /^(\d+)x(\d+)$/.test(__beforeTargetSizeB2)
+                    ? parseInt(__beforeTargetSizeB2.match(/^(\d+)x(\d+)$/)![2], 10)
+                    : 0;
+                const cfgIsSquareB2 = cfgWB2 > 0 && cfgHB2 > 0 && cfgWB2 === cfgHB2;
+                const ratioKnownB2: boolean =
+                  ratio === '1:1' ||
+                  ratio === '4:3' ||
+                  ratio === '3:4' ||
+                  ratio === '16:9' ||
+                  ratio === '9:16' ||
+                  ratio === '3:2' ||
+                  ratio === '2:3' ||
+                  ratio === '21:9';
+                let effectiveFixedSizeB2: ImageSize | undefined;
+                let whyIgnoredCfgB2 = '';
+                if (ratio === '1:1') {
+                  if (cfgIsSquareB2) effectiveFixedSizeB2 = __beforeTargetSizeB2;
+                  else {
+                    effectiveFixedSizeB2 = undefined;
+                    whyIgnoredCfgB2 = `ratio=1:1但cfgSize非方形，忽略cfg`;
                   }
+                } else if (!ratioKnownB2) {
+                  effectiveFixedSizeB2 = __beforeTargetSizeB2;
+                } else {
+                  effectiveFixedSizeB2 = undefined;
+                  whyIgnoredCfgB2 = `ratio=${ratio}，严格按ratio计算尺寸，忽略cfgSize=${__beforeTargetSizeB2 ?? '<none>'}`;
+                }
+                if (!effectiveFixedSizeB2 || /^(\d+)x(\d+)$/.test(effectiveFixedSizeB2)) {
+                  const msg = (() => {
+                    const hasSizes = !!(selectedModelSizes && selectedModelSizes.length);
+                    const hasRanges = !!(
+                      selectedModelPixelRanges && selectedModelPixelRanges.length
+                    );
+                    const sizeList = hasSizes
+                      ? selectedModelSizes!.map((s) => `${s.width}x${s.height}`).join(',')
+                      : '<empty>';
+                    const rangeList = hasRanges
+                      ? selectedModelPixelRanges!
+                          .map(
+                            (r) =>
+                              `${(r.minPixels / 1048576).toFixed(2)}-${(r.maxPixels / 1048576).toFixed(2)}M`,
+                          )
+                          .join(',')
+                      : '<empty>';
+                    return `seedSize-dbg(B-2) slide=${idx + 1} model=${selectedModel} ratio=${ratio} layout=${layout} hasSizes=${hasSizes}(${sizeList}) hasRanges=${hasRanges}(${rangeList}) cfgSize=${__beforeTargetSizeB2 ?? '<none>'} useCfgAsIs=${Boolean(effectiveFixedSizeB2)} whyIgnored=${whyIgnoredCfgB2 || '<ratio respected>'}`;
+                  })();
+                  console.log(`[${formatBeijingTime()}] [AGENT] ${msg}`);
+                }
+                const targetSize =
+                  effectiveFixedSizeB2 ||
+                  getImageSizeForRatio(
+                    selectedModel,
+                    ratio as ImageRatio,
+                    selectedModelSizes,
+                    selectedModelPixelRanges,
+                  );
+                const rawImagePrompt =
+                  sp?.imagePrompt ||
+                  `${topic} - ${slide.title}，商务级专业插画品质，细腻细节，高完成度画面，整体配色与主题协调`;
+                const imagePrompt = this.sanitizeImagePrompt(rawImagePrompt, plan.primaryColor);
+                try {
+                  const images = await imgProvider.generateImage!(imagePrompt, {
+                    model: selectedModel,
+                    size: targetSize,
+                    quality: options?.imageOptions?.quality,
+                    n: 1,
+                    referenceImage: options?.referenceImage,
+                    // FR-15：按 slide pageType 选取对应分类的参考图作为 img2img seed
+                    referenceImageByCategory: this.buildReferenceSeedMap(options),
+                    referenceCategory: slide.pageType,
+                    ...({
+                      scene: `slide-${idx + 1} "${slide.title}" (B-2-rescue, layout=${layout})`,
+                    } as any),
+                  });
+                  if (images && images.length > 0 && images[0].url) {
+                    slide.html = replaceImagePlaceholderWithRealSrc(
+                      slide.html,
+                      images[0].url,
+                      ratio as ImageRatio,
+                    );
+                    console.log(
+                      `[${formatBeijingTime()}] [AGENT] Slide ${idx + 1} B-2 补图成功 (${selectedModel}, targetSize=${targetSize}, ratio=${ratio})`,
+                    );
+                  } else {
+                    // 再失败：移除 placeholder，交给 server 端孤儿救援（它会把其他生成的孤儿图片塞进来）
+                    this.removeImagePlaceholder(slide);
+                    console.warn(
+                      `[${formatBeijingTime()}] [AGENT] Slide ${idx + 1} B-2 补图无结果，等待 server 端孤儿救援...`,
+                    );
+                  }
+                } catch (e) {
+                  this.removeImagePlaceholder(slide);
+                  console.warn(
+                    `[${formatBeijingTime()}] [AGENT] Slide ${idx + 1} B-2 补图异常，等待 server 端孤儿救援:`,
+                    e,
+                  );
+                }
+                onProgress?.({
+                  phase: 'images',
+                  current: slides.length + (idx + 1),
+                  total: slides.length + toReInject.length,
+                  message: `补图进度 ${entry.idx + 1}/${toReInject.length}`,
+                });
+              }),
+            ),
+          );
+        }
+      }
+
+      if (backgroundEnabled && imgProvider.generateImage) {
+        const timestamp = formatBeijingTime();
+        console.log(`[${timestamp}] [AGENT] Starting background image generation...`);
+        onProgress?.({ phase: 'images', current: 0, total: 4, message: '正在生成背景图...' });
+
+        const BG_PLACEHOLDER = 'https://NOPPT_BG_PLACEHOLDER';
+        //【缺陷修复 1】cover/toc/summary 也必须 HTML 里真正存在 BG_PLACEHOLDER 才入队，
+        // 否则即使 pageType 匹配也会白白调用 generateImage，再 replace 时 0 命中，导致"打了 trace 但图片没注入"的假象
+        const coverSlide = slides.find(
+          (s) => s.pageType === 'cover' && s.html.includes(BG_PLACEHOLDER),
+        );
+        const tocSlide = slides.find(
+          (s) => s.pageType === 'toc' && s.html.includes(BG_PLACEHOLDER),
+        );
+        const contentSlide = slides.find(
+          (s) => s.pageType && s.pageType.startsWith('content-') && s.html.includes(BG_PLACEHOLDER),
+        );
+        const summarySlide = slides.find(
+          (s) => s.pageType === 'summary' && s.html.includes(BG_PLACEHOLDER),
+        );
+
+        const bgTasks: { label: string; slide: HTMLSlide; prompt: string }[] = [];
+        const contentPrompt = plan.slides.find((s) =>
+          s.pageType?.startsWith('content-'),
+        )?.backgroundPrompt;
+
+        if (coverSlide) {
+          const p = plan.slides.find((s) => s.pageType === 'cover')?.backgroundPrompt;
+          if (p) bgTasks.push({ label: '封面', slide: coverSlide, prompt: p });
+        }
+        if (tocSlide) {
+          const p = plan.slides.find((s) => s.pageType === 'toc')?.backgroundPrompt;
+          if (p) bgTasks.push({ label: '目录', slide: tocSlide, prompt: p });
+        }
+        //【缺陷修复 2】内容背景：contentPrompt 存在但没有任何 content 页含 BG_PLACEHOLDER 时，
+        // 之前整个"内容"任务被跳过（连 generateImage 都不打 trace），用户以为没执行。
+        // 改为：找任意 content 页当"主落点 slide"，后续 replace 仍遍历所有 content 页。
+        if (contentPrompt) {
+          if (contentSlide) {
+            bgTasks.push({ label: '内容', slide: contentSlide, prompt: contentPrompt });
+          } else {
+            const fallbackContentSlide = slides.find(
+              (s) => s.pageType && s.pageType.startsWith('content-'),
+            );
+            if (fallbackContentSlide) {
+              console.warn(
+                `[${formatBeijingTime()}] [AGENT] Background(content): contentPrompt 存在但没有 content 页包含 BG_PLACEHOLDER，仍然尝试生成背景图，后续将遍历所有 content 页用 background-image 注入`,
+              );
+              bgTasks.push({ label: '内容', slide: fallbackContentSlide, prompt: contentPrompt });
+            } else {
+              console.warn(
+                `[${formatBeijingTime()}] [AGENT] Background(content): contentPrompt 存在，但没有 pageType=content-* 的 slide，跳过内容背景`,
+              );
+            }
+          }
+        } else {
+          //【缺陷修复 3】planning 没输出 backgroundPrompt 时给出显性日志
+          console.warn(
+            `[${formatBeijingTime()}] [AGENT] Background(content): plan.slides 中所有 content-* 页均没有 backgroundPrompt，请检查 planning 输出是否包含 backgroundPrompt`,
+          );
+        }
+        if (summarySlide) {
+          const p = plan.slides.find((s) => s.pageType === 'summary')?.backgroundPrompt;
+          if (p) bgTasks.push({ label: '总结', slide: summarySlide, prompt: p });
+        }
+
+        //【缺陷修复 4】最终入队 0 条时，给出"为什么没生成"的汇总日志 + progress 更新，避免一条 trace 都没有、
+        // 用户就像本 issue 一样困惑："为什么 ai-log 里找不到背景图报文"
+        if (bgTasks.length === 0) {
+          console.warn(
+            `[${formatBeijingTime()}] [AGENT] Background: 最终入队 bgTasks=0，以下均为可能原因：① slide HTML 里没有 NOPPT_BG_PLACEHOLDER；② planning 没输出 backgroundPrompt；③ 没有 cover/toc/content-*/summary 等目标 pageType。请逐一核实`,
+          );
+          onProgress?.({
+            phase: 'images',
+            current: 1,
+            total: 1,
+            message: '背景图无需生成（无 BG_PLACEHOLDER 或未规划 backgroundPrompt）',
+          });
+        } else {
+          let bgIdx = 0;
+          for (const task of bgTasks) {
+            try {
+              const bgImgPrompt = this.sanitizeImagePrompt(task.prompt, plan.primaryColor);
+              const allModels = options?.imageOptions?.allModels || [];
+              const defaultModel = options?.imageOptions?.model || imgProvider.config.model;
+              let selectedModel = defaultModel;
+              let selectedModelSizes = allModels.find((m) => m.modelName === selectedModel)?.sizes;
+              const bgSize: ImageSize = '1792x1024';
+              const actualSize = selectedModelSizes?.some(
+                (s) => `${s.width}x${s.height}` === bgSize,
+              )
+                ? bgSize
+                : (options?.imageOptions?.size as ImageSize) || '1792x1024';
+
+              const images = await imgProvider.generateImage!(bgImgPrompt, {
+                model: selectedModel,
+                size: actualSize,
+                quality: options?.imageOptions?.quality,
+                n: 1,
+                ...({ scene: `background-${task.label}` } as any),
+              });
+              if (images && images.length > 0 && images[0].url) {
+                const hitsBefore =
+                  task.label === '内容'
+                    ? slides
+                        .filter((s) => s.pageType?.startsWith('content-'))
+                        .reduce(
+                          (acc, s) => acc + (s.html.match(/NOPPT_BG_PLACEHOLDER/gi)?.length ?? 0),
+                          0,
+                        )
+                    : (task.slide.html.match(/NOPPT_BG_PLACEHOLDER/gi)?.length ?? 0);
+                if (task.label === '内容') {
+                  for (const slide of slides) {
+                    if (slide.pageType?.startsWith('content-')) {
+                      slide.html = slide.html.replace(
+                        /url\(['"]?https:\/\/NOPPT_BG_PLACEHOLDER['"]?\)/gi,
+                        `url('${images[0].url}')`,
+                      );
+                    }
+                  }
+                } else {
+                  task.slide.html = task.slide.html.replace(
+                    /url\(['"]?https:\/\/NOPPT_BG_PLACEHOLDER['"]?\)/gi,
+                    `url('${images[0].url}')`,
+                  );
+                }
+                const hitsAfter =
+                  task.label === '内容'
+                    ? slides
+                        .filter((s) => s.pageType?.startsWith('content-'))
+                        .reduce(
+                          (acc, s) => acc + (s.html.match(/NOPPT_BG_PLACEHOLDER/gi)?.length ?? 0),
+                          0,
+                        )
+                    : (task.slide.html.match(/NOPPT_BG_PLACEHOLDER/gi)?.length ?? 0);
+                // 若没有 placeholder 命中，退一步尝试把首屏的 background-image 注入到 slide 的最外层 div 背景样式里
+                if (hitsBefore - hitsAfter === 0) {
+                  const inj = this.injectBackgroundImageToDiv(
+                    task.label === '内容'
+                      ? slides.filter((s) => s.pageType?.startsWith('content-'))
+                      : [task.slide],
+                    images[0].url,
+                  );
+                  console.log(
+                    `[${formatBeijingTime()}] [AGENT] Background (${task.label}) generated successfully, placeholder hit=${hitsBefore - hitsAfter}/${hitsBefore}, fallback injectBackgroundImageToDiv=${inj.attempted}, injected=${inj.injected}`,
+                  );
+                } else {
+                  console.log(
+                    `[${formatBeijingTime()}] [AGENT] Background (${task.label}) generated successfully, replaced ${hitsBefore - hitsAfter}/${hitsBefore} placeholder(s)`,
+                  );
                 }
               } else {
-                task.slide.html = task.slide.html.replace(/url\(['"]?https:\/\/NOPPT_BG_PLACEHOLDER['"]?\)/gi, `url('${images[0].url}')`);
+                console.warn(
+                  `[${formatBeijingTime()}] [AGENT] Background (${task.label}) 调用成功但 images[0].url 为空，触发 removeBackgroundPlaceholder`,
+                );
+                this.removeBackgroundPlaceholder(task.slide);
               }
-              const hitsAfter = task.label === '内容'
-                ? slides.filter(s => s.pageType?.startsWith('content-')).reduce((acc, s) => acc + (s.html.match(/NOPPT_BG_PLACEHOLDER/gi)?.length ?? 0), 0)
-                : (task.slide.html.match(/NOPPT_BG_PLACEHOLDER/gi)?.length ?? 0);
-              // 若没有 placeholder 命中，退一步尝试把首屏的 background-image 注入到 slide 的最外层 div 背景样式里
-              if (hitsBefore - hitsAfter === 0) {
-                const inj = this.injectBackgroundImageToDiv(task.label === '内容' ? slides.filter(s => s.pageType?.startsWith('content-')) : [task.slide], images[0].url);
-                console.log(`[${formatBeijingTime()}] [AGENT] Background (${task.label}) generated successfully, placeholder hit=${hitsBefore - hitsAfter}/${hitsBefore}, fallback injectBackgroundImageToDiv=${inj.attempted}, injected=${inj.injected}`);
-              } else {
-                console.log(`[${formatBeijingTime()}] [AGENT] Background (${task.label}) generated successfully, replaced ${hitsBefore - hitsAfter}/${hitsBefore} placeholder(s)`);
-              }
-            } else {
-              console.warn(`[${formatBeijingTime()}] [AGENT] Background (${task.label}) 调用成功但 images[0].url 为空，触发 removeBackgroundPlaceholder`);
+            } catch (e) {
+              console.warn(
+                `[${formatBeijingTime()}] [AGENT] Background (${task.label}) generation failed:`,
+                e,
+              );
               this.removeBackgroundPlaceholder(task.slide);
             }
-          } catch (e) {
-            console.warn(`[${formatBeijingTime()}] [AGENT] Background (${task.label}) generation failed:`, e);
-            this.removeBackgroundPlaceholder(task.slide);
+            bgIdx++;
+            onProgress?.({
+              phase: 'images',
+              current: bgIdx,
+              total: bgTasks.length,
+              message: `背景图进度 ${bgIdx}/${bgTasks.length}`,
+            });
           }
-          bgIdx++;
-          onProgress?.({ phase: 'images', current: bgIdx, total: bgTasks.length, message: `背景图进度 ${bgIdx}/${bgTasks.length}` });
+        }
+
+        for (const slide of slides) {
+          if (slide.html.includes('NOPPT_BG_PLACEHOLDER')) {
+            this.removeBackgroundPlaceholder(slide);
+          }
+        }
+      } else if (!backgroundEnabled) {
+        //【缺陷修复 4 补充】backgroundEnabled=false 时也给出显性日志。
+        // 这正是本次用户 issue 的直接原因：pres_mse1kl5x_urnm2gj 的 Background=关 → 完全跳过了 generateImage → imageGenerationCalls 里没有 background-* 记录
+        console.log(
+          `[${formatBeijingTime()}] [AGENT] Background generation skipped: backgroundEnabled=false（当前请求未开启自动背景图；imageGenerationCalls 中将只有 slide 配图的 5 次记录，没有 background-* 记录）`,
+        );
+        for (const slide of slides) {
+          if (slide.html.includes('NOPPT_BG_PLACEHOLDER')) {
+            this.removeBackgroundPlaceholder(slide);
+          }
         }
       }
 
-      for (const slide of slides) {
-        if (slide.html.includes('NOPPT_BG_PLACEHOLDER')) {
-          this.removeBackgroundPlaceholder(slide);
-        }
-      }
-    } else if (!backgroundEnabled) {
-      //【缺陷修复 4 补充】backgroundEnabled=false 时也给出显性日志。
-      // 这正是本次用户 issue 的直接原因：pres_mse1kl5x_urnm2gj 的 Background=关 → 完全跳过了 generateImage → imageGenerationCalls 里没有 background-* 记录
-      console.log(`[${formatBeijingTime()}] [AGENT] Background generation skipped: backgroundEnabled=false（当前请求未开启自动背景图；imageGenerationCalls 中将只有 slide 配图的 5 次记录，没有 background-* 记录）`);
-      for (const slide of slides) {
-        if (slide.html.includes('NOPPT_BG_PLACEHOLDER')) {
-          this.removeBackgroundPlaceholder(slide);
-        }
-      }
-    }
-
-    return slides.map((s, i) => ({
-      title: s.title,
-      html: s.html,
-      pageType: (s.pageType || renderedSlides[i]?.pageType)!,
-      imagePrompt: s.imagePrompt,
-      imageRatio: s.imageRatio,
-      backgroundPrompt: renderedSlides[i]?.backgroundPrompt,
-    }));
+      return slides.map((s, i) => ({
+        title: s.title,
+        html: s.html,
+        pageType: (s.pageType || renderedSlides[i]?.pageType)!,
+        imagePrompt: s.imagePrompt,
+        imageRatio: s.imageRatio,
+        backgroundPrompt: renderedSlides[i]?.backgroundPrompt,
+      }));
     } finally {
       if (ownTraceSession && traceSessionId) {
         closeTraceSession(traceSessionId);
@@ -4014,7 +5255,7 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
     options?: PresentationGenerationOptions,
     traceSessionId?: string,
   ): Promise<HTMLPresentation> {
-    const slides: HTMLSlide[] = renderedSlides.map(s => ({
+    const slides: HTMLSlide[] = renderedSlides.map((s) => ({
       title: s.title,
       html: s.html,
       pageType: s.pageType,
@@ -4036,47 +5277,61 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
     }
 
     try {
-    const startTime = Date.now();
-    const startBeijingTime = formatBeijingTime();
+      const startTime = Date.now();
+      const startBeijingTime = formatBeijingTime();
 
-    const totalDuration = Date.now() - startTime;
-    const endBeijingTime = formatBeijingTime();
-    console.log(`[${endBeijingTime}] [AGENT] End time: ${endBeijingTime}, Duration: ${formatDuration(totalDuration)}`);
-    console.log(`[${endBeijingTime}] [AGENT] ========== Presentation generation complete ==========\n`);
+      const totalDuration = Date.now() - startTime;
+      const endBeijingTime = formatBeijingTime();
+      console.log(
+        `[${endBeijingTime}] [AGENT] End time: ${endBeijingTime}, Duration: ${formatDuration(totalDuration)}`,
+      );
+      console.log(
+        `[${endBeijingTime}] [AGENT] ========== Presentation generation complete ==========\n`,
+      );
 
-    const onProgress = options?.onProgress;
-    onProgress?.({ phase: 'complete', current: slides.length, total: slides.length, message: '生成完成' });
+      const onProgress = options?.onProgress;
+      onProgress?.({
+        phase: 'complete',
+        current: slides.length,
+        total: slides.length,
+        message: '生成完成',
+      });
 
-    // ========== AI 包终局兜底（防线 4）==========
-    //   - 每一张 slide 再过一遍 wrapTextNodes + ensureSemanticWrapping 双保险
-    //   - 检测并记录是否仍存在裸文本（用于问题复现、告警）
-    //   - 确保 slides 输出时，imagePreference 已经跟每一张 slide 的 needsImage/pageType 保持一致
-    for (let sIdx = 0; sIdx < slides.length; sIdx++) {
-      const slide = slides[sIdx];
-      const preLen = slide.html.length;
-      try {
-        slide.html = this.wrapTextNodes(slide.html);
-        slide.html = this.flattenMeaninglessNesting(slide.html);
-        slide.html = this.ensureSemanticWrapping(slide.html);
-      } catch (finalFixErr) {
-        console.warn(`[${formatBeijingTime()}] [AGENT] [FINAL-FIX] slide ${sIdx + 1} "${slide.title}" final fix skipped due to:`, (finalFixErr as Error).message);
+      // ========== AI 包终局兜底（防线 4）==========
+      //   - 每一张 slide 再过一遍 wrapTextNodes + ensureSemanticWrapping 双保险
+      //   - 检测并记录是否仍存在裸文本（用于问题复现、告警）
+      //   - 确保 slides 输出时，imagePreference 已经跟每一张 slide 的 needsImage/pageType 保持一致
+      for (let sIdx = 0; sIdx < slides.length; sIdx++) {
+        const slide = slides[sIdx];
+        const preLen = slide.html.length;
+        try {
+          slide.html = this.wrapTextNodes(slide.html);
+          slide.html = this.flattenMeaninglessNesting(slide.html);
+          slide.html = this.ensureSemanticWrapping(slide.html);
+        } catch (finalFixErr) {
+          console.warn(
+            `[${formatBeijingTime()}] [AGENT] [FINAL-FIX] slide ${sIdx + 1} "${slide.title}" final fix skipped due to:`,
+            (finalFixErr as Error).message,
+          );
+        }
+        if (slide.html.length !== preLen) {
+          console.log(
+            `[${formatBeijingTime()}] [AGENT] [FINAL-FIX] slide ${sIdx + 1} "${slide.title}" bare-text fixed in AI finalizer (${preLen} → ${slide.html.length})`,
+          );
+        }
       }
-      if (slide.html.length !== preLen) {
-        console.log(`[${formatBeijingTime()}] [AGENT] [FINAL-FIX] slide ${sIdx + 1} "${slide.title}" bare-text fixed in AI finalizer (${preLen} → ${slide.html.length})`);
-      }
-    }
 
-    return {
-      title: plan.title || topic,
-      description: plan.description,
-      primaryColor: plan.primaryColor,
-      transition: 'none',
-      slides,
-      width: slideWidth,
-      height: slideHeight,
-      imagePreference,
-      timing: { startTime: startBeijingTime, endTime: endBeijingTime, durationMs: totalDuration },
-    };
+      return {
+        title: plan.title || topic,
+        description: plan.description,
+        primaryColor: plan.primaryColor,
+        transition: 'none',
+        slides,
+        width: slideWidth,
+        height: slideHeight,
+        imagePreference,
+        timing: { startTime: startBeijingTime, endTime: endBeijingTime, durationMs: totalDuration },
+      };
     } finally {
       if (ownTraceSession && traceSessionId) {
         closeTraceSession(traceSessionId);
@@ -4119,27 +5374,40 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
     (this.planningProvider as TraceableProvider).activeTraceSessionId = traceSessionId;
 
     const resolveThemeColor = (): string =>
-      resolveProposalPrimaryColor({ referenceVisualAttributes: options?.referenceVisualAttributes, userColorTheme, userPrimaryColor });
+      resolveProposalPrimaryColor({
+        referenceVisualAttributes: options?.referenceVisualAttributes,
+        userColorTheme,
+        userPrimaryColor,
+      });
 
     // === 子项 D：style → styleTheme 映射函数
     const recommendStyleThemeByStyle = (s: string): StyleTheme[] => {
       switch (s) {
-        case 'business': case 'formal': return ['glass', 'colored-cards', 'mixed'];
-        case 'creative': case 'playful': return ['gradient', 'mixed', 'colored-cards'];
-        case 'minimal': case 'minimalist': return ['none', 'mixed', 'badges'];
-        case 'tech': case 'technology': return ['progress-bars', 'badges', 'mixed'];
-        default: return ['mixed', 'gradient', 'glass'];
+        case 'business':
+        case 'formal':
+          return ['glass', 'colored-cards', 'mixed'];
+        case 'creative':
+        case 'playful':
+          return ['gradient', 'mixed', 'colored-cards'];
+        case 'minimal':
+        case 'minimalist':
+          return ['none', 'mixed', 'badges'];
+        case 'tech':
+        case 'technology':
+          return ['progress-bars', 'badges', 'mixed'];
+        default:
+          return ['mixed', 'gradient', 'glass'];
       }
     };
 
     const rawDensity = options?.density;
     const validDensity: 'compact' | 'normal' | 'spacious' | undefined =
-      (rawDensity === 'compact' || rawDensity === 'normal' || rawDensity === 'spacious')
+      rawDensity === 'compact' || rawDensity === 'normal' || rawDensity === 'spacious'
         ? rawDensity
         : undefined;
 
     const validFontFamily: 'sans' | 'serif' | 'mono' | undefined =
-      (userFontFamily === 'sans' || userFontFamily === 'serif' || userFontFamily === 'mono')
+      userFontFamily === 'sans' || userFontFamily === 'serif' || userFontFamily === 'mono'
         ? userFontFamily
         : undefined;
 
@@ -4148,17 +5416,28 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
       const baseTheme = userColorTheme || 'blue';
       const styleThemes = recommendStyleThemeByStyle(style);
       const originalStyleThemes: StyleTheme[] = ['glass', 'gradient', 'none'];
-      const originalDensities: ('compact' | 'normal' | 'spacious')[] = ['normal', 'normal', 'spacious'];
+      const originalDensities: ('compact' | 'normal' | 'spacious')[] = [
+        'normal',
+        'normal',
+        'spacious',
+      ];
       const originalFonts: ('sans' | 'serif' | 'mono')[] = ['sans', 'sans', 'sans'];
-      const originalIcons: Array<'auto' | 'line' | 'filled' | 'numbered' | 'bullet' | 'lettered' | 'emoji' | 'none'> = ['line', 'filled', 'none'];
+      const originalIcons: Array<
+        'auto' | 'line' | 'filled' | 'numbered' | 'bullet' | 'lettered' | 'emoji' | 'none'
+      > = ['line', 'filled', 'none'];
       return ([0, 1, 2] as const).map((idx) => ({
         id: `proposal-${idx + 1}`,
         name: idx === 0 ? '专业稳重' : idx === 1 ? '现代活力' : '极简克制',
-        description: idx === 0 ? '毛玻璃质感搭配主色，专业大气' : idx === 1 ? '渐变与卡片层次，现代动感' : '大量留白与细线分隔，简约克制',
+        description:
+          idx === 0
+            ? '毛玻璃质感搭配主色，专业大气'
+            : idx === 1
+              ? '渐变与卡片层次，现代动感'
+              : '大量留白与细线分隔，简约克制',
         primaryColor: baseColor,
         colorTheme: baseTheme,
         fontFamily: validFontFamily || originalFonts[idx],
-        styleTheme: (styleThemes[idx] || styleThemes[0] || originalStyleThemes[idx]),
+        styleTheme: styleThemes[idx] || styleThemes[0] || originalStyleThemes[idx],
         density: validDensity || originalDensities[idx],
         iconStyle: userIconStyle || originalIcons[idx],
         coverHtml: '',
@@ -4168,23 +5447,35 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
     const fallbackProposals = buildFallbackProposals().slice(0, proposalCount);
 
     try {
-      const slideSummary = plan.slides.map((s, i) => `${i + 1}. [${s.pageType}] ${s.title}`).join('\n');
+      const slideSummary = plan.slides
+        .map((s, i) => `${i + 1}. [${s.pageType}] ${s.title}`)
+        .join('\n');
 
       const countOnly1 = proposalCount === 1;
 
-      const colorConstraint = (userColorTheme || userPrimaryColor)
-        ? countOnly1
-          ? `\n用户已指定配色主题：${userColorTheme || '自定义'}（主色：${resolveThemeColor()}）。\n重要约束：1 个方案的 colorTheme 必须为 "${userColorTheme || 'blue'}"，primaryColor 必须使用 "${resolveThemeColor()}"。\n该方案仅需在 styleTheme / name / description 维度体现创意（若用户未显式指定 styleTheme / density / iconStyle / fontFamily，可自由体现）。\n另外：用户已显式指定 fontFamily=${validFontFamily || '由你决定'}、iconStyle=${userIconStyle || '由你决定'}。若用户已显式指定，对应维度你无权改动。`
-          : `\n用户已指定配色主题：${userColorTheme || '自定义'}（主色：${resolveThemeColor()}）。\n重要约束：3 个方案的 colorTheme 必须为 "${userColorTheme || 'blue'}"，primaryColor 必须使用 "${resolveThemeColor()}"。\n方案之间的差异应通过 styleTheme、density、iconStyle 等维度体现，而非切换色相。\n另外：用户已显式指定 fontFamily=${validFontFamily || '由你决定'}、iconStyle=${userIconStyle || '由你决定'}。若用户已显式指定，对应维度你无权改动，只能在 styleTheme / density / name / description 维度差异化。`
-        : '';
+      const colorConstraint =
+        userColorTheme || userPrimaryColor
+          ? countOnly1
+            ? `\n用户已指定配色主题：${userColorTheme || '自定义'}（主色：${resolveThemeColor()}）。\n重要约束：1 个方案的 colorTheme 必须为 "${userColorTheme || 'blue'}"，primaryColor 必须使用 "${resolveThemeColor()}"。\n该方案仅需在 styleTheme / name / description 维度体现创意（若用户未显式指定 styleTheme / density / iconStyle / fontFamily，可自由体现）。\n另外：用户已显式指定 fontFamily=${validFontFamily || '由你决定'}、iconStyle=${userIconStyle || '由你决定'}。若用户已显式指定，对应维度你无权改动。`
+            : `\n用户已指定配色主题：${userColorTheme || '自定义'}（主色：${resolveThemeColor()}）。\n重要约束：3 个方案的 colorTheme 必须为 "${userColorTheme || 'blue'}"，primaryColor 必须使用 "${resolveThemeColor()}"。\n方案之间的差异应通过 styleTheme、density、iconStyle 等维度体现，而非切换色相。\n另外：用户已显式指定 fontFamily=${validFontFamily || '由你决定'}、iconStyle=${userIconStyle || '由你决定'}。若用户已显式指定，对应维度你无权改动，只能在 styleTheme / density / name / description 维度差异化。`
+          : '';
       // === 子项 A：countOnly1 的 head 动态化（按 style / density / fontFamily / iconStyle）
       const styleDescription = ((): string => {
         switch (style) {
-          case 'creative': case 'playful': return '活泼创意和谐';
-          case 'business': case 'formal': return '专业稳健大气';
-          case 'minimal': case 'minimalist': return '简约克制留白充足';
-          case 'tech': case 'technology': return '科技感信息密度高';
-          default: return '专业美观大气';
+          case 'creative':
+          case 'playful':
+            return '活泼创意和谐';
+          case 'business':
+          case 'formal':
+            return '专业稳健大气';
+          case 'minimal':
+          case 'minimalist':
+            return '简约克制留白充足';
+          case 'tech':
+          case 'technology':
+            return '科技感信息密度高';
+          default:
+            return '专业美观大气';
         }
       })();
       const countOnly1HeadLines: string[] = [
@@ -4193,15 +5484,23 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
         styleDescription + '。',
       ];
       if (validDensity) {
-        countOnly1HeadLines.push(`密度：用户已显式指定 density=${validDensity}，必须使用该值，不得切换。`);
+        countOnly1HeadLines.push(
+          `密度：用户已显式指定 density=${validDensity}，必须使用该值，不得切换。`,
+        );
       }
       if (validFontFamily) {
-        countOnly1HeadLines.push(`字体族：用户已显式指定 fontFamily=${validFontFamily}，方案中必须使用该值。`);
+        countOnly1HeadLines.push(
+          `字体族：用户已显式指定 fontFamily=${validFontFamily}，方案中必须使用该值。`,
+        );
       }
       if (userIconStyle) {
-        countOnly1HeadLines.push(`图标风格：用户已显式指定 iconStyle=${userIconStyle}，方案中必须使用该值，不得建议其他值。`);
+        countOnly1HeadLines.push(
+          `图标风格：用户已显式指定 iconStyle=${userIconStyle}，方案中必须使用该值，不得建议其他值。`,
+        );
       }
-      countOnly1HeadLines.push(`风格主题 styleTheme：建议从以下子集中自由选择：[${recommendStyleThemeByStyle(style).join(' / ')}]。无需与其他方案比较。`);
+      countOnly1HeadLines.push(
+        `风格主题 styleTheme：建议从以下子集中自由选择：[${recommendStyleThemeByStyle(style).join(' / ')}]。无需与其他方案比较。`,
+      );
       const head = countOnly1
         ? countOnly1HeadLines.join('\n')
         : `基于以下演示文稿主题和幻灯片规划，提出 3 个视觉上差异明显的设计方向。`;
@@ -4211,18 +5510,23 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
       const returnIntro = countOnly1
         ? `请返回 1 个设计方案，每个方案包含：`
         : `请返回 3 个设计方案，每个方案包含：`;
-      const countOnly1HasUserConstraints = Boolean(validFontFamily || userIconStyle || validDensity);
+      const countOnly1HasUserConstraints = Boolean(
+        validFontFamily || userIconStyle || validDensity,
+      );
       const countOnly1TailLines: string[] = [];
       if (countOnly1HasUserConstraints) {
         countOnly1TailLines.push('请严格遵守上方列出的所有"用户已显式指定"的维度。');
       }
-      countOnly1TailLines.push('只返回长度为 1 的 JSON 数组，不要任何其他文字或 Markdown 代码块标记。');
+      countOnly1TailLines.push(
+        '只返回长度为 1 的 JSON 数组，不要任何其他文字或 Markdown 代码块标记。',
+      );
       const tail = countOnly1
         ? countOnly1TailLines.join('\n')
         : `要求 3 个方案视觉上明显区分（通过风格质感、密度、图标风格等维度变化）。\n只返回 JSON 数组，不要任何其他文字或 Markdown 代码块标记。`;
 
-      const categoryReferenceSummary = (options?.referenceVisualAttributes)
-        ? '【参考文件提取属性 · 绝对最高优先级 · 覆盖用户显式参数】\n' + formatReferenceOverrideOverview(options.referenceVisualAttributes)
+      const categoryReferenceSummary = options?.referenceVisualAttributes
+        ? '【参考文件提取属性 · 绝对最高优先级 · 覆盖用户显式参数】\n' +
+          formatReferenceOverrideOverview(options.referenceVisualAttributes)
         : '';
       // 参考主色硬约束（优先级高于用户 colorTheme=blue）：确保 LLM 不会在「用户蓝」与「参考红」间选错
       const referencePrimaryConstraint = refDeckPrimary
@@ -4263,10 +5567,10 @@ ${tail}`;
       for (let proposalAttempt = 0; proposalAttempt <= PROPOSAL_MAX_RETRIES; proposalAttempt++) {
         try {
           switchStage(this.planningProvider, 'design-proposals');
-          const response = await this.planningProvider.chat(
-            [{ role: 'user', content: prompt }],
-            { temperature: 0.5, maxTokens: 8192 },
-          );
+          const response = await this.planningProvider.chat([{ role: 'user', content: prompt }], {
+            temperature: 0.5,
+            maxTokens: 8192,
+          });
           const raw = response.content || '';
           const arrayMatch = raw.match(/\[[\s\S]*\]/);
           if (arrayMatch) {
@@ -4275,13 +5579,18 @@ ${tail}`;
               parsed = parsed.slice(0, proposalCount);
               // T20 · G0-U-17b：3 套方案主色/配色主题必须统一到用户选择（若显式给了）。
               // 单源顺序：userPrimaryColor(合法) > COLOR_THEMES[userColorTheme] > fallbackProposal.baseColor
-              const enforcedTheme: ColorTheme | undefined = (userColorTheme && COLOR_THEMES[userColorTheme]) ? userColorTheme : undefined;
+              const enforcedTheme: ColorTheme | undefined =
+                userColorTheme && COLOR_THEMES[userColorTheme] ? userColorTheme : undefined;
               const unifiedColor: string = resolveProposalPrimaryColor({
                 referenceVisualAttributes: options?.referenceVisualAttributes,
                 userColorTheme,
                 userPrimaryColor,
               });
-              const proposalsBefore = parsed.map((p: any) => ({ id: p.id, primaryColor: p.primaryColor, colorTheme: p.colorTheme }));
+              const proposalsBefore = parsed.map((p: any) => ({
+                id: p.id,
+                primaryColor: p.primaryColor,
+                colorTheme: p.colorTheme,
+              }));
               proposals = parsed.map((p: any, idx: number) => {
                 const fb = fallbackProposals[idx] || fallbackProposals[0];
                 return {
@@ -4289,32 +5598,53 @@ ${tail}`;
                   name: String(p.name || fb.name || `方案 ${idx + 1}`),
                   description: String(p.description || ''),
                   primaryColor: unifiedColor, // 三套统一（即便 LLM 写了不同的也强制覆盖）
-                  colorTheme: enforcedTheme || (COLOR_THEMES[p.colorTheme as ColorTheme] ? p.colorTheme : (fb.colorTheme || 'blue')),
-                  fontFamily: userFontFamily || ((p.fontFamily === 'serif' || p.fontFamily === 'mono') ? p.fontFamily : 'sans'),
+                  colorTheme:
+                    enforcedTheme ||
+                    (COLOR_THEMES[p.colorTheme as ColorTheme]
+                      ? p.colorTheme
+                      : fb.colorTheme || 'blue'),
+                  fontFamily:
+                    userFontFamily ||
+                    (p.fontFamily === 'serif' || p.fontFamily === 'mono' ? p.fontFamily : 'sans'),
                   styleTheme: p.styleTheme || 'mixed',
-                  density: (p.density === 'compact' || p.density === 'spacious') ? p.density : 'normal',
+                  density:
+                    p.density === 'compact' || p.density === 'spacious' ? p.density : 'normal',
                   iconStyle: userIconStyle || p.iconStyle || 'auto',
                   coverHtml: '',
                 };
               });
-              const proposalsAfter = proposals.map((p) => ({ id: p.id, primaryColor: p.primaryColor, colorTheme: p.colorTheme }));
-              console.log(`[DESIGN] proposals 主色统一：LLM 返回=${JSON.stringify(proposalsBefore)}，强制统一后=${JSON.stringify(proposalsAfter)}（unifiedColor=${unifiedColor} enforcedTheme=${enforcedTheme || '(none)'} refDeckPrimary=${refDeckPrimary || '(none)'}${refDeckPrimary ? ' reference-first' : ''}）`);
+              const proposalsAfter = proposals.map((p) => ({
+                id: p.id,
+                primaryColor: p.primaryColor,
+                colorTheme: p.colorTheme,
+              }));
+              console.log(
+                `[DESIGN] proposals 主色统一：LLM 返回=${JSON.stringify(proposalsBefore)}，强制统一后=${JSON.stringify(proposalsAfter)}（unifiedColor=${unifiedColor} enforcedTheme=${enforcedTheme || '(none)'} refDeckPrimary=${refDeckPrimary || '(none)'}${refDeckPrimary ? ' reference-first' : ''}）`,
+              );
               break; // 解析成功，跳出重试循环
             }
           }
           // 到达此处说明 LLM 返回了但无合法提案数组：计入错误并触发重试（最后一次则回落兜底）
           lastProposalErr = new Error('LLM 未返回合法提案数组');
           if (proposalAttempt < PROPOSAL_MAX_RETRIES) {
-            console.warn(`[RETRY] generateDesignProposals 解析为空（attempt ${proposalAttempt + 1}/${PROPOSAL_MAX_RETRIES + 1}），重试...`);
+            console.warn(
+              `[RETRY] generateDesignProposals 解析为空（attempt ${proposalAttempt + 1}/${PROPOSAL_MAX_RETRIES + 1}），重试...`,
+            );
             continue;
           }
         } catch (parseErr) {
           lastProposalErr = parseErr;
           if (proposalAttempt < PROPOSAL_MAX_RETRIES) {
-            console.warn(`[RETRY] generateDesignProposals 失败（attempt ${proposalAttempt + 1}/${PROPOSAL_MAX_RETRIES + 1}），重试...`, parseErr);
+            console.warn(
+              `[RETRY] generateDesignProposals 失败（attempt ${proposalAttempt + 1}/${PROPOSAL_MAX_RETRIES + 1}），重试...`,
+              parseErr,
+            );
             continue;
           }
-          console.warn(`[${formatBeijingTime()}] [AGENT] generateDesignProposals 重试耗尽，使用兜底:`, parseErr);
+          console.warn(
+            `[${formatBeijingTime()}] [AGENT] generateDesignProposals 重试耗尽，使用兜底:`,
+            parseErr,
+          );
         }
       }
       if (lastProposalErr) {
@@ -4355,7 +5685,13 @@ ${tail}`;
             iconStyle: proposal.iconStyle,
           };
           try {
-            const firstSlideArr = await this.renderSlides(topic, plan, proposal, renderOptions, traceSessionId);
+            const firstSlideArr = await this.renderSlides(
+              topic,
+              plan,
+              proposal,
+              renderOptions,
+              traceSessionId,
+            );
             const firstSlide = firstSlideArr[0];
             if (firstSlide) {
               proposal.coverHtml = this.sanitizeSlideHtml(firstSlide.html);
@@ -4365,7 +5701,10 @@ ${tail}`;
               proposal.slides = [];
             }
           } catch (renderErr) {
-            console.warn(`[${formatBeijingTime()}] [AGENT] generateDesignProposals first-slide render failed for ${proposal.id}:`, renderErr);
+            console.warn(
+              `[${formatBeijingTime()}] [AGENT] generateDesignProposals first-slide render failed for ${proposal.id}:`,
+              renderErr,
+            );
             proposal.coverHtml = '';
             proposal.slides = [];
           }
@@ -4374,7 +5713,9 @@ ${tail}`;
       );
 
       for (const p of renderedProposals) {
-        console.log(`[DESIGN] proposal ${p.id}: primary=${p.primaryColor} theme=${p.colorTheme} font=${p.fontFamily} icon=${p.iconStyle} styleTheme=${p.styleTheme}`);
+        console.log(
+          `[DESIGN] proposal ${p.id}: primary=${p.primaryColor} theme=${p.colorTheme} font=${p.fontFamily} icon=${p.iconStyle} styleTheme=${p.styleTheme}`,
+        );
       }
 
       return renderedProposals;
@@ -4386,7 +5727,8 @@ ${tail}`;
   }
 
   private removeImagePlaceholder(slide: HTMLSlide) {
-    const imgRegex = /<div[^>]*style="[^"]*"[^>]*>\s*<img[^>]*src=["']https:\/\/NOPPT_IMAGE_PLACEHOLDER["'][^>]*>\s*<\/div>/gi;
+    const imgRegex =
+      /<div[^>]*style="[^"]*"[^>]*>\s*<img[^>]*src=["']https:\/\/NOPPT_IMAGE_PLACEHOLDER["'][^>]*>\s*<\/div>/gi;
     const singleImgRegex = /<img[^>]*src=["']https:\/\/NOPPT_IMAGE_PLACEHOLDER["'][^>]*>/gi;
     let newHtml = slide.html.replace(imgRegex, '');
     newHtml = newHtml.replace(singleImgRegex, '');
@@ -4405,9 +5747,7 @@ ${tail}`;
    */
   private slideHasMeaningfulBody(html: string): boolean {
     if (!html) return false;
-    let stripped = html
-      .replace(/^<div\b[^>]*>/i, '')
-      .replace(/<\/div>\s*$/i, '');
+    let stripped = html.replace(/^<div\b[^>]*>/i, '').replace(/<\/div>\s*$/i, '');
     stripped = stripped.replace(/<h[12]\b[^>]*>[\s\S]*?<\/h[12]>/gi, '');
     const textOnly = stripped
       .replace(/<!--[\s\S]*?-->/g, '')
@@ -4435,13 +5775,18 @@ ${tail}`;
       if (bufferLines.length === 0) return;
       const joined = bufferLines.join(' ').trim();
       if (joined) {
-        parts.push(`<p style="font-size:24px;color:#374151;margin:0;font-weight:600;line-height:1.5;overflow-wrap:break-word;word-break:break-word;">${joined}</p>`);
+        parts.push(
+          `<p style="font-size:24px;color:#374151;margin:0;font-weight:600;line-height:1.5;overflow-wrap:break-word;word-break:break-word;">${joined}</p>`,
+        );
       }
       bufferLines = [];
     };
     for (const line of lines) {
       const t = line.trim();
-      if (!t) { flushBuffer(); continue; }
+      if (!t) {
+        flushBuffer();
+        continue;
+      }
       if (BLOCK_TAG_RE.test(t) || ICON_SPAN_RE.test(t)) {
         flushBuffer();
         parts.push(line);
@@ -4479,8 +5824,13 @@ ${tail}`;
       'content-timeline',
       'content-table',
     ]);
-    const layoutFromHtml = (html.match(/<\s*(?:div|section|article)\b[^>]*\bdata-layout\s*=\s*["']?([a-z0-9-]+)["']?[^>]*>/i) || [])[1]?.toLowerCase();
-    if (PROTECTED_LAYOUT_FOR_INJECT.has(pageType) || (layoutFromHtml && PROTECTED_LAYOUT_FOR_INJECT.has(layoutFromHtml))) {
+    const layoutFromHtml = (html.match(
+      /<\s*(?:div|section|article)\b[^>]*\bdata-layout\s*=\s*["']?([a-z0-9-]+)["']?[^>]*>/i,
+    ) || [])[1]?.toLowerCase();
+    if (
+      PROTECTED_LAYOUT_FOR_INJECT.has(pageType) ||
+      (layoutFromHtml && PROTECTED_LAYOUT_FOR_INJECT.has(layoutFromHtml))
+    ) {
       return html;
     }
     // 取最外层 <div ... > 到末尾闭合的 </div>
@@ -4537,7 +5887,8 @@ ${tail}`;
     if (!firstDivMatch) return html;
     const openTag = firstDivMatch[1];
     const styleMatch = openTag.match(/style="([^"]*)"/i);
-    const bgStyle = 'background-image:linear-gradient(rgba(255,255,255,0.88),rgba(255,255,255,0.88)),url(\'https://NOPPT_BG_PLACEHOLDER\');background-size:cover;background-position:center;background-repeat:no-repeat;';
+    const bgStyle =
+      "background-image:linear-gradient(rgba(255,255,255,0.88),rgba(255,255,255,0.88)),url('https://NOPPT_BG_PLACEHOLDER');background-size:cover;background-position:center;background-repeat:no-repeat;";
     if (!styleMatch) {
       return html.replace(/^<div\b/i, `<div style="${bgStyle}"`);
     }
@@ -4554,7 +5905,10 @@ ${tail}`;
 
   private removeBackgroundPlaceholder(slide: HTMLSlide) {
     slide.html = slide.html
-      .replace(/background-image:\s*linear-gradient\([^)]*\)\s*,\s*url\(['"]?https:\/\/NOPPT_BG_PLACEHOLDER['"]?\)[^;]*;?/gi, '')
+      .replace(
+        /background-image:\s*linear-gradient\([^)]*\)\s*,\s*url\(['"]?https:\/\/NOPPT_BG_PLACEHOLDER['"]?\)[^;]*;?/gi,
+        '',
+      )
       .replace(/background-image:\s*url\(['"]?https:\/\/NOPPT_BG_PLACEHOLDER['"]?\)[^;]*;?/gi, '')
       .replace(/background-size:\s*cover[^;]*;?/gi, '')
       .replace(/background-position:\s*center[^;]*;?/gi, '')
@@ -4581,7 +5935,8 @@ ${tail}`;
       const m2 = sm[1].match(/#[0-9a-fA-F]{3,8}|rgba?\([^)]*\)/g);
       if (m2) tokens.push(...m2);
     }
-    const svgRe = /<(?:svg|path|circle|rect|line|polyline|polygon|ellipse|use)\b[^>]*?\s+(?:stroke|fill)\s*=\s*["']([^"']*?)["']/gi;
+    const svgRe =
+      /<(?:svg|path|circle|rect|line|polyline|polygon|ellipse|use)\b[^>]*?\s+(?:stroke|fill)\s*=\s*["']([^"']*?)["']/gi;
     let vm: RegExpExecArray | null;
     while ((vm = svgRe.exec(html)) !== null) tokens.push(vm[1]);
 
@@ -4604,7 +5959,7 @@ ${tail}`;
       // 因此把中性饱和度阈值提到 0.30：仅饱和度 ≥0.30 的鲜亮色才计入色相分布，
       // 灰阶一律视为中性 → 参考红（单一鲜亮色相）+ 灰阶 → 自洽 → 跳过重写（不毁容）。
       // 真多色相页（如红 + 鲜绿 #16a34a s≈0.7）仍会因两色均 ≥0.30 而判定混杂 → 走原重写逻辑。
-      if (hsl.s < 0.30 || hsl.l < 0.06 || hsl.l > 0.95) continue;
+      if (hsl.s < 0.3 || hsl.l < 0.06 || hsl.l > 0.95) continue;
       chromaHues.push(hsl.h);
     }
     if (chromaHues.length === 0) return true; // 仅中性/无彩色 → 自洽
@@ -4617,18 +5972,41 @@ ${tail}`;
     return largestGap >= 360 - HUE_WINDOW;
   }
 
-  private sanitizeGradientColors(html: string, primaryColor: string, primaryColorDarker: string, colorPolicy?: SlideColorPolicy): string {
+  private sanitizeGradientColors(
+    html: string,
+    primaryColor: string,
+    primaryColorDarker: string,
+    colorPolicy?: SlideColorPolicy,
+  ): string {
     const primaryHex = (primaryColor || '').toLowerCase();
     const darkerHex = (primaryColorDarker || '').toLowerCase();
     const allowed = new Set([
-      primaryHex, darkerHex,
-      '#111827', '#1f2937', '#374151', '#4b5563', '#6b7280', '#9ca3af',
-      '#d1d5db', '#e5e7eb', '#f3f4f6', '#f9fafb', '#ffffff', '#fff',
-      '#000000', '#000', 'transparent',
+      primaryHex,
+      darkerHex,
+      '#111827',
+      '#1f2937',
+      '#374151',
+      '#4b5563',
+      '#6b7280',
+      '#9ca3af',
+      '#d1d5db',
+      '#e5e7eb',
+      '#f3f4f6',
+      '#f9fafb',
+      '#ffffff',
+      '#fff',
+      '#000000',
+      '#000',
+      'transparent',
     ]);
     // 参考撞色板 / 标题色 / 正文色 / 描边色作为显式白名单放行（参考克隆·色彩红线豁免）
     if (colorPolicy) {
-      for (const c of [colorPolicy.titleColor, colorPolicy.bodyColor, colorPolicy.strokeColor, ...colorPolicy.accents]) {
+      for (const c of [
+        colorPolicy.titleColor,
+        colorPolicy.bodyColor,
+        colorPolicy.strokeColor,
+        ...colorPolicy.accents,
+      ]) {
         if (c) allowed.add(c.toLowerCase());
       }
     }
@@ -4652,38 +6030,52 @@ ${tail}`;
       return hsl.l <= midL ? darkerHex : primaryHex;
     };
 
-    return html
-      .replace(/linear-gradient\(\s*([^)]+)\)/gi, (_fullMatch: string, inner: string) => {
-        const angleMatch = inner.match(/^(\d+deg|to\s+\w+(?:\s+\w+)?)\s*,?/i);
-        const prefix = angleMatch ? angleMatch[1] + ', ' : '';
-        const stopsPart = angleMatch ? inner.substring(angleMatch[0].length) : inner;
-        const stops = stopsPart.split(/\s*,\s*(?![^()]*\))/);
-        const stopHexes = stops
-          .map((s) => { const m = s.match(/#(?:[0-9a-f]{3,8})/i); return m ? this.normalizeHex(m[0]) : null; })
-          .filter((x): x is string => !!x);
-        const hasCrossHueStop = stopHexes.some((h) => !hueTolerantAllowed(h));
-        const unique = stopHexes.filter((h, i, arr) => i === arr.findIndex((x) => x?.toLowerCase() === h.toLowerCase()));
-        if (hasCrossHueStop || unique.length > 2) {
-          return `linear-gradient(${prefix}${primaryHex}, ${darkerHex})`;
-        }
-        const sanitizedStops = stops.map((stop) => {
-          const hexMatch = stop.match(/#(?:[0-9a-f]{3,8})/i);
-          if (!hexMatch) return stop;
-          const hex = this.normalizeHex(hexMatch[0]);
-          if (!hex) return stop;
-          if (hueTolerantAllowed(hex)) return stop;
-          return stop.replace(new RegExp(hexMatch[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), remapStopColor(hex));
-        });
-        return `linear-gradient(${prefix}${sanitizedStops.join(', ')})`;
-      })
-      // SVG <stop stop-color>
-      .replace(/(<stop\b[^>]*?stop-color\s*=\s*["'])(#[0-9a-fA-F]{3,8}|rgba?\([^)]*\))(["'])/gi, (full, pre: string, col: string, end: string) => {
-        const token = col.trim();
-        const hex = token.charAt(0) === '#' ? this.normalizeHex(token) : this.rgbStringToHex(token);
-        if (!hex) return full;
-        if (hueTolerantAllowed(hex)) return full;
-        return pre + remapStopColor(hex) + end;
-      });
+    return (
+      html
+        .replace(/linear-gradient\(\s*([^)]+)\)/gi, (_fullMatch: string, inner: string) => {
+          const angleMatch = inner.match(/^(\d+deg|to\s+\w+(?:\s+\w+)?)\s*,?/i);
+          const prefix = angleMatch ? angleMatch[1] + ', ' : '';
+          const stopsPart = angleMatch ? inner.substring(angleMatch[0].length) : inner;
+          const stops = stopsPart.split(/\s*,\s*(?![^()]*\))/);
+          const stopHexes = stops
+            .map((s) => {
+              const m = s.match(/#(?:[0-9a-f]{3,8})/i);
+              return m ? this.normalizeHex(m[0]) : null;
+            })
+            .filter((x): x is string => !!x);
+          const hasCrossHueStop = stopHexes.some((h) => !hueTolerantAllowed(h));
+          const unique = stopHexes.filter(
+            (h, i, arr) => i === arr.findIndex((x) => x?.toLowerCase() === h.toLowerCase()),
+          );
+          if (hasCrossHueStop || unique.length > 2) {
+            return `linear-gradient(${prefix}${primaryHex}, ${darkerHex})`;
+          }
+          const sanitizedStops = stops.map((stop) => {
+            const hexMatch = stop.match(/#(?:[0-9a-f]{3,8})/i);
+            if (!hexMatch) return stop;
+            const hex = this.normalizeHex(hexMatch[0]);
+            if (!hex) return stop;
+            if (hueTolerantAllowed(hex)) return stop;
+            return stop.replace(
+              new RegExp(hexMatch[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'),
+              remapStopColor(hex),
+            );
+          });
+          return `linear-gradient(${prefix}${sanitizedStops.join(', ')})`;
+        })
+        // SVG <stop stop-color>
+        .replace(
+          /(<stop\b[^>]*?stop-color\s*=\s*["'])(#[0-9a-fA-F]{3,8}|rgba?\([^)]*\))(["'])/gi,
+          (full, pre: string, col: string, end: string) => {
+            const token = col.trim();
+            const hex =
+              token.charAt(0) === '#' ? this.normalizeHex(token) : this.rgbStringToHex(token);
+            if (!hex) return full;
+            if (hueTolerantAllowed(hex)) return full;
+            return pre + remapStopColor(hex) + end;
+          },
+        )
+    );
   }
 
   private normalizeHex(hex: string): string | null {
@@ -4708,14 +6100,19 @@ ${tail}`;
   private rgbStringToHex(str: string): string | null {
     const m = /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i.exec(str);
     if (!m) return null;
-    const clamp = (n: number): string => Math.max(0, Math.min(255, n)).toString(16).padStart(2, '0');
+    const clamp = (n: number): string =>
+      Math.max(0, Math.min(255, n)).toString(16).padStart(2, '0');
     return `#${clamp(parseInt(m[1], 10))}${clamp(parseInt(m[2], 10))}${clamp(parseInt(m[3], 10))}`;
   }
 
   private hexToRgb(hex: string): { r: number; g: number; b: number } | null {
     const h = this.normalizeHex(hex);
     if (!h) return null;
-    return { r: parseInt(h.substring(1, 3), 16), g: parseInt(h.substring(3, 5), 16), b: parseInt(h.substring(5, 7), 16) };
+    return {
+      r: parseInt(h.substring(1, 3), 16),
+      g: parseInt(h.substring(3, 5), 16),
+      b: parseInt(h.substring(5, 7), 16),
+    };
   }
 
   /**
@@ -4725,17 +6122,34 @@ ${tail}`;
    * primary→darker、正文文字只用中性深灰。
    * 语义色（进度条/胜出徽章/警告背景）仅允许出现在 background 或 border 属性值中；出现在 color/box-shadow 时会被替换。
    */
-  private enforceSinglePalette(html: string, primaryColor: string, primaryColorDarker: string, colorPolicy?: SlideColorPolicy): string {
+  private enforceSinglePalette(
+    html: string,
+    primaryColor: string,
+    primaryColorDarker: string,
+    colorPolicy?: SlideColorPolicy,
+  ): string {
     const primary = (primaryColor || '').toLowerCase();
     const darker = (primaryColorDarker || '').toLowerCase();
     const graySet = new Set([
-      '#111827', '#1f2937', '#374151', '#4b5563', '#6b7280', '#9ca3af',
-      '#d1d5db', '#e5e7eb', '#f3f4f6', '#f9fafb', '#ffffff', '#fff',
-      '#000000', '#000',
+      '#111827',
+      '#1f2937',
+      '#374151',
+      '#4b5563',
+      '#6b7280',
+      '#9ca3af',
+      '#d1d5db',
+      '#e5e7eb',
+      '#f3f4f6',
+      '#f9fafb',
+      '#ffffff',
+      '#fff',
+      '#000000',
+      '#000',
     ]);
     const semanticSet = new Set(['#10b981', '#059669', '#ef4444', '#dc2626', '#f59e0b']);
     const colorTokenRe = /#[0-9a-fA-F]{3,8}|rgba?\([^)]*\)/g;
-    const relevantPropRe = /^(?:color|background|background-color|border(?:-(?:top|right|bottom|left))?|border-color|border-(?:top|right|bottom|left)-color|outline|outline-color|box-shadow)$/;
+    const relevantPropRe =
+      /^(?:color|background|background-color|border(?:-(?:top|right|bottom|left))?|border-color|border-(?:top|right|bottom|left)-color|outline|outline-color|box-shadow)$/;
     let unknownPreserved = 0;
 
     const pHsl = hexToHsl(primary);
@@ -4744,12 +6158,18 @@ ${tail}`;
     // 参考撞色板 / 标题色 / 正文色 / 描边色作为显式白名单（参考克隆·色彩红线豁免）
     const refExtra = new Set<string>();
     if (colorPolicy) {
-      for (const c of [colorPolicy.titleColor, colorPolicy.bodyColor, colorPolicy.strokeColor, ...colorPolicy.accents]) {
+      for (const c of [
+        colorPolicy.titleColor,
+        colorPolicy.bodyColor,
+        colorPolicy.strokeColor,
+        ...colorPolicy.accents,
+      ]) {
         if (c) refExtra.add(c.toLowerCase());
       }
     }
 
-    const isBackgroundish = (prop: string): boolean => prop === 'background' || prop === 'background-color';
+    const isBackgroundish = (prop: string): boolean =>
+      prop === 'background' || prop === 'background-color';
 
     const colorToHex = (token: string): string | null => {
       const t = token.trim();
@@ -4773,7 +6193,12 @@ ${tail}`;
       if (refExtra.has(h)) return true; // 参考撞色 / 标题色 / 正文色 / 描边色放行
       // FR-8/FR-6：色相接近（≤32°）或灰度，判为同色系合法色调变化，放行
       if (isSameHueFamily(h)) return true;
-      if (isBackgroundish(prop) || prop === 'border' || prop === 'border-color' || prop.startsWith('border-')) {
+      if (
+        isBackgroundish(prop) ||
+        prop === 'border' ||
+        prop === 'border-color' ||
+        prop.startsWith('border-')
+      ) {
         if (semanticSet.has(h)) return true;
       }
       if (prop === 'outline' && semanticSet.has(h)) return true;
@@ -4784,7 +6209,10 @@ ${tail}`;
       const t = token.trim();
       if (t.toLowerCase() === 'transparent') return token;
       const baseHex = colorToHex(t);
-      if (!baseHex) { unknownPreserved++; return token; }
+      if (!baseHex) {
+        unknownPreserved++;
+        return token;
+      }
       if (isAllowed(baseHex, prop)) return token;
       if (prop === 'color') {
         // 头部大标题（font-size>=40px）用参考标题色（若有），否则近黑；正文用深灰。
@@ -4818,23 +6246,31 @@ ${tail}`;
       return darker;
     };
 
-    const result = html.replace(/(<[a-z][^>]*style=")([^"]*)(")/gi, (full, pre: string, styleBody: string, quote: string) => {
-      const nextStyle = styleBody.split(';').map((decl) => {
-        const mm = /^\s*([a-zA-Z-]+)\s*:\s*([\s\S]*)$/.exec(decl);
-        if (!mm) return decl;
-        const prop = mm[1].toLowerCase();
-        if (!relevantPropRe.test(prop)) return decl;
-        const value = mm[2];
-        const newValue = /linear-gradient/i.test(value)
-          ? value.replace(colorTokenRe, replaceGradientToken)
-          : value.replace(colorTokenRe, (tok) => replaceSolidToken(tok, prop, styleBody));
-        return newValue === value ? decl : decl.replace(value, newValue);
-      }).join(';');
-      if (nextStyle === styleBody) return full;
-      return `${pre}${nextStyle}${quote}`;
-    });
+    const result = html.replace(
+      /(<[a-z][^>]*style=")([^"]*)(")/gi,
+      (full, pre: string, styleBody: string, quote: string) => {
+        const nextStyle = styleBody
+          .split(';')
+          .map((decl) => {
+            const mm = /^\s*([a-zA-Z-]+)\s*:\s*([\s\S]*)$/.exec(decl);
+            if (!mm) return decl;
+            const prop = mm[1].toLowerCase();
+            if (!relevantPropRe.test(prop)) return decl;
+            const value = mm[2];
+            const newValue = /linear-gradient/i.test(value)
+              ? value.replace(colorTokenRe, replaceGradientToken)
+              : value.replace(colorTokenRe, (tok) => replaceSolidToken(tok, prop, styleBody));
+            return newValue === value ? decl : decl.replace(value, newValue);
+          })
+          .join(';');
+        if (nextStyle === styleBody) return full;
+        return `${pre}${nextStyle}${quote}`;
+      },
+    );
     if (unknownPreserved > 0) {
-      console.warn(`[PALETTE] 存在无法可靠判定的颜色，已保持原值（debug），count=${unknownPreserved}`);
+      console.warn(
+        `[PALETTE] 存在无法可靠判定的颜色，已保持原值（debug），count=${unknownPreserved}`,
+      );
     }
 
     // ---- SVG 元素级 stroke/fill 属性纳入单色系 ----
@@ -4863,19 +6299,24 @@ ${tail}`;
       if (t.charAt(0) === '#') return primary;
       if (/^rgba\(/i.test(t)) {
         const am = /rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*([\d.]+)\s*\)/i.exec(t);
-        if (am && parseFloat(am[1]) <= 0.15) return primary ? this.hexToRgba(primary, 0.08) : '#F3F4F6';
+        if (am && parseFloat(am[1]) <= 0.15)
+          return primary ? this.hexToRgba(primary, 0.08) : '#F3F4F6';
         return primary;
       }
       if (/^rgb\(/i.test(t)) return primary;
       return null; // 其它 token 已由 isSvgAllowed 兜底保持原值
     };
-    const svgPropRe = /(<(?:svg|path|circle|rect|line|polyline|polygon|ellipse|use)\b[^>]*?)\s+(stroke|fill)\s*=\s*(["'])([^"']*?)\3/gi;
-    const resultWithSvg = result.replace(svgPropRe, (full, tagPrefix: string, attrName: string, q: string, tokenVal: string) => {
-      if (isSvgAllowed(tokenVal)) return full;
-      const replacement = resolveSvgColor(tokenVal);
-      if (replacement === null) return full;
-      return `${tagPrefix} ${attrName}=${q}${replacement}${q}`;
-    });
+    const svgPropRe =
+      /(<(?:svg|path|circle|rect|line|polyline|polygon|ellipse|use)\b[^>]*?)\s+(stroke|fill)\s*=\s*(["'])([^"']*?)\3/gi;
+    const resultWithSvg = result.replace(
+      svgPropRe,
+      (full, tagPrefix: string, attrName: string, q: string, tokenVal: string) => {
+        if (isSvgAllowed(tokenVal)) return full;
+        const replacement = resolveSvgColor(tokenVal);
+        if (replacement === null) return full;
+        return `${tagPrefix} ${attrName}=${q}${replacement}${q}`;
+      },
+    );
 
     return resultWithSvg;
   }
@@ -4886,7 +6327,10 @@ ${tail}`;
    * 是 Defect Fix 2/4 的配套 helper。
    * 返回 { attempted: 是否尝试过注入, injected: 成功注入的 slide 数量 }
    */
-  private injectBackgroundImageToDiv(slides: HTMLSlide[], bgImageUrl: string): { attempted: boolean; injected: number } {
+  private injectBackgroundImageToDiv(
+    slides: HTMLSlide[],
+    bgImageUrl: string,
+  ): { attempted: boolean; injected: number } {
     if (!slides || !slides.length || !bgImageUrl) return { attempted: false, injected: 0 };
     const escapedUrl = String(bgImageUrl).replace(/"/g, '&quot;');
     const inlineStyle = `background-image:url('${escapedUrl}');background-size:cover;background-position:center;background-repeat:no-repeat;`;
@@ -4897,10 +6341,7 @@ ${tail}`;
       if (/style="[^"]*"/i.test(slide.html)) {
         const before = slide.html;
         // 在现有 style 开头插入背景样式，避免被可能存在的末尾 overflow:hidden 等截断问题影响
-        slide.html = slide.html.replace(
-          /style="/i,
-          `style="${inlineStyle}`,
-        );
+        slide.html = slide.html.replace(/style="/i, `style="${inlineStyle}`);
         if (slide.html !== before) injected++;
       }
     }
@@ -4911,21 +6352,20 @@ ${tail}`;
    *  仅当 font-family 与此串逐字节匹配（或其历史短版子集）时，才视为"老默认占位值"而允许被 fontFamily 选项覆盖。
    *  任何真实定制（mono、带引号的 serif、LLM 自写栈、带本地字体名等）都不会命中此串，因此保持 addIfMissing 的绝对幂等性。
    */
-  private readonly DEFAULT_HARDCODED_SANS = "system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif";
+  private readonly DEFAULT_HARDCODED_SANS =
+    "system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif";
 
   /** 老生成链路遗留 6 项 mono 占位全集白名单（旧 PAGE_TEMPLATES 示例字面量、及其衍生的老 presentation.json）：
    *  仅用于 isDefaultLegacyMonoPlaceholder 的子集宽松判定，**不得**作为新栈返回值；新栈统一走 getFontStack('mono')。
    */
-  private readonly DEFAULT_HARDCODED_MONO_LEGACY = "'JetBrains Mono', ui-monospace, 'Cascadia Code', Consolas, 'Noto Sans Mono CJK SC', monospace";
+  private readonly DEFAULT_HARDCODED_MONO_LEGACY =
+    "'JetBrains Mono', ui-monospace, 'Cascadia Code', Consolas, 'Noto Sans Mono CJK SC', monospace";
 
   /** 单个字体名归一化：去全部空格、统一引号→去引号、去分号等垃圾字符、转小写。
    *  用于「子集白名单」判定。对 parseStyleDeclarations 解析遗留的末尾分号等脏字符做纵深防御。
    */
   private normalizeFontName(name: string): string {
-    return name
-      .replace(/\s+/g, '')
-      .replace(/["';]/g, '')
-      .toLowerCase();
+    return name.replace(/\s+/g, '').replace(/["';]/g, '').toLowerCase();
   }
 
   /** 「老默认 sans 占位」宽松判定：
@@ -4943,9 +6383,9 @@ ${tail}`;
     const currentParts = cleaned.split(',').map(normalizeName).filter(Boolean);
     if (currentParts.length === 0) return false;
     const defaultSansNames = new Set(
-      this.DEFAULT_HARDCODED_SANS.split(',').map(normalizeName).filter(Boolean)
+      this.DEFAULT_HARDCODED_SANS.split(',').map(normalizeName).filter(Boolean),
     );
-    return currentParts.every(p => defaultSansNames.has(p));
+    return currentParts.every((p) => defaultSansNames.has(p));
   }
 
   /** 「老遗留 6 项 mono 占位」宽松判定（与 isDefaultSansPlaceholder 对称）：
@@ -4967,9 +6407,9 @@ ${tail}`;
     // Fix A: 老遗留 mono 占位至少需要 5 项（仅允许缺 1 项），3 项短栈必然是真实定制
     if (currentParts.length < 5) return false;
     const legacyMonoNames = new Set(
-      this.DEFAULT_HARDCODED_MONO_LEGACY.split(',').map(normalizeName).filter(Boolean)
+      this.DEFAULT_HARDCODED_MONO_LEGACY.split(',').map(normalizeName).filter(Boolean),
     );
-    return currentParts.every(p => legacyMonoNames.has(p));
+    return currentParts.every((p) => legacyMonoNames.has(p));
   }
 
   /** 通用「默认占位 font-family」判定（老默认 sans 占位 OR 老遗留 mono 占位，任一命中即可允许升级）。
@@ -5011,15 +6451,31 @@ ${tail}`;
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         return await this.generateSlideHtml(
-          slidePlan, rp.primaryColor, rp.primaryColorDarker, rp.density, rp.iconStyle,
-          slideWidth, slideHeight, rp.style, audience, colorTheme, rp.fontFamily,
-          rp.imagePreference, rp.backgroundEnabled, referenceHtmlBrief, feedback, referenceVisualAttributes,
+          slidePlan,
+          rp.primaryColor,
+          rp.primaryColorDarker,
+          rp.density,
+          rp.iconStyle,
+          slideWidth,
+          slideHeight,
+          rp.style,
+          audience,
+          colorTheme,
+          rp.fontFamily,
+          rp.imagePreference,
+          rp.backgroundEnabled,
+          referenceHtmlBrief,
+          feedback,
+          referenceVisualAttributes,
           pageIndexInCategory,
         );
       } catch (e) {
         lastErr = e;
         if (attempt < maxRetries) {
-          console.warn(`[RETRY] 页「${slidePlan.title}」HTML 生成失败（attempt ${attempt + 1}/${maxRetries + 1}），准备重试...`, e);
+          console.warn(
+            `[RETRY] 页「${slidePlan.title}」HTML 生成失败（attempt ${attempt + 1}/${maxRetries + 1}），准备重试...`,
+            e,
+          );
         }
       }
     }
@@ -5048,16 +6504,26 @@ ${tail}`;
     }
   }
 
-  private generateFallbackSlide(plan: SlidePlan, primaryColor: string, slideWidth: number = 1280, slideHeight: number = 720, fontFamily: 'sans' | 'serif' | 'mono' = 'sans', iconStyle?: string): string {
+  private generateFallbackSlide(
+    plan: SlidePlan,
+    primaryColor: string,
+    slideWidth: number = 1280,
+    slideHeight: number = 720,
+    fontFamily: 'sans' | 'serif' | 'mono' = 'sans',
+    iconStyle?: string,
+  ): string {
     const marker = iconStyle === 'checkmark' ? '✔' : iconStyle === 'number' ? '' : '●';
-    const keyPointsHtml = (plan.keyPoints || []).map((p, i) => {
-      const prefix = iconStyle === 'number'
-        ? `<span style="color:${primaryColor};font-weight:700;margin-right:10px;">${i + 1}.</span>`
-        : `<span style="color:${primaryColor};margin-right:10px;">${marker}</span>`;
-      return `<li style="list-style:none;display:flex;align-items:flex-start;font-size:18px;line-height:2;color:#374151;">${prefix}<span style="flex:1;">${p}</span></li>`;
-    }).join('');
-    const padX = Math.max(32, Math.round((64 * slideWidth / 1280) / 8) * 8);
-    const padY = Math.max(24, Math.round((48 * slideHeight / 720) / 8) * 8);
+    const keyPointsHtml = (plan.keyPoints || [])
+      .map((p, i) => {
+        const prefix =
+          iconStyle === 'number'
+            ? `<span style="color:${primaryColor};font-weight:700;margin-right:10px;">${i + 1}.</span>`
+            : `<span style="color:${primaryColor};margin-right:10px;">${marker}</span>`;
+        return `<li style="list-style:none;display:flex;align-items:flex-start;font-size:18px;line-height:2;color:#374151;">${prefix}<span style="flex:1;">${p}</span></li>`;
+      })
+      .join('');
+    const padX = Math.max(32, Math.round((64 * slideWidth) / 1280 / 8) * 8);
+    const padY = Math.max(24, Math.round((48 * slideHeight) / 720 / 8) * 8);
     const primaryColorDarker = darkenColor(primaryColor, 20);
     const fontStack = this.getFontStack(fontFamily);
     const h2Style = `font-size:48px;font-weight:700;margin:0 0 32px 0;line-height:1.25;background:linear-gradient(135deg,${primaryColor},${primaryColorDarker});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;`;
@@ -5078,16 +6544,25 @@ ${tail}`;
     return this.generatePresentation(topic, options);
   }
 
-  async modifySlide(currentHtml: string, userRequest: string, primaryColor: string = '#2563eb'): Promise<string> {
+  async modifySlide(
+    currentHtml: string,
+    userRequest: string,
+    primaryColor: string = '#2563eb',
+  ): Promise<string> {
     const timestamp = formatBeijingTime();
     const startTime = Date.now();
     console.log(`\n[${timestamp}] [AGENT] ========== modifySlide 开始 ==========`);
-    console.log(`[${timestamp}] [AGENT] 用户指令: ${userRequest.length > 200 ? userRequest.substring(0, 200) + '...' : userRequest}`);
-    console.log(`[${timestamp}] [AGENT] 当前HTML长度: ${currentHtml.length} chars, primaryColor: ${primaryColor}`);
-    console.log(`[${timestamp}] [AGENT] 编辑模型: ${this.editingProvider.name}/${this.editingProvider.config.model}`);
+    console.log(
+      `[${timestamp}] [AGENT] 用户指令: ${userRequest.length > 200 ? userRequest.substring(0, 200) + '...' : userRequest}`,
+    );
+    console.log(
+      `[${timestamp}] [AGENT] 当前HTML长度: ${currentHtml.length} chars, primaryColor: ${primaryColor}`,
+    );
+    console.log(
+      `[${timestamp}] [AGENT] 编辑模型: ${this.editingProvider.name}/${this.editingProvider.config.model}`,
+    );
 
-    const prompt = HTML_SLIDE_MODIFICATION_PROMPT
-      .replace(/\{\{PRIMARY_COLOR\}\}/g, primaryColor)
+    const prompt = HTML_SLIDE_MODIFICATION_PROMPT.replace(/\{\{PRIMARY_COLOR\}\}/g, primaryColor)
       .replace(/\{\{TITLE_TEXT_COLOR\}\}/g, '#111827')
       .replace(/\{\{BODY_TEXT_COLOR\}\}/g, '#374151')
       .replace('{{CURRENT_HTML}}', currentHtml)
@@ -5098,7 +6573,10 @@ ${tail}`;
       { role: 'user', content: prompt },
     ];
     switchStage(this.editingProvider, 'editing');
-    const response = await this.editingProvider.chat(messages, { temperature: 0.7, maxTokens: 8000 });
+    const response = await this.editingProvider.chat(messages, {
+      temperature: 0.7,
+      maxTokens: 8000,
+    });
     let html = this.extractHtml(response.content);
     const rawLen = html.length;
     html = this.sanitizeSlideHtml(html);
@@ -5109,7 +6587,9 @@ ${tail}`;
 
     const duration = Date.now() - startTime;
     const endTimestamp = formatBeijingTime();
-    console.log(`[${endTimestamp}] [AGENT] modifySlide 完成: raw=${rawLen} chars → final=${html.length} chars, 耗时=${formatDuration(duration)}, tokens=${response.usage?.totalTokens ?? 'N/A'}`);
+    console.log(
+      `[${endTimestamp}] [AGENT] modifySlide 完成: raw=${rawLen} chars → final=${html.length} chars, 耗时=${formatDuration(duration)}, tokens=${response.usage?.totalTokens ?? 'N/A'}`,
+    );
     console.log(`[${endTimestamp}] [AGENT] ========== modifySlide 结束 ==========\n`);
     return html;
   }
@@ -5120,9 +6600,15 @@ ${tail}`;
     const tagMatch = elementHtml.match(/^<([a-zA-Z0-9]+)/);
     const tagName = tagMatch ? tagMatch[1] : 'unknown';
     console.log(`\n[${timestamp}] [AGENT] ========== modifyElement 开始 ==========`);
-    console.log(`[${timestamp}] [AGENT] 用户指令: ${userRequest.length > 200 ? userRequest.substring(0, 200) + '...' : userRequest}`);
-    console.log(`[${timestamp}] [AGENT] 元素类型: <${tagName}>, HTML长度: ${elementHtml.length} chars`);
-    console.log(`[${timestamp}] [AGENT] 编辑模型: ${this.editingProvider.name}/${this.editingProvider.config.model}`);
+    console.log(
+      `[${timestamp}] [AGENT] 用户指令: ${userRequest.length > 200 ? userRequest.substring(0, 200) + '...' : userRequest}`,
+    );
+    console.log(
+      `[${timestamp}] [AGENT] 元素类型: <${tagName}>, HTML长度: ${elementHtml.length} chars`,
+    );
+    console.log(
+      `[${timestamp}] [AGENT] 编辑模型: ${this.editingProvider.name}/${this.editingProvider.config.model}`,
+    );
 
     const prompt = `你是一个专业的前端设计师。请根据用户的要求，修改指定的 HTML 元素。
 
@@ -5144,13 +6630,18 @@ ${tail}`;
 {{USER_REQUEST}}
 
 请输出修改后的完整 HTML 元素：
-`.replace('{{ELEMENT_HTML}}', elementHtml).replace('{{USER_REQUEST}}', userRequest);
+`
+      .replace('{{ELEMENT_HTML}}', elementHtml)
+      .replace('{{USER_REQUEST}}', userRequest);
     const messages: ChatMessage[] = [
       { role: 'system', content: '你是一个专业的前端设计师。' },
       { role: 'user', content: prompt },
     ];
     switchStage(this.editingProvider, 'editing');
-    const response = await this.editingProvider.chat(messages, { temperature: 0.7, maxTokens: 4000 });
+    const response = await this.editingProvider.chat(messages, {
+      temperature: 0.7,
+      maxTokens: 4000,
+    });
     let html = this.extractHtml(response.content);
     const rawLen = html.length;
     html = this.sanitizeSlideHtml(html);
@@ -5158,7 +6649,9 @@ ${tail}`;
 
     const duration = Date.now() - startTime;
     const endTimestamp = formatBeijingTime();
-    console.log(`[${endTimestamp}] [AGENT] modifyElement 完成: raw=${rawLen} chars → final=${html.length} chars, 耗时=${formatDuration(duration)}, tokens=${response.usage?.totalTokens ?? 'N/A'}`);
+    console.log(
+      `[${endTimestamp}] [AGENT] modifyElement 完成: raw=${rawLen} chars → final=${html.length} chars, 耗时=${formatDuration(duration)}, tokens=${response.usage?.totalTokens ?? 'N/A'}`,
+    );
     console.log(`[${endTimestamp}] [AGENT] ========== modifyElement 结束 ==========\n`);
     return html;
   }
@@ -5172,10 +6665,18 @@ ${tail}`;
     const startTime = Date.now();
     const totalHtmlLen = presentation.slides.reduce((sum, s) => sum + s.html.length, 0);
     console.log(`\n[${timestamp}] [AGENT] ========== modifyGlobal 开始 ==========`);
-    console.log(`[${timestamp}] [AGENT] 用户指令: ${userRequest.length > 200 ? userRequest.substring(0, 200) + '...' : userRequest}`);
-    console.log(`[${timestamp}] [AGENT] 演示文稿: "${presentation.title}", 共 ${presentation.slides.length} 页, 总HTML长度: ${totalHtmlLen} chars`);
-    console.log(`[${timestamp}] [AGENT] 当前页: 第 ${currentSlideIndex + 1} 页 "${presentation.slides[currentSlideIndex]?.title || ''}"`);
-    console.log(`[${timestamp}] [AGENT] 编辑模型: ${this.editingProvider.name}/${this.editingProvider.config.model}`);
+    console.log(
+      `[${timestamp}] [AGENT] 用户指令: ${userRequest.length > 200 ? userRequest.substring(0, 200) + '...' : userRequest}`,
+    );
+    console.log(
+      `[${timestamp}] [AGENT] 演示文稿: "${presentation.title}", 共 ${presentation.slides.length} 页, 总HTML长度: ${totalHtmlLen} chars`,
+    );
+    console.log(
+      `[${timestamp}] [AGENT] 当前页: 第 ${currentSlideIndex + 1} 页 "${presentation.slides[currentSlideIndex]?.title || ''}"`,
+    );
+    console.log(
+      `[${timestamp}] [AGENT] 编辑模型: ${this.editingProvider.name}/${this.editingProvider.config.model}`,
+    );
 
     const currentSlide = presentation.slides[currentSlideIndex];
     const extractedCount = extractSlideCount(userRequest);
@@ -5185,8 +6686,7 @@ ${tail}`;
       console.log(`[${timestamp}] [AGENT] 检测到页数要求: ${extractedCount} 页`);
     }
     const primaryColor = presentation.primaryColor || '#2563eb';
-    const prompt = HTML_GLOBAL_MODIFICATION_PROMPT
-      .replace(/\{\{PRIMARY_COLOR\}\}/g, primaryColor)
+    const prompt = HTML_GLOBAL_MODIFICATION_PROMPT.replace(/\{\{PRIMARY_COLOR\}\}/g, primaryColor)
       .replace(/\{\{TITLE_TEXT_COLOR\}\}/g, '#111827')
       .replace(/\{\{BODY_TEXT_COLOR\}\}/g, '#374151')
       .replace('{{PRESENTATION_TITLE}}', presentation.title)
@@ -5200,15 +6700,22 @@ ${tail}`;
       { role: 'user', content: prompt },
     ];
     switchStage(this.editingProvider, 'editing');
-    const response = await this.editingProvider.chat(messages, { temperature: 0.7, maxTokens: 16000 });
+    const response = await this.editingProvider.chat(messages, {
+      temperature: 0.7,
+      maxTokens: 16000,
+    });
     const result = this.parsePresentation(response.content, primaryColor);
 
     const duration = Date.now() - startTime;
     const endTimestamp = formatBeijingTime();
     const resultHtmlLen = result.slides.reduce((sum, s) => sum + s.html.length, 0);
-    console.log(`[${endTimestamp}] [AGENT] modifyGlobal 完成: 返回 ${result.slides.length} 页, 总HTML长度: ${resultHtmlLen} chars, 耗时=${formatDuration(duration)}, tokens=${response.usage?.totalTokens ?? 'N/A'}`);
+    console.log(
+      `[${endTimestamp}] [AGENT] modifyGlobal 完成: 返回 ${result.slides.length} 页, 总HTML长度: ${resultHtmlLen} chars, 耗时=${formatDuration(duration)}, tokens=${response.usage?.totalTokens ?? 'N/A'}`,
+    );
     if (result.slides.length !== presentation.slides.length) {
-      console.log(`[${endTimestamp}] [AGENT] 页数变化: ${presentation.slides.length} → ${result.slides.length}`);
+      console.log(
+        `[${endTimestamp}] [AGENT] 页数变化: ${presentation.slides.length} → ${result.slides.length}`,
+      );
     }
     console.log(`[${endTimestamp}] [AGENT] ========== modifyGlobal 结束 ==========\n`);
     return result;
@@ -5221,15 +6728,23 @@ ${tail}`;
       const slides: SlidePlan[] = Array.isArray(data.slides)
         ? data.slides.map((s: any) => {
             const pageType = (s.pageType as SlidePageType) || 'content-no-image';
-            const needsImage = !!s.needsImage && ['content-image-left', 'content-image-right', 'content-image-top'].includes(pageType);
+            const needsImage =
+              !!s.needsImage &&
+              ['content-image-left', 'content-image-right', 'content-image-top'].includes(pageType);
             return {
               pageType,
               title: s.title || '',
               keyPoints: Array.isArray(s.keyPoints) ? s.keyPoints.filter(Boolean) : [],
               imagePrompt: typeof s.imagePrompt === 'string' ? s.imagePrompt : undefined,
-              imageRatio: (s.imageRatio as ImageRatio) || PAGE_TYPE_DEFAULT_IMAGE_RATIO[pageType] || undefined,
+              imageRatio:
+                (s.imageRatio as ImageRatio) ||
+                PAGE_TYPE_DEFAULT_IMAGE_RATIO[pageType] ||
+                undefined,
               needsImage,
-              backgroundPrompt: typeof s.backgroundPrompt === 'string' && s.backgroundPrompt ? s.backgroundPrompt : undefined,
+              backgroundPrompt:
+                typeof s.backgroundPrompt === 'string' && s.backgroundPrompt
+                  ? s.backgroundPrompt
+                  : undefined,
             };
           })
         : [];
@@ -5237,10 +6752,18 @@ ${tail}`;
         title: data.title || '演示文稿',
         description: data.description,
         primaryColor: data.primaryColor || '#2563eb',
-        slides: slides.length > 0 ? slides : [
-          { pageType: 'cover', title: data.title || '演示文稿', keyPoints: [], needsImage: false },
-          { pageType: 'content-no-image', title: '内容', keyPoints: [], needsImage: false },
-        ],
+        slides:
+          slides.length > 0
+            ? slides
+            : [
+                {
+                  pageType: 'cover',
+                  title: data.title || '演示文稿',
+                  keyPoints: [],
+                  needsImage: false,
+                },
+                { pageType: 'content-no-image', title: '内容', keyPoints: [], needsImage: false },
+              ],
       };
     } catch (e) {
       console.error('Failed to parse presentation plan JSON:', e);
@@ -5287,21 +6810,34 @@ ${tail}`;
     }
   }
 
-  private postProcessLayout(html: string, _pageType?: SlidePageType, slideWidth: number = 1280, slideHeight: number = 720, primaryColor: string = '#2563eb', fontFamily?: 'sans' | 'serif' | 'mono', titleColor?: string, colorPolicy?: SlideColorPolicy, composition?: ReferenceComposition): string {
+  private postProcessLayout(
+    html: string,
+    _pageType?: SlidePageType,
+    slideWidth: number = 1280,
+    slideHeight: number = 720,
+    primaryColor: string = '#2563eb',
+    fontFamily?: 'sans' | 'serif' | 'mono',
+    titleColor?: string,
+    colorPolicy?: SlideColorPolicy,
+    composition?: ReferenceComposition,
+  ): string {
     // —— Fix C (vitest FAIL 修复)：当调用方未显式传 fontFamily，则按 _pageType 推导默认字体家族。
     //    代码密集型版式：summary（归纳摘要页典型等宽字摘要表）/ content-table（数据表格页横向对齐数值）默认走 mono，
     //    与 LLM 为这些 layout 写出的 JetBrains Mono 老占位保持同方向，避免默认 sans 把老遗留 mono 占位跨家族升级。
     if (!fontFamily) {
-      fontFamily = (_pageType === 'summary' || _pageType === 'content-table')
-        ? 'mono'
-        : 'sans';
+      fontFamily = _pageType === 'summary' || _pageType === 'content-table' ? 'mono' : 'sans';
     }
     let result = html;
     // 参考撞色板 / 标题色 / 正文色 / 描边色作为显式白名单：对比度兜底时豁免这些参考色，
     // 避免「参考克隆·撞色保真」被终局对比度重写（#118ab2 等参考色被改写成 #111827）。
     const refColorSet = new Set<string>();
     if (colorPolicy) {
-      for (const c of [colorPolicy.titleColor, colorPolicy.bodyColor, colorPolicy.strokeColor, ...colorPolicy.accents]) {
+      for (const c of [
+        colorPolicy.titleColor,
+        colorPolicy.bodyColor,
+        colorPolicy.strokeColor,
+        ...colorPolicy.accents,
+      ]) {
         if (c) refColorSet.add(this.normalizeHex(c) || c.toLowerCase());
       }
     }
@@ -5335,19 +6871,26 @@ ${tail}`;
     result = this.enforceLiAlignmentCenter(result);
     result = this.enforceListAndTextSpanStyles(result);
     // === 本轮新增 3 个视觉缺陷兜底 ===
-    result = this.removeColorCodeWatermark(result);            // 缺陷1：背景水印 "#2563b" 类 div 直接删除
+    result = this.removeColorCodeWatermark(result); // 缺陷1：背景水印 "#2563b" 类 div 直接删除
     result = this.enforceDarkBgTextContrast(result, primaryColor, colorPolicy); // 缺陷2：深色/主色背景 → 文字强制白色（豁免参考色）
-    result = this.fixVerticalWritingLists(result);             // 缺陷3：装饰性竖排 writing-mode → 强制改回横排 + 水平列表结构
+    result = this.fixVerticalWritingLists(result); // 缺陷3：装饰性竖排 writing-mode → 强制改回横排 + 水平列表结构
     // === 本轮新增 4 个 4 建议兜底 ===
     result = this.enforceLightBgTextContrast(result, primaryColor, colorPolicy); // 建议4 C步：浅底/极浅主色禁白字（严重）
     result = this.enforceHeadingColorOnLightBg(result, {
       primaryColor,
       primaryColorDarker: this.darkenPrimaryColor(primaryColor, 0.75),
       titleColor,
-    });                                                   // Bug-4 FR-8：浅底 heading 中性色→主色（或参考标题色）；深底 heading →白（双防线代码级兜底）
-    result = this.enforceCoverPosterArtStyles(result, primaryColor, slideWidth, slideHeight, titleColor, composition); // 建议1：封面海报级艺术字兜底
+    }); // Bug-4 FR-8：浅底 heading 中性色→主色（或参考标题色）；深底 heading →白（双防线代码级兜底）
+    result = this.enforceCoverPosterArtStyles(
+      result,
+      primaryColor,
+      slideWidth,
+      slideHeight,
+      titleColor,
+      composition,
+    ); // 建议1：封面海报级艺术字兜底
     result = this.enforceLeftRight5545AndCardBar(result, primaryColor); // 建议2：左文右图 55:45 + 卡片条化
-    result = this.enforceCardTextProportion(result);           // 建议3：卡片文字/图标比例修正
+    result = this.enforceCardTextProportion(result); // 建议3：卡片文字/图标比例修正
     result = this.enforceFinalTextContrast(result, primaryColor, colorPolicy); // 终局对比度兜底：深底容器强制白字，覆盖全部页型（豁免参考色）
     // 构图护栏：参考为左对齐（或内容页被误居中）时移除根容器居中三件套
     result = applyCompositionGuard(result, composition);
@@ -5368,19 +6911,26 @@ ${tail}`;
     if (outerMatch) {
       const [, attrsB, innerB] = outerMatch;
       const hasContentSignB = /<h[23]\b|<(ul|ol)\b|<img[\s>]|<table\b/i.test(innerB);
-      if (hasContentSignB && /display\s*:\s*flex\s*(?:;|$)/i.test(attrsB) && /flex-direction\s*:\s*column/i.test(attrsB)) {
-        const newAttrsB = attrsB.replace(
-          /style="([^"]*)"/i,
-          (_ma: string, s: string) => {
-            let ns = s;
-            // 只清除三件套的 =center 取值（flex-start/其他合法取值不碰）
-            ns = ns.replace(/(?:^|;)\s*justify-content\s*:\s*center\s*(?:;|$)/gi, (_mm: string) => _mm.endsWith(';') ? ';' : '');
-            ns = ns.replace(/(?:^|;)\s*align-items\s*:\s*center\s*(?:;|$)/gi, (_mm: string) => _mm.endsWith(';') ? ';' : '');
-            ns = ns.replace(/(?:^|;)\s*text-align\s*:\s*center\s*(?:;|$)/gi, (_mm: string) => _mm.endsWith(';') ? ';' : '');
-            ns = ns.replace(/^;+|;+$/g, '').replace(/;;+/g, ';');
-            return `style="${ns}"`;
-          }
-        );
+      if (
+        hasContentSignB &&
+        /display\s*:\s*flex\s*(?:;|$)/i.test(attrsB) &&
+        /flex-direction\s*:\s*column/i.test(attrsB)
+      ) {
+        const newAttrsB = attrsB.replace(/style="([^"]*)"/i, (_ma: string, s: string) => {
+          let ns = s;
+          // 只清除三件套的 =center 取值（flex-start/其他合法取值不碰）
+          ns = ns.replace(/(?:^|;)\s*justify-content\s*:\s*center\s*(?:;|$)/gi, (_mm: string) =>
+            _mm.endsWith(';') ? ';' : '',
+          );
+          ns = ns.replace(/(?:^|;)\s*align-items\s*:\s*center\s*(?:;|$)/gi, (_mm: string) =>
+            _mm.endsWith(';') ? ';' : '',
+          );
+          ns = ns.replace(/(?:^|;)\s*text-align\s*:\s*center\s*(?:;|$)/gi, (_mm: string) =>
+            _mm.endsWith(';') ? ';' : '',
+          );
+          ns = ns.replace(/^;+|;+$/g, '').replace(/;;+/g, ';');
+          return `style="${ns}"`;
+        });
         result = `<div${newAttrsB}>${innerB}</div>`;
       }
     }
@@ -5415,17 +6965,24 @@ ${tail}`;
         if (!props.has('align-items')) props.set('align-items', 'center');
         if (!props.has('justify-content')) props.set('justify-content', 'center');
       }
-      const ns = Array.from(props.entries()).map(([k, v]) => `${k}:${v}`).join(';');
+      const ns = Array.from(props.entries())
+        .map(([k, v]) => `${k}:${v}`)
+        .join(';');
       const newOpen = openTag.replace(/style="[^"]*"/i, `style="${ns}"`);
       return newOpen + match.substring(openTagEnd + 1);
     });
   }
 
-  private ensureOuterContainer(html: string, slideWidth: number = 1280, slideHeight: number = 720, fontFamily: 'sans' | 'serif' | 'mono' = 'sans'): string {
+  private ensureOuterContainer(
+    html: string,
+    slideWidth: number = 1280,
+    slideHeight: number = 720,
+    fontFamily: 'sans' | 'serif' | 'mono' = 'sans',
+  ): string {
     let result = html.trim();
     // === 修复 C：padding 不能为 0，内容贴边会严重溢出 ===
-    const padX = Math.max(32, Math.round((64 * slideWidth / 1280) / 8) * 8);
-    const padY = Math.max(24, Math.round((48 * slideHeight / 720) / 8) * 8);
+    const padX = Math.max(32, Math.round((64 * slideWidth) / 1280 / 8) * 8);
+    const padY = Math.max(24, Math.round((48 * slideHeight) / 720 / 8) * 8);
     const defaultPadding = `${padY}px ${padX}px`;
     const fullFontFamily = this.getFontStack(fontFamily);
     const outerDivMatch = result.match(/^<div([^>]*)>([\s\S]*)<\/div>$/i);
@@ -5464,7 +7021,8 @@ ${tail}`;
         has(/(?:^|;)\s*overflow\s*:\s*hidden\s*(?:;|$)/i) &&
         has(/(?:^|;)\s*position\s*:\s*relative\s*(?:;|$)/i) &&
         has(/(?:^|;)\s*box-sizing\s*:\s*border-box\s*(?:;|$)/i) &&
-        has(/(?:^|;)\s*padding\s*:/i) && !/(?:^|;)\s*padding\s*:\s*0(?:px)?\s*(?:;|$)/i.test(existingStyle) &&
+        has(/(?:^|;)\s*padding\s*:/i) &&
+        !/(?:^|;)\s*padding\s*:\s*0(?:px)?\s*(?:;|$)/i.test(existingStyle) &&
         has(/(?:^|;)\s*display\s*:\s*flex\s*(?:;|$)/i) &&
         has(/(?:^|;)\s*flex-direction\s*:\s*(?:column|row)\s*(?:;|$)/i);
       if (ok8) {
@@ -5472,34 +7030,48 @@ ${tail}`;
         // 只用字符串正则"缺什么补什么"，已有的值一字不改。
         let safeStyle = existingStyle;
         const addIfMissing = (prop: string, fallback: string) => {
-          if (!new RegExp(`(?:^|;)\\s*${prop.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*:`, 'i').test(`;${safeStyle}`)) {
-            safeStyle = safeStyle.endsWith(';') ? `${safeStyle}${prop}:${fallback}` : `${safeStyle};${prop}:${fallback}`;
+          if (
+            !new RegExp(`(?:^|;)\\s*${prop.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*:`, 'i').test(
+              `;${safeStyle}`,
+            )
+          ) {
+            safeStyle = safeStyle.endsWith(';')
+              ? `${safeStyle}${prop}:${fallback}`
+              : `${safeStyle};${prop}:${fallback}`;
           }
         };
         // padding 为 0 的兜底（虽然 ok8 已经排除了 padding:0，但 8 特征都对时再防一次）
         if (/(?:^|;)\s*padding\s*:\s*0(?:px)?\s*(?:;|$)/i.test(safeStyle)) {
-          safeStyle = safeStyle.replace(/(padding\s*:\s*)0(?:px)?\s*(;|$)/i, (_m, p, s) => `${p}${defaultPadding}${s || ';'}`);
+          safeStyle = safeStyle.replace(
+            /(padding\s*:\s*)0(?:px)?\s*(;|$)/i,
+            (_m, p, s) => `${p}${defaultPadding}${s || ';'}`,
+          );
         }
-        if (!/(?:^|;)\s*background(?:-color)?\s*:/i.test(`;${safeStyle}`)) safeStyle += `;background-color:#fff`;
+        if (!/(?:^|;)\s*background(?:-color)?\s*:/i.test(`;${safeStyle}`))
+          safeStyle += `;background-color:#fff`;
         // font-family 特殊处理：不存在 → 补；存在但命中通用占位（老默认 sans OR 老遗留 mono 占位，精确/历史短版子集）→ 允许覆盖为动态栈；其他真实定制 → 绝对不碰（NFR-2 幂等）
         // （Fix A 已在 isDefaultLegacyMonoPlaceholder 收紧 ≥5 项门槛：3 项短版真实定制不会被误判为占位，天然满足幂等）
         {
           const ffMatch = safeStyle.match(/(?:^|;)\s*font-family\s*:\s*([^;]+)/i);
           const currentFF = ffMatch ? ffMatch[1].trim() : '';
           if (!currentFF) {
-            safeStyle = safeStyle.endsWith(';') ? `${safeStyle}font-family:${fullFontFamily}` : `${safeStyle};font-family:${fullFontFamily}`;
+            safeStyle = safeStyle.endsWith(';')
+              ? `${safeStyle}font-family:${fullFontFamily}`
+              : `${safeStyle};font-family:${fullFontFamily}`;
           } else if (this.isPlaceholderFontFamily(currentFF)) {
             // 命中通用占位 → 替换为动态栈：允许跨家族升级（old-sans→mono、old-mono→sans 等，AC-1/AC-3）
             safeStyle = safeStyle.replace(
               /(^|;)\s*font-family\s*:\s*[^;]+/i,
-              (_m, prefix) => `${prefix}font-family:${fullFontFamily}`
+              (_m, prefix) => `${prefix}font-family:${fullFontFamily}`,
             );
           }
         }
         // —— Bug-3 加固 A(续)：ok8 分支三件套注入前再次 isCoverLike + hasAnyContentSign 双重确认
         const ok8HasContentSign = CONTENT_SIGN_RE.test(stripHtmlComments(inner));
         if (layoutShouldCenter && ok8HasContentSign) {
-          console.warn('[FIX-BUG3:A] ok8 布局判定与内容标记冲突（存在 h2/h3/ul/ol/img/table），强制降级 layoutShouldCenter=false');
+          console.warn(
+            '[FIX-BUG3:A] ok8 布局判定与内容标记冲突（存在 h2/h3/ul/ol/img/table），强制降级 layoutShouldCenter=false',
+          );
           layoutShouldCenter = false;
         }
         if (layoutShouldCenter) {
@@ -5524,7 +7096,9 @@ ${tail}`;
     // 原 style 中大概有多少个 declaration（按非引号内的 ; 数量 +1 估算），若 parsed 数量 < 估算的 70% 或 关键键（display/flex-direction）丢失 → 判定解析失败，
     // 回退为「保留原 existingStyle 字符串 + 用正则 replace 注入缺失的必要字段」，绝不破坏 AI 写的 padding/font-family 等已有字段
     const estimateDeclCount = (() => {
-      let n = 1; let inQ: 0 | 1 | 2 = 0; let dep = 0;
+      let n = 1;
+      let inQ: 0 | 1 | 2 = 0;
+      let dep = 0;
       for (let k = 0; k < existingStyle.length; k++) {
         const c = existingStyle[k];
         if (dep === 0) {
@@ -5532,25 +7106,33 @@ ${tail}`;
           else if (c === '"' && inQ !== 1) inQ = inQ === 2 ? 0 : 2;
         }
         if (inQ === 0) {
-          if (c === '(') dep++; else if (c === ')') dep--;
+          if (c === '(') dep++;
+          else if (c === ')') dep--;
           else if (c === ';' && dep === 0) n++;
         }
       }
       return n;
     })();
-    const parseFailed = existingStyle
-      && parsed.length > 0
-      && (parsed.length < Math.ceil(estimateDeclCount * 0.7)
-        || !(styles['display'] || '').trim()
-        || !(styles['width'] || '').trim()
-        || !(styles['height'] || '').trim());
+    const parseFailed =
+      existingStyle &&
+      parsed.length > 0 &&
+      (parsed.length < Math.ceil(estimateDeclCount * 0.7) ||
+        !(styles['display'] || '').trim() ||
+        !(styles['width'] || '').trim() ||
+        !(styles['height'] || '').trim());
 
     if (parseFailed) {
       // 回退：保留原 existingStyle 字符串，用 String.replace 缺省补必要字段（不破坏任何已有的值）
       let safeStyle = existingStyle;
       const ensureHas = (prop: string, fallback: string) => {
-        if (!new RegExp(`(?:^|;)\\s*${prop.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*:`, 'i').test(`;${safeStyle}`)) {
-          safeStyle = safeStyle.endsWith(';') ? `${safeStyle}${prop}:${fallback}` : `${safeStyle};${prop}:${fallback}`;
+        if (
+          !new RegExp(`(?:^|;)\\s*${prop.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*:`, 'i').test(
+            `;${safeStyle}`,
+          )
+        ) {
+          safeStyle = safeStyle.endsWith(';')
+            ? `${safeStyle}${prop}:${fallback}`
+            : `${safeStyle};${prop}:${fallback}`;
         }
       };
       ensureHas('width', '100%');
@@ -5558,13 +7140,18 @@ ${tail}`;
       ensureHas('overflow', 'hidden');
       ensureHas('position', 'relative');
       ensureHas('box-sizing', 'border-box');
-      if (!/padding\s*:/i.test(`;${safeStyle}`)) safeStyle = `${safeStyle};padding:${defaultPadding}`;
+      if (!/padding\s*:/i.test(`;${safeStyle}`))
+        safeStyle = `${safeStyle};padding:${defaultPadding}`;
       // padding 值为 0 的兜底（即使解析成功了也防一手）
       if (/padding\s*:\s*0(?:px)?\s*(?:;|$)/i.test(safeStyle)) {
-        safeStyle = safeStyle.replace(/(padding\s*:\s*)0(?:px)?\s*(;|$)/i, (_m, p, s) => `${p}${defaultPadding}${s || ';'}`);
+        safeStyle = safeStyle.replace(
+          /(padding\s*:\s*)0(?:px)?\s*(;|$)/i,
+          (_m, p, s) => `${p}${defaultPadding}${s || ';'}`,
+        );
       }
       ensureHas('display', 'flex');
-      if (!/flex-direction\s*:/i.test(`;${safeStyle}`)) safeStyle = `${safeStyle};flex-direction:column`;
+      if (!/flex-direction\s*:/i.test(`;${safeStyle}`))
+        safeStyle = `${safeStyle};flex-direction:column`;
       // font-family 特殊处理：不存在 → 补；存在但命中通用占位 → 替换为动态栈；其他真实定制 → 绝对不碰（NFR-2 幂等）
       // （Fix A 已收紧 mono 占位 ≥5 项门槛）
       {
@@ -5576,7 +7163,7 @@ ${tail}`;
           // 命中通用占位 → 允许跨家族升级（AC-3 old-mono→sans）、同家族新版栈升级
           safeStyle = safeStyle.replace(
             /(^|;)\s*font-family\s*:\s*[^;]+/i,
-            (_m, prefix) => `${prefix}font-family:${fullFontFamily}`
+            (_m, prefix) => `${prefix}font-family:${fullFontFamily}`,
           );
         }
       }
@@ -5586,19 +7173,25 @@ ${tail}`;
       if (pfShouldCenter) {
         const pfCleanInner = stripHtmlComments(inner);
         if (CONTENT_SIGN_RE.test(pfCleanInner)) {
-          console.warn('[FIX-BUG3:B] parseFailed 分支检测到 h2/h3/ul/ol/img/table 内容标记，layoutShouldCenter 强制降级为 false');
+          console.warn(
+            '[FIX-BUG3:B] parseFailed 分支检测到 h2/h3/ul/ol/img/table 内容标记，layoutShouldCenter 强制降级为 false',
+          );
           pfShouldCenter = false;
         }
       }
       if (pfShouldCenter && /display\s*:\s*flex/i.test(`;${safeStyle}`)) {
         if (!/justify-content\s*:|align-items\s*:|text-align\s*:/i.test(safeStyle)) {
           // 三件套缺失才追加（已有任何一项表明 LLM 可能想手动对齐，不再强写三件套以防覆盖 flex-start 等合理取值）
-          if (!/justify-content\s*:/i.test(`;${safeStyle}`)) safeStyle = `${safeStyle};justify-content:center`;
-          if (!/align-items\s*:/i.test(`;${safeStyle}`)) safeStyle = `${safeStyle};align-items:center`;
-          if (!/text-align\s*:/i.test(`;${safeStyle}`)) safeStyle = `${safeStyle};text-align:center`;
+          if (!/justify-content\s*:/i.test(`;${safeStyle}`))
+            safeStyle = `${safeStyle};justify-content:center`;
+          if (!/align-items\s*:/i.test(`;${safeStyle}`))
+            safeStyle = `${safeStyle};align-items:center`;
+          if (!/text-align\s*:/i.test(`;${safeStyle}`))
+            safeStyle = `${safeStyle};text-align:center`;
         }
       }
-      if (!/background(?:-color)?\s*:/i.test(`;${safeStyle}`)) safeStyle = `${safeStyle};background-color:#fff`;
+      if (!/background(?:-color)?\s*:/i.test(`;${safeStyle}`))
+        safeStyle = `${safeStyle};background-color:#fff`;
       const newAttrs = styleMatch
         ? attrs.replace(/style="[^"]*"/i, `style="${safeStyle}"`)
         : `${attrs} style="${safeStyle}"`;
@@ -5617,11 +7210,9 @@ ${tail}`;
       'flex-direction': styles['flex-direction'] || 'column',
       // font-family 特殊处理：不存在或命中通用占位（老默认 sans OR 老遗留 mono 占位）→ 用动态栈；其他真实定制 → 绝对不碰（NFR-2 幂等）
       // （Fix A 已在 isDefaultLegacyMonoPlaceholder 收紧 ≥5 项门槛，防止 3 项短版真实定制被误判）
-      'font-family': ((cur) =>
-        !cur || this.isPlaceholderFontFamily(cur)
-          ? fullFontFamily
-          : cur
-      )(styles['font-family']),
+      'font-family': ((cur) => (!cur || this.isPlaceholderFontFamily(cur) ? fullFontFamily : cur))(
+        styles['font-family'],
+      ),
     };
     // 修复 C：padding 不能为 0（空字符串 或 0 值统一兜底 defaultPadding）
     if (!required.padding || /^0(?:px)?$/.test(required.padding.trim())) {
@@ -5633,7 +7224,9 @@ ${tail}`;
       let mapShouldCenter = layoutShouldCenter;
       const hasAnyContentSign = CONTENT_SIGN_RE.test(stripHtmlComments(inner));
       if (mapShouldCenter && hasAnyContentSign) {
-        console.warn('[FIX-BUG3:C] Map 重写分支 layoutShouldCenter 与内容标记冲突（h2/h3/ul/ol/img/table 存在），强制降级为不居中以便排查');
+        console.warn(
+          '[FIX-BUG3:C] Map 重写分支 layoutShouldCenter 与内容标记冲突（h2/h3/ul/ol/img/table 存在），强制降级为不居中以便排查',
+        );
         mapShouldCenter = false;
       }
       if (mapShouldCenter) {
@@ -5661,8 +7254,11 @@ ${tail}`;
       styles['font-family'] = required['font-family'];
     }
     // 再次兜底：padding 仍然是 0 就强制盖掉
-    if (!styles.padding || /^0(?:px)?$/.test(styles.padding.trim())) styles.padding = defaultPadding;
-    const newStyle = Object.entries(styles).map(([k, v]) => `${k}:${v}`).join(';');
+    if (!styles.padding || /^0(?:px)?$/.test(styles.padding.trim()))
+      styles.padding = defaultPadding;
+    const newStyle = Object.entries(styles)
+      .map(([k, v]) => `${k}:${v}`)
+      .join(';');
     let newAttrs: string;
     if (styleMatch) {
       newAttrs = attrs.replace(/style="[^"]*"/i, `style="${newStyle}"`);
@@ -5719,14 +7315,17 @@ ${tail}`;
     const bareImgRe =
       /(<\/(?:div|h[1-6]|ul|ol|p|table|section|article)\s*>)(\s*)(<img\b[^>]*>)(\s*)(?=<\/(?:div|section|article)\s*>)/gi;
     let changed = false;
-    const output = html.replace(bareImgRe, (_full, prevClose: string, ws1: string, imgTag: string, ws2: string) => {
-      changed = true;
-      const wrap =
-        '<div style="margin-top:24px;overflow:hidden;display:flex;align-items:stretch;min-height:0;flex:0 0 auto;">' +
-        imgTag +
-        '</div>';
-      return prevClose + ws1 + wrap + ws2;
-    });
+    const output = html.replace(
+      bareImgRe,
+      (_full, prevClose: string, ws1: string, imgTag: string, ws2: string) => {
+        changed = true;
+        const wrap =
+          '<div style="margin-top:24px;overflow:hidden;display:flex;align-items:stretch;min-height:0;flex:0 0 auto;">' +
+          imgTag +
+          '</div>';
+        return prevClose + ws1 + wrap + ws2;
+      },
+    );
     if (changed) return output;
     // === 兜底 B：没有命中根容器关闭标签模式？再看 "根容器内 img 是第一个孩子"的情况（少见，但仍防御）
     const firstBareImgRe =
@@ -5747,7 +7346,8 @@ ${tail}`;
         const styleMatch = match.match(/style="([^"]*)"/i);
         if (!styleMatch) return match;
         const style = styleMatch[1];
-        if (style.includes('position:absolute') || style.includes('flex-direction:column')) return match;
+        if (style.includes('position:absolute') || style.includes('flex-direction:column'))
+          return match;
         if (style.includes('align-items')) return match;
         return match.replace(/style="([^"]*)"/i, `style="${style};align-items:stretch"`);
       }
@@ -5799,23 +7399,23 @@ ${tail}`;
       // （用 [\s\S]{0,80} 限制跨度，避免误伤过长的正常描述）
       let result = s.replace(
         /[，,。、\s]*画面?主体(?:自然)?(?:居中)?(?:偏[上下左右中])?[\s\S]{0,80}?(?:文字|排版|文本|文案|内容|标题|说明|注解|字幕|批注)[^，,。、;；]{0,40}?(?:位置|空间|地方|区域|面积|空白|空位|地盘)[\s,，。、;；]*/gi,
-        '，整体构图饱满充实、全画布四角及边缘均有合理图像内容与细腻层次，严禁大面积纯色空白、严禁未渲染纯色区域、严禁半图半空白，'
+        '，整体构图饱满充实、全画布四角及边缘均有合理图像内容与细腻层次，严禁大面积纯色空白、严禁未渲染纯色区域、严禁半图半空白，',
       );
       // ---------- 0.2 兜底匹配（上面没命中时）：独立出现的"留出/预留/空出 + ... + 文字类 + ... + 空间类"整段删除 ----------
       // 允许顺序颠倒或拆分表达，例如"给左侧留文字位置"、"右侧作为文字排版区域"
       result = result.replace(
         /[，,。、\s]*(?:留[出下给为生]|腾[出下给]|预[留备下]|空[出给下]|让[出给]|给[予]?|把[将]?|作为)[\s\S]{0,60}?(?:文字|排版|文本|文案|内容|标题|说明|注解|字幕|批注)[^，,。、;；]{0,30}?(?:位置|空间|地方|区域|面积|空白|空位|地盘|面积)[\s,，。、;；]*/gi,
-        '，整体构图饱满充实，画面四角均有合理图像内容与细腻层次，严禁大面积纯色空白，'
+        '，整体构图饱满充实，画面四角均有合理图像内容与细腻层次，严禁大面积纯色空白，',
       );
       // ---------- 0.3 反向匹配："X侧/半边/半部分/... + 用/放/作为 + 文字/排版..." （无"留出"字样但语义相同）
       result = result.replace(
         /[，,。、\s]*[上下左右两][侧边方半部分段区域][\s,，。、;；]*(?:用来?|放|作为|充当)[^，,。、;；]{0,30}?(?:文字|排版|文本|文案|内容|标题|说明|注解)[\s,，。、;；]*/gi,
-        '，整体构图平衡饱满，严禁大面积纯色空白，全画布填充完整，'
+        '，整体构图平衡饱满，严禁大面积纯色空白，全画布填充完整，',
       );
       // ---------- 0.4 英文近似表达留空语义 ----------
       result = result.replace(
         /[,.\s]+(?:leave|save|reserve|keep|make|set\s*aside)\s+(?:some\s+)?(?:space|room|area|region|margin)\s+(?:on\s+the\s+)?(?:left|right|top|bottom|both\s+sides|side)?\s*(?:for\s+)?(?:text|copy|words|content|caption|subtitle|labels|annotations)[\s,.]*/gi,
-        '. Full balanced composition. DO NOT LEAVE LARGE SOLID COLOR EMPTY AREAS anywhere. Every canvas corner and edge has imagery with fine texture and detail. '
+        '. Full balanced composition. DO NOT LEAVE LARGE SOLID COLOR EMPTY AREAS anywhere. Every canvas corner and edge has imagery with fine texture and detail. ',
       );
       // ---------- 0.5 "留白"关键词（背景图里经常出现）替换成柔和描述，不能写"空/白"字样 ----------
       // 注：这一步放在 Step 0 而不是 Step 3，因为"留白"对图像生成危害远大于普通元信息
@@ -5824,7 +7424,7 @@ ${tail}`;
         (_m, area: string | undefined, _degree: string | undefined) => {
           const prefix = area ? `${area}柔和渐变过渡带细腻微纹理与层次` : '柔和渐变与细腻微纹理';
           return prefix;
-        }
+        },
       );
       // 孤立的"留白"二字
       result = result.replace(/\b留白\b/g, '柔和渐变细腻纹理');
@@ -5836,24 +7436,42 @@ ${tail}`;
 
     // ---- Step 1：去除「纯标签式」元信息片段 ----
     // 形如： 风格：空与静 / 风格:极简 / 【风格】xxx
-    p = p.replace(/[（\(\s,，、。;；]*?(?:风格|画风|样式|设计风格)[：:\s】\]]*[^\s,，。、;；]{1,20}/gi, ' ');
+    p = p.replace(
+      /[（\(\s,，、。;；]*?(?:风格|画风|样式|设计风格)[：:\s】\]]*[^\s,，。、;；]{1,20}/gi,
+      ' ',
+    );
     // 形如： 比例要求 16:9 / 比例 4:3 / 宽屏比例16:9 / 画面比例 16:9
-    p = p.replace(/[（\(\s,，、。;；]*?(?:比例|画面比例|构图比例|图片比例|比例要求)[：:\s]*\d+\s*[:：]\s*\d+/gi, ' ');
+    p = p.replace(
+      /[（\(\s,，、。;；]*?(?:比例|画面比例|构图比例|图片比例|比例要求)[：:\s]*\d+\s*[:：]\s*\d+/gi,
+      ' ',
+    );
     // 形如： 16:9宽屏构图 / 16:9横屏 / 4:3竖屏 （直接带数字冒号数字+描述 → 删除）
-    p = p.replace(/\b\d+\s*[:：]\s*\d+(?:\s*[\u4e00-\u9fa5A-Za-z]{0,12}(?:构图|画面|比例|横屏|宽屏|竖屏|尺寸))?/g, ' ');
+    p = p.replace(
+      /\b\d+\s*[:：]\s*\d+(?:\s*[\u4e00-\u9fa5A-Za-z]{0,12}(?:构图|画面|比例|横屏|宽屏|竖屏|尺寸))?/g,
+      ' ',
+    );
     // 形如： 颜色代码 #0891b2 / 主色调#FFFFFF / 主色: #2563eb / PRIMARY #FFFFFF / 色值 #xxx
-    p = p.replace(/[（\(\s,，、。;；]*?(?:颜色代码|主色调?|primary(?:\s*color)?|PRIMARY(?:\s*COLOR)?|色值|十六进制|hex|HEX|COLOR|RGB(?:\s*值)?|配色)[：:\s]*#([0-9a-fA-F]{3,8})\b/gi, ' ');
+    p = p.replace(
+      /[（\(\s,，、。;；]*?(?:颜色代码|主色调?|primary(?:\s*color)?|PRIMARY(?:\s*COLOR)?|色值|十六进制|hex|HEX|COLOR|RGB(?:\s*值)?|配色)[：:\s]*#([0-9a-fA-F]{3,8})\b/gi,
+      ' ',
+    );
     // 形如： 蓝色调(#2563eb) / 青蓝色(#0891b2) - 注意括号内的 hex
     p = p.replace(/\(\s*#([0-9a-fA-F]{3,8})\s*\)/g, ' ');
     // 形如： （#FFFFFF） / 【#2563eb】
     p = p.replace(/[\(\[（【]\s*#([0-9a-fA-F]{3,8})\s*[\)\]）】]/g, ' ');
     // 形如： standalone RGB(...) / rgba(...) 标签（不是在描述性语句里的那种，而是孤立色值）
-    p = p.replace(/[,，\s]rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+(?:\s*,\s*[0-9.]+\s*)?\)[\s,，。]*/gi, ' ');
+    p = p.replace(
+      /[,，\s]rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+(?:\s*,\s*[0-9.]+\s*)?\)[\s,，。]*/gi,
+      ' ',
+    );
 
     // ---- Step 2：去除孤立、短的纯 hex 颜色代码（但避免误伤像 C4D、B2B 这种正常英文词）----
     // 我们用更保守的规则：只删前后是中文/标点/空白 或行首行尾 场景下的 #HEX，且 HEX 恰好 3、6、8 位
     const hexBoundary = (s: string): string =>
-      s.replace(/(^|[\u4e00-\u9fa5\s,，。、;；:：\(\)\[\]（）【】"'`])#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})(?=$|[\u4e00-\u9fa5\s,，。、;；:：\(\)\[\]（）【】"'`])/g, '$1 ');
+      s.replace(
+        /(^|[\u4e00-\u9fa5\s,，。、;；:：\(\)\[\]（）【】"'`])#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})(?=$|[\u4e00-\u9fa5\s,，。、;；:：\(\)\[\]（）【】"'`])/g,
+        '$1 ',
+      );
     p = hexBoundary(hexBoundary(p)); // 两遍处理（有些相邻需要两轮）
 
     // ---- Step 3：去除孤立的纯元关键词（2-6字，没有正常画面描述语义）----
@@ -5861,12 +7479,37 @@ ${tail}`;
     // 这些词是图像模型防画文字/水印的关键指令，要保留在 prompt 里强化效果；
     // Step 3 只清理「淡雅背景/高分辨率」这种与画面内容无关、又会稀释权重的元形容词。
     const metaKeywords = [
-      '淡雅背景', '低饱和度', '高质量', '专业',
-      '高清', '超清', '4k', '8K', '4K', '高分辨率', '像素级', '构图', '宽屏', '横屏', '竖屏',
-      '留出空间', '留空', '排版空间', '文字空间', '文字位置', '空白区域', '文本区域', '文字区', '排版区', '文字占位',
+      '淡雅背景',
+      '低饱和度',
+      '高质量',
+      '专业',
+      '高清',
+      '超清',
+      '4k',
+      '8K',
+      '4K',
+      '高分辨率',
+      '像素级',
+      '构图',
+      '宽屏',
+      '横屏',
+      '竖屏',
+      '留出空间',
+      '留空',
+      '排版空间',
+      '文字空间',
+      '文字位置',
+      '空白区域',
+      '文本区域',
+      '文字区',
+      '排版区',
+      '文字占位',
     ];
     for (const kw of metaKeywords) {
-      const regex = new RegExp(`(^|[\\s,，。、;；])${kw.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}(?=$|[\\s,，。、;；])`, 'gi');
+      const regex = new RegExp(
+        `(^|[\\s,，。、;；])${kw.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}(?=$|[\\s,，。、;；])`,
+        'gi',
+      );
       p = p.replace(regex, '$1 ');
     }
 
@@ -5894,10 +7537,12 @@ ${tail}`;
         toneEnAnchor = 'WARM RED-ROSE-PINK / REDDISH VIOLET PALETTE ONLY';
       } else if (g === maxC && r > b) {
         tone = lum > 0.55 ? '清新嫩黄绿色系' : '自然森林深绿色调';
-        toneEnAnchor = 'GREEN FAMILY DOMINANT (lime / yellow-green / forest). DO NOT SWITCH TO BLUE/INDIGO FAMILY';
+        toneEnAnchor =
+          'GREEN FAMILY DOMINANT (lime / yellow-green / forest). DO NOT SWITCH TO BLUE/INDIGO FAMILY';
       } else if (g === maxC) {
         tone = lum > 0.55 ? '清爽青绿色系' : '高级深青碧色调';
-        toneEnAnchor = 'GREEN-EMERALD-TEAL (CYAN-GREEN) FAMILY. KEEP GREEN TONES PROMINENT — DO NOT SHIFT TO PURE BLUE';
+        toneEnAnchor =
+          'GREEN-EMERALD-TEAL (CYAN-GREEN) FAMILY. KEEP GREEN TONES PROMINENT — DO NOT SHIFT TO PURE BLUE';
       } else if (b === maxC && g > r * 0.8) {
         tone = lum > 0.55 ? '清澈青蓝色系' : '商务海蓝深青色调';
         toneEnAnchor = 'CYAN / TEAL / LIGHT SEA BLUE FAMILY';
@@ -5906,9 +7551,16 @@ ${tail}`;
         toneEnAnchor = 'INDIGO / VIOLET / ROYAL BLUE PALETTE';
       }
       // 把 prompt 里所有提到主色相关的位置替换成色系描述
-      p = p.replace(/(整体(?:的|色调|配色|视觉)?|配色(?:方案|整体)?|(?:主色调?|整体色彩|色彩基调|色系统一)[，,\s]*)以?(?:[为是]|统一(?:为|使用)?)?\s*[#＃]?[0-9a-fA-F]{3,8}\b/gi, `整体${tone}氛围`);
+      p = p.replace(
+        /(整体(?:的|色调|配色|视觉)?|配色(?:方案|整体)?|(?:主色调?|整体色彩|色彩基调|色系统一)[，,\s]*)以?(?:[为是]|统一(?:为|使用)?)?\s*[#＃]?[0-9a-fA-F]{3,8}\b/gi,
+        `整体${tone}氛围`,
+      );
       // 如果 prompt 里完全没有提到色系（清洗后缺失），则末尾补一句色系描述
-      if (!/(色系|色调|色彩|颜色|配色|blue|green|red|purple|orange|yellow|pink|gray|grey|cyan|navy|teal|emerald|rose|amber|violet|indigo)/i.test(p)) {
+      if (
+        !/(色系|色调|色彩|颜色|配色|blue|green|red|purple|orange|yellow|pink|gray|grey|cyan|navy|teal|emerald|rose|amber|violet|indigo)/i.test(
+          p,
+        )
+      ) {
         p = p.trim() + `，${tone}统一配色基调`;
       }
     }
@@ -5920,18 +7572,33 @@ ${tail}`;
     }
 
     // ---- Step 6：压缩重复空白、重复标点，整理为一行 ----
-    p = p.replace(/[\s\u3000]+/g, ' ').replace(/[，,]{2,}/g, '，').replace(/[。.]{2,}/g, '。').replace(/\s*[，,。.]\s*[，,。.]/g, '，').trim();
+    p = p
+      .replace(/[\s\u3000]+/g, ' ')
+      .replace(/[，,]{2,}/g, '，')
+      .replace(/[。.]{2,}/g, '。')
+      .replace(/\s*[，,。.]\s*[，,。.]/g, '，')
+      .trim();
     if (p.endsWith('，') || p.endsWith(',') || p.endsWith('。')) p = p.slice(0, -1);
 
     // ---- Step 6.5（新增·中文防文字/防颜色代号强约束）：在英文末尾约束之前，用中文明确禁止画面中出现文字/字母/数字/颜色代码 ----
     // 为什么要补这段？因为 qwen-image 的 prompt_extend 对中文语义理解更强，且中段落权重 > 末尾英文权重。
     // 同时：如果 prompt 本身已经有「无文字 / 无颜色代码」等描述，就不重复补，避免稀释。
-    const hasNoTextHint = /(无文字|无任何文字|不出现文字|不要文字|严禁文字|禁止文字|纯视觉|纯图像|纯插画|没有文字|NO TEXT|no text|No text)/i.test(p);
-    const hasNoColorCodeHint = /(无颜色代码|无颜色代号|不出现颜色代码|不要颜色代码|严禁颜色代码|禁止颜色代码|NO COLOR CODE|no hex|no rgb)/i.test(p);
+    const hasNoTextHint =
+      /(无文字|无任何文字|不出现文字|不要文字|严禁文字|禁止文字|纯视觉|纯图像|纯插画|没有文字|NO TEXT|no text|No text)/i.test(
+        p,
+      );
+    const hasNoColorCodeHint =
+      /(无颜色代码|无颜色代号|不出现颜色代码|不要颜色代码|严禁颜色代码|禁止颜色代码|NO COLOR CODE|no hex|no rgb)/i.test(
+        p,
+      );
     if (!hasNoTextHint || !hasNoColorCodeHint) {
       const cnConstraints: string[] = [];
-      if (!hasNoTextHint) cnConstraints.push('画面中严禁出现任何文字、汉字、字母、数字、符号、标签、标题、Logo、水印，纯视觉插画');
-      if (!hasNoColorCodeHint) cnConstraints.push('画面中严禁出现任何颜色代码、色值编号、HEX色值、RGB函数、十六进制色号');
+      if (!hasNoTextHint)
+        cnConstraints.push(
+          '画面中严禁出现任何文字、汉字、字母、数字、符号、标签、标题、Logo、水印，纯视觉插画',
+        );
+      if (!hasNoColorCodeHint)
+        cnConstraints.push('画面中严禁出现任何颜色代码、色值编号、HEX色值、RGB函数、十六进制色号');
       const extra = '，' + cnConstraints.join('，') + '，';
       p = p + extra;
     }
@@ -5941,8 +7608,10 @@ ${tail}`;
     //   a. 压缩为 ~80 chars，不冲淡主 prompt 权重
     //   b. 加入 FULL CANVAS / NO LARGE SOLID EMPTY AREAS — 防止半边图像
     //   c. 动态加入 toneEnAnchor（色系锚定）— 防止 prompt_extend 改写后颜色漂移（绿→蓝）
-    const canvasConstraint = ' FULL CANVAS COVERAGE. NO LARGE SOLID COLOR EMPTY AREAS. NO BLANK REGIONS. All 4 corners filled with imagery.';
-    const noTextConstraint = ' STRICTLY NO TEXT/LETTERS/NUMBERS/WATERMARKS/LOGOS/LABELS. PURE VISUAL ILLUSTRATION ONLY.';
+    const canvasConstraint =
+      ' FULL CANVAS COVERAGE. NO LARGE SOLID COLOR EMPTY AREAS. NO BLANK REGIONS. All 4 corners filled with imagery.';
+    const noTextConstraint =
+      ' STRICTLY NO TEXT/LETTERS/NUMBERS/WATERMARKS/LOGOS/LABELS. PURE VISUAL ILLUSTRATION ONLY.';
     const colorAnchor = toneEnAnchor ? ` COLOR ANCHOR: ${toneEnAnchor}.` : '';
     const appendix = ` ${canvasConstraint}${colorAnchor}${noTextConstraint}`;
     if (!p.includes('FULL CANVAS COVERAGE')) {
@@ -5979,16 +7648,19 @@ ${tail}`;
     for (let iter = 0; iter < 4; iter++) {
       const before = result;
       // 关键：内层必须**不包含 <div 开头**（(?!<div[\s>])[\s\S]），确保每次只剥最内层叶子 div
-      result = result.replace(/<div(\s[^>]*)?>((?:(?!<div[\s>])[\s\S])*?)<\/div>/gi, (match, _attrs: string | undefined, inner: string) => {
-        // 只处理文本内容比较短的 div（水印一般 2-30 字符，不会是大段落）
-        const innerLen = stripTags(inner).length;
-        if (innerLen > 60) return match;
-        const plain = stripTags(inner);
-        if (isColorWatermarkText(plain)) {
-          return ''; // 删除整个 div
-        }
-        return match;
-      });
+      result = result.replace(
+        /<div(\s[^>]*)?>((?:(?!<div[\s>])[\s\S])*?)<\/div>/gi,
+        (match, _attrs: string | undefined, inner: string) => {
+          // 只处理文本内容比较短的 div（水印一般 2-30 字符，不会是大段落）
+          const innerLen = stripTags(inner).length;
+          if (innerLen > 60) return match;
+          const plain = stripTags(inner);
+          if (isColorWatermarkText(plain)) {
+            return ''; // 删除整个 div
+          }
+          return match;
+        },
+      );
       if (result === before) break;
     }
     return result;
@@ -5999,7 +7671,11 @@ ${tail}`;
   // 识别 div 的 background / background-color 是否包含主色或其 darker 变体
   // 然后对该 div 范围内所有文本标签（h1-h6/p/li/span 等）设置 color:#FFFFFF
   // =========================================================================
-  private enforceDarkBgTextContrast(html: string, primaryColor: string, colorPolicy?: SlideColorPolicy): string {
+  private enforceDarkBgTextContrast(
+    html: string,
+    primaryColor: string,
+    colorPolicy?: SlideColorPolicy,
+  ): string {
     // 统一口径：深底判定收敛到共享权威 resolveBgTone（alpha 感知 + 渐变合成），消除与终局兜底口径打架
     const isDarkBackgroundStyle = (style: string): boolean => {
       return this.resolveBgTone(style, primaryColor) === 'dark';
@@ -6008,61 +7684,73 @@ ${tail}`;
     // 递归处理嵌套标签：外层 li 处理完 → 再递归进入它的 inner 处理 span/strong 等内层
     const processTag = (seg: string, depth: number): string => {
       if (depth > 5) return seg; // 防止无限递归
-      return seg.replace(/<(h[1-6]|p|li|span|small|a|strong|em|b|i|u|label)(\s[^>]*)?>([\s\S]*?)<\/\1>/gi, (tagMatch, tag: string, attrs: string | undefined, _inner: string) => {
-        // 如果是图标容器（inline-flex + flex-shrink:0 + 宽高 + border-radius），不修改（SVG/数字本来就是白色）
-        if (attrs && /style="[^"]*"/i.test(attrs)) {
-          const styleM = attrs.match(/style="([^"]*)"/i);
-          if (styleM) {
-            const st = styleM[1];
-            const hasInlineFlex = /display\s*:\s*inline-flex/i.test(st);
-            const hasFlexShrink = /flex-shrink\s*:\s*0/i.test(st);
-            const hasSize = /width\s*:\s*\d+px/i.test(st) && /height\s*:\s*\d+px/i.test(st);
-            if (hasInlineFlex && hasFlexShrink && hasSize) {
-              return tagMatch; // 图标容器跳过（已经白色）
+      return seg.replace(
+        /<(h[1-6]|p|li|span|small|a|strong|em|b|i|u|label)(\s[^>]*)?>([\s\S]*?)<\/\1>/gi,
+        (tagMatch, tag: string, attrs: string | undefined, _inner: string) => {
+          // 如果是图标容器（inline-flex + flex-shrink:0 + 宽高 + border-radius），不修改（SVG/数字本来就是白色）
+          if (attrs && /style="[^"]*"/i.test(attrs)) {
+            const styleM = attrs.match(/style="([^"]*)"/i);
+            if (styleM) {
+              const st = styleM[1];
+              const hasInlineFlex = /display\s*:\s*inline-flex/i.test(st);
+              const hasFlexShrink = /flex-shrink\s*:\s*0/i.test(st);
+              const hasSize = /width\s*:\s*\d+px/i.test(st) && /height\s*:\s*\d+px/i.test(st);
+              if (hasInlineFlex && hasFlexShrink && hasSize) {
+                return tagMatch; // 图标容器跳过（已经白色）
+              }
             }
           }
-        }
-        // 先递归处理内层（让内层 span/strong 先被变白，避免外层包裹内层无法触达）
-        const processedInner = processTag(_inner, depth + 1);
-        // 再处理/追加 style 里的 color:#FFFFFF
-        let newAttrs = attrs || '';
-        const styleMatch = newAttrs.match(/style="([^"]*)"/i);
-        let styleStr = styleMatch ? styleMatch[1] : '';
-        const styles: Record<string, string> = {};
-        if (styleStr) {
-          for (const { key, value } of parseStyleDeclarations(styleStr)) {
-            styles[key] = value;
-          }
-        }
-        // 判断：是否为「有效」渐变文字（按声明顺序，background 简写不覆盖 clip，否则不算渐变文字）
-        // 渐变文字本身自带清晰的颜色，不需要强制覆盖，更不能破坏其渐变结构
-        const isGradientText = isEffectiveClipText(styleStr);
-        if (!isGradientText) {
-          // 参考撞色 / 标题色 / 正文色 / 描边色：用户明确上传的风格，深底也不强行改成白色（保真）
-          const existingColor = (styles['color'] || '').trim();
-          const existingHex = existingColor ? this.normalizeHex(existingColor) : '';
-          const isReferenceColor = existingHex && (() => {
-            for (const c of [colorPolicy?.titleColor, colorPolicy?.bodyColor, colorPolicy?.strokeColor, ...(colorPolicy?.accents || [])]) {
-              if (c && (this.normalizeHex(c) || c.toLowerCase()) === existingHex) return true;
+          // 先递归处理内层（让内层 span/strong 先被变白，避免外层包裹内层无法触达）
+          const processedInner = processTag(_inner, depth + 1);
+          // 再处理/追加 style 里的 color:#FFFFFF
+          let newAttrs = attrs || '';
+          const styleMatch = newAttrs.match(/style="([^"]*)"/i);
+          let styleStr = styleMatch ? styleMatch[1] : '';
+          const styles: Record<string, string> = {};
+          if (styleStr) {
+            for (const { key, value } of parseStyleDeclarations(styleStr)) {
+              styles[key] = value;
             }
-            return false;
-          })();
-          if (!isReferenceColor) {
-            // 非渐变文字：强制白色；如果有残留的渐变裁剪属性，清理掉（避免渐变背景当背景块用）
-            delete styles['background-clip'];
-            delete styles['-webkit-background-clip'];
-            delete styles['-webkit-text-fill-color'];
-            styles['color'] = '#FFFFFF';
           }
-        }
-        const newStyle = Object.entries(styles).map(([k, v]) => `${k}:${v}`).join(';');
-        if (styleMatch) {
-          newAttrs = newAttrs.replace(/style="[^"]*"/i, `style="${newStyle}"`);
-        } else {
-          newAttrs = newAttrs ? `${newAttrs} style="${newStyle}"` : ` style="${newStyle}"`;
-        }
-        return `<${tag}${newAttrs}>${processedInner}</${tag}>`;
-      });
+          // 判断：是否为「有效」渐变文字（按声明顺序，background 简写不覆盖 clip，否则不算渐变文字）
+          // 渐变文字本身自带清晰的颜色，不需要强制覆盖，更不能破坏其渐变结构
+          const isGradientText = isEffectiveClipText(styleStr);
+          if (!isGradientText) {
+            // 参考撞色 / 标题色 / 正文色 / 描边色：用户明确上传的风格，深底也不强行改成白色（保真）
+            const existingColor = (styles['color'] || '').trim();
+            const existingHex = existingColor ? this.normalizeHex(existingColor) : '';
+            const isReferenceColor =
+              existingHex &&
+              (() => {
+                for (const c of [
+                  colorPolicy?.titleColor,
+                  colorPolicy?.bodyColor,
+                  colorPolicy?.strokeColor,
+                  ...(colorPolicy?.accents || []),
+                ]) {
+                  if (c && (this.normalizeHex(c) || c.toLowerCase()) === existingHex) return true;
+                }
+                return false;
+              })();
+            if (!isReferenceColor) {
+              // 非渐变文字：强制白色；如果有残留的渐变裁剪属性，清理掉（避免渐变背景当背景块用）
+              delete styles['background-clip'];
+              delete styles['-webkit-background-clip'];
+              delete styles['-webkit-text-fill-color'];
+              styles['color'] = '#FFFFFF';
+            }
+          }
+          const newStyle = Object.entries(styles)
+            .map(([k, v]) => `${k}:${v}`)
+            .join(';');
+          if (styleMatch) {
+            newAttrs = newAttrs.replace(/style="[^"]*"/i, `style="${newStyle}"`);
+          } else {
+            newAttrs = newAttrs ? `${newAttrs} style="${newStyle}"` : ` style="${newStyle}"`;
+          }
+          return `<${tag}${newAttrs}>${processedInner}</${tag}>`;
+        },
+      );
     };
     const makeWhiteInSegment = (segment: string): string => processTag(segment, 0);
 
@@ -6106,16 +7794,19 @@ ${tail}`;
     let result = html;
 
     // 第一步：全局删除所有 writing-mode 声明（除了 text-orientation，直接粗暴去掉 writing-mode）
-    result = result.replace(/<(div|ul|ol|li|span|p|section|article|h[1-6])([^>]*style="[^"]*"[^>]*)>/gi, (match, _tag, _attrs) => {
-      return match.replace(/style="([^"]*)"/i, (_s, style: string) => {
-        let newStyle = style;
-        // 去掉 writing-mode 相关
-        newStyle = newStyle.replace(/writing-mode\s*:\s*[^;]+;?/gi, '');
-        newStyle = newStyle.replace(/text-orientation\s*:\s*[^;]+;?/gi, '');
-        newStyle = newStyle.replace(/direction\s*:\s*rtl[^;]*;?/gi, '');
-        return `style="${newStyle}"`;
-      });
-    });
+    result = result.replace(
+      /<(div|ul|ol|li|span|p|section|article|h[1-6])([^>]*style="[^"]*"[^>]*)>/gi,
+      (match, _tag, _attrs) => {
+        return match.replace(/style="([^"]*)"/i, (_s, style: string) => {
+          let newStyle = style;
+          // 去掉 writing-mode 相关
+          newStyle = newStyle.replace(/writing-mode\s*:\s*[^;]+;?/gi, '');
+          newStyle = newStyle.replace(/text-orientation\s*:\s*[^;]+;?/gi, '');
+          newStyle = newStyle.replace(/direction\s*:\s*rtl[^;]*;?/gi, '');
+          return `style="${newStyle}"`;
+        });
+      },
+    );
 
     // 第二步：对 ul/ol 做结构修复（若它之前被竖排搞乱了 → 强制 flex column + gap）
     result = result.replace(/<(ul|ol)([^>]*style="[^"]*"[^>]*)>/gi, (match, _tag, _attrs) => {
@@ -6137,7 +7828,9 @@ ${tail}`;
           const n = parseFloat(styles['line-height']);
           if (!Number.isNaN(n) && n > 1.8) delete styles['line-height'];
         }
-        const newStyle = Object.entries(styles).map(([k, v]) => `${k}:${v}`).join(';');
+        const newStyle = Object.entries(styles)
+          .map(([k, v]) => `${k}:${v}`)
+          .join(';');
         return `style="${newStyle}"`;
       });
     });
@@ -6153,7 +7846,11 @@ ${tail}`;
    * 措施：容器内 H1-H6 / p / li / span / div 直接文本 中所有 color:#FFFFFF / F9FAFB / F3F4F6
    *       强制改为 PRIMARY_COLOR_DARKER（深主色或更深 #111827）
    */
-  private enforceLightBgTextContrast(html: string, primaryColor: string, _colorPolicy?: SlideColorPolicy): string {
+  private enforceLightBgTextContrast(
+    html: string,
+    primaryColor: string,
+    _colorPolicy?: SlideColorPolicy,
+  ): string {
     const darker = this.darkenPrimaryColor(primaryColor, 0.72);
     let result = html;
     // 扫描叶子 div（不含子 div 的容器卡片）background 为浅底的区块
@@ -6169,7 +7866,8 @@ ${tail}`;
         const isLight = this.resolveBgTone(style, primaryColor) === 'light';
         if (!isLight) return _match;
         // 对 inner 里每个文本标签(h1-h6/p/li/span/div直接文本) color 白 → 替换为深主色或 #111827
-        const lightColorPattern = /color\s*:\s*(#(?:FFFFFF|ffffff|F9FAFB|f9fafb|F3F4F6|f3f4f6|E5E7EB|e5e7eb|FEFEFE|fefefe)\b|white\b|rgba?\(\s*25[0-5]\s*,\s*25[0-5]\s*,\s*25[0-5])/gi;
+        const lightColorPattern =
+          /color\s*:\s*(#(?:FFFFFF|ffffff|F9FAFB|f9fafb|F3F4F6|f3f4f6|E5E7EB|e5e7eb|FEFEFE|fefefe)\b|white\b|rgba?\(\s*25[0-5]\s*,\s*25[0-5]\s*,\s*25[0-5])/gi;
         const tagsPattern = /<(h[1-6]|p|li|span|div)([^>]*style="[^"]*"[^>]*)>/gi;
         let processedInner = inner;
         // 需要先处理 li 级的 color（li 的 style 里的白）
@@ -6189,13 +7887,16 @@ ${tail}`;
         // 再检查 span 等嵌套的 style 里的白字（递归最多 3 层避免大正则问题）
         for (let i = 0; i < 2; i++) {
           const before2 = processedInner;
-          processedInner = processedInner.replace(/(<span[^>]*style=")([^"]+)("[^>]*>)/gi, (_m, pre, s, post) => {
-            if (!lightColorPattern.test(s)) return _m;
-            // 渐变文字保护：有效渐变文字不改 color
-            if (isEffectiveClipText(s)) return _m;
-            const newStyle = s.replace(lightColorPattern, (_cm: string) => `color:${darker}`);
-            return `${pre}${newStyle}${post}`;
-          });
+          processedInner = processedInner.replace(
+            /(<span[^>]*style=")([^"]+)("[^>]*>)/gi,
+            (_m, pre, s, post) => {
+              if (!lightColorPattern.test(s)) return _m;
+              // 渐变文字保护：有效渐变文字不改 color
+              if (isEffectiveClipText(s)) return _m;
+              const newStyle = s.replace(lightColorPattern, (_cm: string) => `color:${darker}`);
+              return `${pre}${newStyle}${post}`;
+            },
+          );
           if (processedInner === before2) break;
         }
         return `<div${attrs}>${processedInner}</div>`;
@@ -6217,7 +7918,13 @@ ${tail}`;
    */
   private enforceHeadingColorOnLightBg(
     html: string,
-    opts: { primaryColor: string; primaryColorDarker: string; titleColor?: string; pageBgLight?: boolean; pageBgDark?: boolean },
+    opts: {
+      primaryColor: string;
+      primaryColorDarker: string;
+      titleColor?: string;
+      pageBgLight?: boolean;
+      pageBgDark?: boolean;
+    },
   ): string {
     if (!html) return html;
     const { primaryColor, primaryColorDarker, titleColor } = opts;
@@ -6227,9 +7934,27 @@ ${tail}`;
     if (!/^#[0-9a-f]{6}$/i.test(pLow) && !/^#[0-9a-f]{6}$/i.test(tLow)) return html; // 主色与参考标题色均非法，不兜底
 
     // =================== 子工具函数 ===================
-    const LIGHT_BG_HEX = new Set(['#fff','#ffffff','#f9fafb','#f3f4f6','#f8fafc','#f1f5f9','#e5e7eb','#d1d5db']);
-    const DARK_NEUTRAL_HEX = new Set(['#111827','#1f2937','#374151','#4b5563','#6b7280','#9ca3af','#000','#000000']);
-    const WHITE_HEX = new Set(['#ffffff','#fff','#f9fafb','#f3f4f6']);
+    const LIGHT_BG_HEX = new Set([
+      '#fff',
+      '#ffffff',
+      '#f9fafb',
+      '#f3f4f6',
+      '#f8fafc',
+      '#f1f5f9',
+      '#e5e7eb',
+      '#d1d5db',
+    ]);
+    const DARK_NEUTRAL_HEX = new Set([
+      '#111827',
+      '#1f2937',
+      '#374151',
+      '#4b5563',
+      '#6b7280',
+      '#9ca3af',
+      '#000',
+      '#000000',
+    ]);
+    const WHITE_HEX = new Set(['#ffffff', '#fff', '#f9fafb', '#f3f4f6']);
 
     /** 规范化 hex：#RGB → #RRGGBB；#RRGGBBAA → #RRGGBB；非 #xxx 形式返回原字符串 */
     const normHex = (h: string): string => {
@@ -6244,7 +7969,11 @@ ${tail}`;
     /** 判断某透明度位（末尾两位 hex alpha）是否 ≤20%（即 00~33；20%=51/255≈0x33） */
     const alphaLowEnough = (hexTail: string): boolean => {
       if (!hexTail || hexTail.length !== 2) return true;
-      try { return parseInt(hexTail, 16) <= 0x33; } catch { return true; }
+      try {
+        return parseInt(hexTail, 16) <= 0x33;
+      } catch {
+        return true;
+      }
     };
 
     /** 从最外层 <div style="..."> 提取 background-color / background 值，判断浅或深 */
@@ -6258,7 +7987,9 @@ ${tail}`;
       const styleStr = styleMatch[1];
       // 从 styleStr 提取 background-color 与 background（不依赖 parseStyleDeclarations，避免字体引号问题）
       const decls: string[] = [];
-      let inQ: 0|1|2 = 0; let paren = 0; let buf = '';
+      let inQ: 0 | 1 | 2 = 0;
+      let paren = 0;
+      let buf = '';
       for (let i = 0; i < styleStr.length; i++) {
         const c = styleStr[i];
         if (paren === 0) {
@@ -6266,8 +7997,13 @@ ${tail}`;
           else if (c === '"' && inQ !== 1) inQ = inQ === 2 ? 0 : 2;
         }
         if (inQ === 0) {
-          if (c === '(') paren++; else if (c === ')') paren--;
-          else if (c === ';' && paren === 0) { decls.push(buf); buf = ''; continue; }
+          if (c === '(') paren++;
+          else if (c === ')') paren--;
+          else if (c === ';' && paren === 0) {
+            decls.push(buf);
+            buf = '';
+            continue;
+          }
         }
         buf += c;
       }
@@ -6294,7 +8030,8 @@ ${tail}`;
           const colorPart = '#' + raw.substring(0, 6).toLowerCase();
           const alphaPart = raw.substring(6, 8).toLowerCase();
           // 如果颜色部分 == 主色 或 == 主色 darker，且 alpha ≤ 20% → 浅（视觉几乎白）
-          if ((colorPart === pLow || colorPart === dLow) && alphaLowEnough(alphaPart)) return 'light';
+          if ((colorPart === pLow || colorPart === dLow) && alphaLowEnough(alphaPart))
+            return 'light';
           // 其他深透明色=判 unknown 保守
           return 'unknown';
         }
@@ -6303,9 +8040,11 @@ ${tail}`;
         return 'unknown';
       }
       // 浅底关键词
-      if (/white|#fff\b|#ffffff\b|#fafafa|#f8fafc|#f1f5f9|#f3f4f6|#f9fafb/i.test(probe)) return 'light';
+      if (/white|#fff\b|#ffffff\b|#fafafa|#f8fafc|#f1f5f9|#f3f4f6|#f9fafb/i.test(probe))
+        return 'light';
       // 深底关键词：linear-gradient 包含主色 hex 或 darker hex → dark
-      if (new RegExp(`${pLow.replace(/#/g, '#')}|${dLow.replace(/#/g, '#')}`, 'i').test(probe)) return 'dark';
+      if (new RegExp(`${pLow.replace(/#/g, '#')}|${dLow.replace(/#/g, '#')}`, 'i').test(probe))
+        return 'dark';
       return 'unknown';
     };
 
@@ -6328,39 +8067,49 @@ ${tail}`;
       // 当前是白字 → 浅底升级目标色场景不动（避免白字隐形）；深底场景会走 targetHex=#ffffff 分支正常升白
       if (currentColorRaw === 'white' || WHITE_HEX.has(currentColor)) return styleStr;
       // 无 color 或 中性深色 → 升级为目标色（浅底=参考标题色或主色；深底=白字）
-      if (!colorMatch || DARK_NEUTRAL_HEX.has(currentColor) || DARK_NEUTRAL_HEX.has(currentColor.replace(/^#?/, '#'))) {
+      if (
+        !colorMatch ||
+        DARK_NEUTRAL_HEX.has(currentColor) ||
+        DARK_NEUTRAL_HEX.has(currentColor.replace(/^#?/, '#'))
+      ) {
         const prop = `color:${targetNorm}`;
         const base = styleStr.trim();
         if (!colorMatch) {
           return base.endsWith(';') ? `${base}${prop}` : `${base};${prop}`;
         }
-        return base.replace(/(^|;)\s*color\s*:\s*[^;]*?(?=;|$)/i, (_m, lead) => `${lead}color:${targetNorm}`);
+        return base.replace(
+          /(^|;)\s*color\s*:\s*[^;]*?(?=;|$)/i,
+          (_m, lead) => `${lead}color:${targetNorm}`,
+        );
       }
       return styleStr; // 其他非目标色（如语义绿/红）不干预
     };
 
     // 对 html 全局替换 <h1 / h2 / h3 标签（闭合带或不带闭合样式均可）
     const headingTagRe = /<h([123])\b([^>]*?)(\/?)>/gi;
-    let result = html.replace(headingTagRe, (_fullMatch, lvl: string, attrs: string, selfClose: string) => {
-      const styleRe = /style="([^"]*)"/i;
-      const m = attrs.match(styleRe);
-      const before = m ? attrs.substring(0, m.index!) : attrs;
-      const after = m ? attrs.substring(m.index! + m[0].length) : '';
-      let style = m ? m[1] : '';
-      // bg=unknown 时保守：不浅不深 → 只升白（若 pageBgDark 未知则不动 primary，避免误伤）
-      if (bg === 'light') {
-        const lightTarget = (tLow && /^#[0-9a-f]{6}$/i.test(tLow)) ? tLow : pLow;
-        style = applyColorToStyle(style, lightTarget);
-      } else if (bg === 'dark') {
-        style = applyColorToStyle(style, '#ffffff');
-      }
-      // bg='unknown' → 不修改，交给 Prompt 规则
-      if (!m) {
-        if (!style) return _fullMatch; // 既没有 style 也不需加 color → 保持原样（bg=unknown 场景常见）
+    let result = html.replace(
+      headingTagRe,
+      (_fullMatch, lvl: string, attrs: string, selfClose: string) => {
+        const styleRe = /style="([^"]*)"/i;
+        const m = attrs.match(styleRe);
+        const before = m ? attrs.substring(0, m.index!) : attrs;
+        const after = m ? attrs.substring(m.index! + m[0].length) : '';
+        let style = m ? m[1] : '';
+        // bg=unknown 时保守：不浅不深 → 只升白（若 pageBgDark 未知则不动 primary，避免误伤）
+        if (bg === 'light') {
+          const lightTarget = tLow && /^#[0-9a-f]{6}$/i.test(tLow) ? tLow : pLow;
+          style = applyColorToStyle(style, lightTarget);
+        } else if (bg === 'dark') {
+          style = applyColorToStyle(style, '#ffffff');
+        }
+        // bg='unknown' → 不修改，交给 Prompt 规则
+        if (!m) {
+          if (!style) return _fullMatch; // 既没有 style 也不需加 color → 保持原样（bg=unknown 场景常见）
+          return `<h${lvl}${before}style="${style}"${after}${selfClose}>`;
+        }
         return `<h${lvl}${before}style="${style}"${after}${selfClose}>`;
-      }
-      return `<h${lvl}${before}style="${style}"${after}${selfClose}>`;
-    });
+      },
+    );
     return result;
   }
 
@@ -6399,7 +8148,8 @@ ${tail}`;
       const styleMatch = /\bstyle\s*=\s*["']([^"']*)["']/i.exec(attrs);
       if (!styleMatch) continue;
       const style = styleMatch[1];
-      const isAbsolute = /position\s*:\s*absolute/i.test(style) || /position\s*:\s*fixed/i.test(style);
+      const isAbsolute =
+        /position\s*:\s*absolute/i.test(style) || /position\s*:\s*fixed/i.test(style);
       const hasGradOrClip = /radial-gradient|linear-gradient|clip-path/i.test(style);
       if (!isAbsolute || !hasGradOrClip) continue;
       // 该 div 内部无可见文本（去除注释与标签后只剩空白）
@@ -6437,7 +8187,6 @@ ${tail}`;
     return 'light'; // 无实底 → 默认白底画布
   }
 
-
   // ===== 共享：alpha 感知的颜色 / 对比度工具组 =====
   // 背景真实可见色 = 半透明层按 alpha 叠加到白底画布后的合成结果；8 位 hex 必须保留 alpha。
   // 所有「深浅底判定 / 是否改写文字色」都收敛到这一组，避免各兜底口径打架（浅底白字根因）。
@@ -6450,17 +8199,36 @@ ${tail}`;
       let h = hexM[1];
       let a = 1;
       if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
-      else if (h.length === 4) { a = parseInt(h[3] + h[3], 16) / 255; h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2]; }
-      else if (h.length === 8) { a = parseInt(h.slice(6, 8), 16) / 255; h = h.slice(0, 6); }
-      return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16), a];
+      else if (h.length === 4) {
+        a = parseInt(h[3] + h[3], 16) / 255;
+        h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+      } else if (h.length === 8) {
+        a = parseInt(h.slice(6, 8), 16) / 255;
+        h = h.slice(0, 6);
+      }
+      return [
+        parseInt(h.slice(0, 2), 16),
+        parseInt(h.slice(2, 4), 16),
+        parseInt(h.slice(4, 6), 16),
+        a,
+      ];
     }
     const rgbM = t.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+))?\s*\)/i);
-    if (rgbM) return [parseInt(rgbM[1], 10), parseInt(rgbM[2], 10), parseInt(rgbM[3], 10), rgbM[4] !== undefined ? parseFloat(rgbM[4]) : 1];
+    if (rgbM)
+      return [
+        parseInt(rgbM[1], 10),
+        parseInt(rgbM[2], 10),
+        parseInt(rgbM[3], 10),
+        rgbM[4] !== undefined ? parseFloat(rgbM[4]) : 1,
+      ];
     return null;
   }
 
   // 半透明前景叠加到不透明基底，得到合成后可见颜色
-  private compositeOver(fg: [number, number, number, number], base: [number, number, number]): [number, number, number] {
+  private compositeOver(
+    fg: [number, number, number, number],
+    base: [number, number, number],
+  ): [number, number, number] {
     const [r, g, b, a] = fg;
     return [
       Math.round(r * a + base[0] * (1 - a)),
@@ -6496,11 +8264,17 @@ ${tail}`;
   // 合成出某个 inline style 的真实可见背景 RGB（白底画布），无背景返回 null（调用方回退到父级/白底）
   private resolveEffectiveBgRgb(styleStr: string): [number, number, number] | null {
     const lower = styleStr.toLowerCase();
-    const gradMatch = lower.match(/linear-gradient\(([^)]*)\)|radial-gradient\(([^)]*)\)|conic-gradient\(([^)]*)\)|repeating-linear-gradient\(([^)]*)\)/i);
+    const gradMatch = lower.match(
+      /linear-gradient\(([^)]*)\)|radial-gradient\(([^)]*)\)|conic-gradient\(([^)]*)\)|repeating-linear-gradient\(([^)]*)\)/i,
+    );
     if (gradMatch) {
-      const inner = (gradMatch[1] || gradMatch[2] || gradMatch[3] || gradMatch[4] || '');
-      const tokens = inner.match(/#[0-9a-f]{8}\b|#[0-9a-f]{6}\b|#[0-9a-f]{4}\b|#[0-9a-f]{3}\b|rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*[\d.]+)?\s*\)/gi) || [];
-      let sum = 0; let count = 0;
+      const inner = gradMatch[1] || gradMatch[2] || gradMatch[3] || gradMatch[4] || '';
+      const tokens =
+        inner.match(
+          /#[0-9a-f]{8}\b|#[0-9a-f]{6}\b|#[0-9a-f]{4}\b|#[0-9a-f]{3}\b|rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*[\d.]+)?\s*\)/gi,
+        ) || [];
+      let sum = 0;
+      let count = 0;
       for (const tok of tokens) {
         const rgba = this.parseColorToRgba(tok);
         if (!rgba) continue;
@@ -6523,16 +8297,25 @@ ${tail}`;
       else if (d.key === 'background' && !bgVal) bgVal = d.value.toLowerCase();
     }
     if (!bgVal) return null;
-    if (/white|#fff\b|#ffffff\b|#fafafa|#f8fafc|#f1f5f9|#f3f4f6|#f9fafb|#e5e7eb/i.test(bgVal)) return [255, 255, 255];
+    if (/white|#fff\b|#ffffff\b|#fafafa|#f8fafc|#f1f5f9|#f3f4f6|#f9fafb|#e5e7eb/i.test(bgVal))
+      return [255, 255, 255];
     const rgba = this.parseColorToRgba(bgVal);
     if (rgba) return this.compositeOver(rgba, [255, 255, 255]);
     const rgbaM = bgVal.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+))?\s*\)/i);
-    if (rgbaM) return this.compositeOver([+rgbaM[1], +rgbaM[2], +rgbaM[3], rgbaM[4] !== undefined ? parseFloat(rgbaM[4]) : 1], [255, 255, 255]);
+    if (rgbaM)
+      return this.compositeOver(
+        [+rgbaM[1], +rgbaM[2], +rgbaM[3], rgbaM[4] !== undefined ? parseFloat(rgbaM[4]) : 1],
+        [255, 255, 255],
+      );
     return null;
   }
 
   // 统一背景色调权威：alpha 感知 + 合成 + 装饰层豁免；四个兜底函数统一调用
-  private resolveBgTone(styleStr: string, _primaryColor: string, opts?: { isDecorative?: boolean }): 'light' | 'dark' | 'unknown' {
+  private resolveBgTone(
+    styleStr: string,
+    _primaryColor: string,
+    opts?: { isDecorative?: boolean },
+  ): 'light' | 'dark' | 'unknown' {
     if (opts?.isDecorative) return 'unknown';
     const rgb = this.resolveEffectiveBgRgb(styleStr);
     if (!rgb) return 'unknown';
@@ -6543,7 +8326,12 @@ ${tail}`;
   }
 
   // 按 WCAG 阈值判断是否需改写：正文 ≥4.5、大字(≥24px 或 ≥18.66px 且 bold) ≥3.0，达标不动
-  private needsContrastFix(fgToken: string, bgRgb: [number, number, number], fontSizePx: number, fontWeight: number): boolean {
+  private needsContrastFix(
+    fgToken: string,
+    bgRgb: [number, number, number],
+    fontSizePx: number,
+    fontWeight: number,
+  ): boolean {
     const fg = this.parseColorToRgba(fgToken);
     if (!fg) return false; // 命名色/var 无法解析 → 保守不动
     const ratio = this.contrastRatio([fg[0], fg[1], fg[2]], bgRgb);
@@ -6566,13 +8354,22 @@ ${tail}`;
 
   // —— 终局文字对比度兜底（覆盖全部页型）：深底容器内清理渐变裁剪样式并强制白字 ——
   // 置于后处理链尾，确保样式化兜底（含封面艺术字）之后再也不会把文字改暗。
-  private enforceFinalTextContrast(html: string, primaryColor: string, colorPolicy?: SlideColorPolicy): string {
+  private enforceFinalTextContrast(
+    html: string,
+    primaryColor: string,
+    colorPolicy?: SlideColorPolicy,
+  ): string {
     // 单遍祖先栈：维护"当前生效背景 RGB"，消除非贪婪正则在嵌套 div 下的容器配对错配（根因 D）；
     // 对比度不达标才改写文字色（深底→#FFFFFF，浅底/未知→#111827），终局幂等兜底。
     // 参考撞色板 / 标题色 / 正文色 / 描边色作为显式白名单豁免：用户明确上传的风格色不强行改写。
     const refColorSet = new Set<string>();
     if (colorPolicy) {
-      for (const c of [colorPolicy.titleColor, colorPolicy.bodyColor, colorPolicy.strokeColor, ...colorPolicy.accents]) {
+      for (const c of [
+        colorPolicy.titleColor,
+        colorPolicy.bodyColor,
+        colorPolicy.strokeColor,
+        ...colorPolicy.accents,
+      ]) {
         if (c) refColorSet.add(this.normalizeHex(c) || c.toLowerCase());
       }
     }
@@ -6581,7 +8378,8 @@ ${tail}`;
       if (c) refColorSet.add(this.normalizeHex(c) || c.toLowerCase());
     }
     const stack: Array<[number, number, number]> = [[255, 255, 255]];
-    const re = /<(\/?)(div|section|article|body|html)([^>]*)>|<(h[1-6]|p|li|span|small|a|strong|em|b|i|u|label)([^>]*?)style="([^"]*)"([^>]*>)/gi;
+    const re =
+      /<(\/?)(div|section|article|body|html)([^>]*)>|<(h[1-6]|p|li|span|small|a|strong|em|b|i|u|label)([^>]*?)style="([^"]*)"([^>]*>)/gi;
     const edits: Array<{ start: number; end: number; text: string }> = [];
     let m: RegExpExecArray | null;
     while ((m = re.exec(html)) !== null) {
@@ -6597,7 +8395,10 @@ ${tail}`;
         continue;
       }
       // 文本标签（groups 4-7）：基于"最近实底祖先"的合成背景判定对比度
-      const tag = m[4]; const pre = m[5]; const styleVal = m[6]; const post = m[7];
+      const tag = m[4];
+      const pre = m[5];
+      const styleVal = m[6];
+      const post = m[7];
       const bg = stack[stack.length - 1];
       const props = new Map<string, string>();
       for (const d of parseStyleDeclarations(styleVal)) props.set(d.key, d.value);
@@ -6626,7 +8427,9 @@ ${tail}`;
       if (!newColor) continue;
       // 基于已更新的 props（含渐变分支的删除与原色替换）重建样式，保证删除/改写真正生效
       props.set('color', newColor);
-      const finalStyle = Array.from(props.entries()).map(([k, v]) => `${k}:${v}`).join(';');
+      const finalStyle = Array.from(props.entries())
+        .map(([k, v]) => `${k}:${v}`)
+        .join(';');
       const newTag = `<${tag}${pre}style="${finalStyle}"${post}`;
       edits.push({ start: m.index, end: m.index + m[0].length, text: newTag });
     }
@@ -6637,7 +8440,14 @@ ${tail}`;
     return out;
   }
 
-  private enforceCoverPosterArtStyles(html: string, primaryColor: string, _sw: number, _sh: number, titleColor?: string, composition?: ReferenceComposition): string {
+  private enforceCoverPosterArtStyles(
+    html: string,
+    primaryColor: string,
+    _sw: number,
+    _sh: number,
+    titleColor?: string,
+    composition?: ReferenceComposition,
+  ): string {
     let result = html;
     // —— Bug-3 加固 D：即使 isCover 判定"应该是封面"，如果检测到 h2/h3/ul/ol/img/table 内容标记也直接退出
     //    （防止极端情况下 isCover 的 h1+/h2- 判定因大小写/注释等原因被绕过，而 Step1 又无条件向最外层写三件套）
@@ -6645,7 +8455,7 @@ ${tail}`;
     if (hasH2OrList) return result;
     const darker = this.darkenPrimaryColor(primaryColor, 0.75);
     // 判断是否封面：最外层 div 里有 <h1 且没有 <h2（cover 特征）
-    const isCover = /<h1[^>]*>/i.test(result) && !(/<h2[^>]*>/i.test(result));
+    const isCover = /<h1[^>]*>/i.test(result) && !/<h2[^>]*>/i.test(result);
     if (!isCover) return result;
     // FR-4 幂等守卫：已施加过封面海报艺术字（含 data-noppt-coverart 标记）则整体跳过，
     // 避免 agent 一次处理 + server 重放（postProcessHtmlSnapshot）多次调用下重复注入装饰 / badge、重复覆写字号间距。
@@ -6660,79 +8470,98 @@ ${tail}`;
     if (center) {
       result = result.replace(/<div([^>]*style=")([^"]+)("[^>]*>)/gi, (_m, pre, style, post) => {
         // 必须是外层：style 里同时有 width:100%、height:100%、overflow:hidden、display:flex
-        if (!(/width\s*:\s*100%/i.test(style) &&
-              /height\s*:\s*100%/i.test(style) &&
-              /overflow\s*:\s*hidden/i.test(style) &&
-              /display\s*:\s*flex/i.test(style))) return _m;
+        if (!(
+          /width\s*:\s*100%/i.test(style) &&
+          /height\s*:\s*100%/i.test(style) &&
+          /overflow\s*:\s*hidden/i.test(style) &&
+          /display\s*:\s*flex/i.test(style)
+        ))
+          return _m;
         const props = new Map<string, string>();
         for (const d of parseStyleDeclarations(style)) props.set(d.key, d.value);
         props.set('justify-content', 'center');
         props.set('align-items', 'center');
         props.set('text-align', 'center');
-        const newStyle = Array.from(props.entries()).map(([k,v])=>`${k}:${v}`).join(';');
+        const newStyle = Array.from(props.entries())
+          .map(([k, v]) => `${k}:${v}`)
+          .join(';');
         return `<div${pre}${newStyle}${post}`;
       });
     }
 
     // Step 2 + 3: H1 升级为海报级超大艺术字 + 发光 + 描边
-    result = result.replace(/<h1([^>]*style=")([^"]*)("[^>]*>)([\s\S]*?)<\/h1>/i, (_m, pre, style, post, text) => {
-      const props = new Map<string, string>();
-      for (const d of parseStyleDeclarations(style)) props.set(d.key, d.value);
-      // 字号
-      let fs = parseFloat(props.get('font-size') || '64');
-      if (fs < 80) fs = 88;
-      props.set('font-size', `${fs}px`);
-      // 字重
-      const fw = parseInt(props.get('font-weight') || '700', 10);
-      if (fw < 900) props.set('font-weight', '900');
-      props.set('line-height', '1.1');
-      props.set('letter-spacing', '0.01em');
-      props.set('width', '100%');
-      props.set('text-align', center ? 'center' : 'left');
-      props.set('max-width', center ? 'none' : '58%');
-      // 深底/浅底分叉：深底（含深色渐变背景）用白色艺术字；浅底用主色渐变艺术字
-      if (tone === 'dark') {
-        // 深底：白色艺术字（清理渐变裁剪属性，否则红字压红底不可读），保留描边/发光
-        props.set('color', '#FFFFFF');
-        props.delete('background');
-        props.delete('-webkit-background-clip');
-        props.delete('background-clip');
-        props.delete('-webkit-text-fill-color');
-        props.set('text-shadow',
-          `0 4px 30px rgba(0,0,0,0.35),0 0 70px ${primaryColor}30,0 0 140px ${primaryColor}15`);
-        props.set('-webkit-text-stroke', `1.5px rgba(255,255,255,0.55)`);
-      } else {
-        if (titleColor) {
-          // 参考标题色存在：标题色收敛——H1 强制纯色 titleColor，删除任何渐变裁剪属性，
-          // 改用 text-shadow 多层光晕 + 描边实现海报级冲击力（不注入/不保留渐变填充）。
-          const tColor = this.normalizeHex(titleColor) || titleColor;
-          props.set('color', tColor);
+    result = result.replace(
+      /<h1([^>]*style=")([^"]*)("[^>]*>)([\s\S]*?)<\/h1>/i,
+      (_m, pre, style, post, text) => {
+        const props = new Map<string, string>();
+        for (const d of parseStyleDeclarations(style)) props.set(d.key, d.value);
+        // 字号
+        let fs = parseFloat(props.get('font-size') || '64');
+        if (fs < 80) fs = 88;
+        props.set('font-size', `${fs}px`);
+        // 字重
+        const fw = parseInt(props.get('font-weight') || '700', 10);
+        if (fw < 900) props.set('font-weight', '900');
+        props.set('line-height', '1.1');
+        props.set('letter-spacing', '0.01em');
+        props.set('width', '100%');
+        props.set('text-align', center ? 'center' : 'left');
+        props.set('max-width', center ? 'none' : '58%');
+        // 深底/浅底分叉：深底（含深色渐变背景）用白色艺术字；浅底用主色渐变艺术字
+        if (tone === 'dark') {
+          // 深底：白色艺术字（清理渐变裁剪属性，否则红字压红底不可读），保留描边/发光
+          props.set('color', '#FFFFFF');
           props.delete('background');
           props.delete('-webkit-background-clip');
           props.delete('background-clip');
           props.delete('-webkit-text-fill-color');
+          props.set(
+            'text-shadow',
+            `0 4px 30px rgba(0,0,0,0.35),0 0 70px ${primaryColor}30,0 0 140px ${primaryColor}15`,
+          );
+          props.set('-webkit-text-stroke', `1.5px rgba(255,255,255,0.55)`);
         } else {
-          const hasGradFill = props.has('-webkit-text-fill-color') && props.get('-webkit-text-fill-color') === 'transparent';
-          if (!hasGradFill) {
-            props.set('background', GRAD);
-            props.set('-webkit-background-clip', 'text');
-            props.set('-webkit-text-fill-color', 'transparent');
-            props.set('background-clip', 'text');
+          if (titleColor) {
+            // 参考标题色存在：标题色收敛——H1 强制纯色 titleColor，删除任何渐变裁剪属性，
+            // 改用 text-shadow 多层光晕 + 描边实现海报级冲击力（不注入/不保留渐变填充）。
+            const tColor = this.normalizeHex(titleColor) || titleColor;
+            props.set('color', tColor);
+            props.delete('background');
+            props.delete('-webkit-background-clip');
+            props.delete('background-clip');
+            props.delete('-webkit-text-fill-color');
+          } else {
+            const hasGradFill =
+              props.has('-webkit-text-fill-color') &&
+              props.get('-webkit-text-fill-color') === 'transparent';
+            if (!hasGradFill) {
+              props.set('background', GRAD);
+              props.set('-webkit-background-clip', 'text');
+              props.set('-webkit-text-fill-color', 'transparent');
+              props.set('background-clip', 'text');
+            }
           }
+          props.set(
+            'text-shadow',
+            `0 4px 30px ${primaryColor}50,0 0 70px ${primaryColor}30,0 0 140px ${primaryColor}15`,
+          );
+          props.set('-webkit-text-stroke', `1.5px ${primaryColor}80`);
         }
-        props.set('text-shadow',
-          `0 4px 30px ${primaryColor}50,0 0 70px ${primaryColor}30,0 0 140px ${primaryColor}15`);
-        props.set('-webkit-text-stroke', `1.5px ${primaryColor}80`);
-      }
-      props.delete('margin-top');
-      props.set('margin-bottom', '32px');
-      const ns = Array.from(props.entries()).map(([k,v])=>`${k}:${v}`).join(';');
-      return `<h1${pre}${ns}${post}${text}</h1>`;
-    });
+        props.delete('margin-top');
+        props.set('margin-bottom', '32px');
+        const ns = Array.from(props.entries())
+          .map(([k, v]) => `${k}:${v}`)
+          .join(';');
+        return `<h1${pre}${ns}${post}${text}</h1>`;
+      },
+    );
 
     // Step 4: 如果 H1 之后没有渐变粗装饰条（<div> 6~10px 高度的渐变条），插入
     // 先看 h1 闭合后 1K 字符内有没有 "height:10px" 或 "height:8px"+"background:linear-gradient"
-    const hasDecorBar = /<\/h1>[\s\S]{0,1000}height:\s*(?:[89]|1[0-2])px[\s\S]{0,150}background:\s*linear-gradient/i.test(result);
+    const hasDecorBar =
+      /<\/h1>[\s\S]{0,1000}height:\s*(?:[89]|1[0-2])px[\s\S]{0,150}background:\s*linear-gradient/i.test(
+        result,
+      );
     if (!hasDecorBar) {
       // H1 后面允许间隔更宽（换行+注释+空格都算）
       result = result.replace(/<\/h1>([\s\S]{0,200}?)(<(?:p|div)\b)/i, (_m, gap, nextTag) => {
@@ -6753,10 +8582,13 @@ ${tail}`;
       // 外层第一个 <div ...width:100%;height:100%;overflow:hidden...> 之后插入两个装饰 div
       // 宽松匹配：style 里同时有 width:100%、height:100%、overflow:hidden
       result = result.replace(/<div([^>]*style=")([^"]+)("[^>]*>)/i, (_m, pre, style, post) => {
-        if (!(/width\s*:\s*100%/i.test(style) &&
-              /height\s*:\s*100%/i.test(style) &&
-              /overflow\s*:\s*hidden/i.test(style) &&
-              /display\s*:\s*flex/i.test(style))) return _m;
+        if (!(
+          /width\s*:\s*100%/i.test(style) &&
+          /height\s*:\s*100%/i.test(style) &&
+          /overflow\s*:\s*hidden/i.test(style) &&
+          /display\s*:\s*flex/i.test(style)
+        ))
+          return _m;
         return `<div${pre}${style}${post}
   <div style="position:absolute;top:-80px;right:-120px;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle,${primaryColor}35 0%,${primaryColor}10 45%,transparent 75%);pointer-events:none;"></div>
   <div style="position:absolute;left:-160px;bottom:-120px;width:480px;height:400px;background:linear-gradient(135deg,${primaryColor}18,${darker}10);clip-path:polygon(0 30%,40% 0,80% 60%,30% 100%);pointer-events:none;"></div>
@@ -6783,7 +8615,7 @@ ${tail}`;
           for (const d of parseStyleDeclarations(style)) props.set(d.key, d.value);
           // === 修复 E：查找外层直接包裹容器（afterH1 里这个 p 前面最近的一个未闭合的 div）是不是 Badge 容器 ===
           // 找到 full 在 afterH1 中的绝对起始偏移
-          const startInAfter = (m.index ?? 0);
+          const startInAfter = m.index ?? 0;
           // 往回看最多 400 字符，找最近一个 <div...> 且匹配到 </div> 要在 startInAfter+full.length 之后
           let parentIsBadge = false;
           const tail = afterH1.slice(Math.max(0, startInAfter - 500), startInAfter);
@@ -6794,10 +8626,14 @@ ${tail}`;
           while ((mm = tailRe.exec(tail)) !== null) {
             hits.push({ close: mm[1] === '/', attrs: mm[2] || '', pos: mm.index });
           }
-          let bal = 0; let unclosed: typeof hits[number] | null = null;
+          let bal = 0;
+          let unclosed: (typeof hits)[number] | null = null;
           for (let k = hits.length - 1; k >= 0; k--) {
             bal += hits[k].close ? -1 : +1;
-            if (bal > 0 && !hits[k].close) { unclosed = hits[k]; break; }
+            if (bal > 0 && !hits[k].close) {
+              unclosed = hits[k];
+              break;
+            }
           }
           if (unclosed) {
             // 检查 p 之后是否立即出现外层 </div>（间隔只有空白/换行），说明这个 div 刚好包着这个 p
@@ -6813,7 +8649,9 @@ ${tail}`;
                   has(/display\s*:\s*(?:inline-flex|flex)\b/i),
                   has(/padding\s*:[^;]*(?:1[0-9]px\s+2[0-9]px|10px\s+28px|12px\s+24px)\b/i),
                   has(/border-radius\s*:[^;]*999px/i),
-                  has(/background\s*:[^;]*(?:#[0-9a-f]{6,8}1[0-9a-f]|rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*0\.0[5-9])/i),
+                  has(
+                    /background\s*:[^;]*(?:#[0-9a-f]{6,8}1[0-9a-f]|rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*0\.0[5-9])/i,
+                  ),
                 ].filter(Boolean).length;
                 if (score >= 3) parentIsBadge = true;
               }
@@ -6823,7 +8661,7 @@ ${tail}`;
           const pageBg: [number, number, number] = tone === 'dark' ? [30, 30, 30] : [255, 255, 255];
           const isGradText = (p: Map<string, string>): boolean =>
             (p.get('-webkit-text-fill-color') || '').toLowerCase() === 'transparent' &&
-            /text/.test((p.get('background-clip') || p.get('-webkit-background-clip') || ''));
+            /text/.test(p.get('background-clip') || p.get('-webkit-background-clip') || '');
           const fixColorIfNeeded = (): void => {
             const cur = (props.get('color') || '').trim();
             if (isGradText(props)) {
@@ -6837,7 +8675,10 @@ ${tail}`;
               }
               return;
             }
-            if (cur && this.needsContrastFix(cur, pageBg, this.fontSizeOf(props), this.fontWeightOf(props))) {
+            if (
+              cur &&
+              this.needsContrastFix(cur, pageBg, this.fontSizeOf(props), this.fontWeightOf(props))
+            ) {
               props.set('color', tone === 'dark' ? '#FFFFFF' : '#1F2937');
             }
           };
@@ -6864,7 +8705,9 @@ ${tail}`;
           } else {
             // 最后一行：胶囊 badge（保留容器装饰，仅保证文字对比）
             const hasDisplayBadge = /inline-flex|^flex$/i.test((props.get('display') || '').trim());
-            const hasPaddingBadge = /1[0-9]px\s+2[0-9]px|^\s*10px\s+28px/.test(props.get('padding') || '');
+            const hasPaddingBadge = /1[0-9]px\s+2[0-9]px|^\s*10px\s+28px/.test(
+              props.get('padding') || '',
+            );
             const hasRadiusBadge = /999px/.test(props.get('border-radius') || '');
             const pSelfBadge = hasDisplayBadge && hasPaddingBadge && hasRadiusBadge;
             if (!parentIsBadge && !pSelfBadge) {
@@ -6872,7 +8715,10 @@ ${tail}`;
               props.set('align-items', 'center');
               props.set('padding', '10px 28px');
               props.set('border-radius', '999px');
-              props.set('background', tone === 'dark' ? 'rgba(255,255,255,0.14)' : `${primaryColor}12`);
+              props.set(
+                'background',
+                tone === 'dark' ? 'rgba(255,255,255,0.14)' : `${primaryColor}12`,
+              );
               props.set('letter-spacing', '0.02em');
               props.set('box-shadow', `0 2px 10px ${primaryColor}20`);
             } else {
@@ -6897,7 +8743,9 @@ ${tail}`;
             props.set('font-weight', '600');
             props.set('margin', '0');
           }
-          const ns = Array.from(props.entries()).map(([k,v])=>`${k}:${v}`).join(';');
+          const ns = Array.from(props.entries())
+            .map(([k, v]) => `${k}:${v}`)
+            .join(';');
           const replacement = `<p${pre}${ns}${post}${textPart}</p>`;
           result = result.replace(full, replacement);
         });
@@ -6908,7 +8756,8 @@ ${tail}`;
     if (!/data-noppt-coverart/i.test(result)) {
       result = result.replace(
         /<div([^>]*style=")([^"]*width:100%[^"]*height:100%[^"]*overflow:hidden[^"]*)("[^>]*>)/i,
-        (_m, pre, style, post) => `<div${pre}${style}${post.replace(/>$/, ' data-noppt-coverart>')}`,
+        (_m, pre, style, post) =>
+          `<div${pre}${style}${post.replace(/>$/, ' data-noppt-coverart>')}`,
       );
     }
     return result;
@@ -6929,7 +8778,9 @@ ${tail}`;
     let result = html;
     // 判定：不是对比页（没有 content-compare）：有 > div style="flex:0 0 45%" 里是 img
     const hasFlexSplit = /flex:\s*0\s+0\s+45%/i.test(result) && /<img[\s>]/i.test(result);
-    const hasCompareGrid = /border:\s*2px\s+solid\s+(?:#E5E7EB|[^";]*{[^}]*})/i.test(result) && /background:\s*#[0-9A-Fa-f]{6}08/i.test(result);
+    const hasCompareGrid =
+      /border:\s*2px\s+solid\s+(?:#E5E7EB|[^";]*{[^}]*})/i.test(result) &&
+      /background:\s*#[0-9A-Fa-f]{6}08/i.test(result);
     if (!hasFlexSplit || hasCompareGrid) return result;
     const darker = this.darkenPrimaryColor(primaryColor, 0.78);
     const CARD_BG = `linear-gradient(135deg,${primaryColor}08,${primaryColor}10)`;
@@ -6942,93 +8793,115 @@ ${tail}`;
     // 修复 A1/A2/B2：精确扫描直接子节点（避免孙节点干扰）、保护已有正确 flex 值不被覆盖、移除多余标签前缀
     const splitRegex = /(<div[^>]*style=")([^"]*)("[^>]*>)/gi;
     // 关键：用 replace 回调的 offset（第 5 个参数）精准定位当前匹配位置，避免 indexOf 命中相同字符串的旧位置
-    result = result.replace(splitRegex, (_m: string, pre: string, style: string, post: string, offset: number, _src: string) => {
-      const props = new Map<string, string>();
-      for (const d of parseStyleDeclarations(style)) props.set(d.key, d.value);
-      const display = (props.get('display') || '').trim();
-      const flexDir = (props.get('flex-direction') || '').trim();
-      if (display !== 'flex') return _m;
+    result = result.replace(
+      splitRegex,
+      (_m: string, pre: string, style: string, post: string, offset: number, _src: string) => {
+        const props = new Map<string, string>();
+        for (const d of parseStyleDeclarations(style)) props.set(d.key, d.value);
+        const display = (props.get('display') || '').trim();
+        const flexDir = (props.get('flex-direction') || '').trim();
+        if (display !== 'flex') return _m;
 
-      // —— T5-FR5 防误伤：跳过「1280×720 画布根容器」——
-      // 根容器特征（缺一不可）：width:100% + height:100%，且没有明确的百分比 flex-basis（0 0 55% / 0 0 45%）。
-      // 把根容器当「文字列」改 flex:0 0 55% 会把图片列挤出可见区域（整页只剩 55% 宽）。
-      const w = (props.get('width') || '').trim();
-      const h = (props.get('height') || '').trim();
-      const curFlex = (props.get('flex') || '').trim();
-      const isCanvasRoot = (w === '100%' && h === '100%') && !/0\s+0\s+(?:\d+)%/.test(curFlex);
-      if (isCanvasRoot) return _m;
-
-      // —— B2：使用栈式精确扫描直接子节点，不包含孙节点 ——
-      const contentStart = offset + _m.length;
-      const closeIdx = this.findClosingTagIndex(result.substring(offset), 'div');
-      const containerInner = closeIdx >= 0
-        ? result.substring(contentStart, offset + closeIdx)
-        : result.substring(contentStart, contentStart + 8000);
-      const directChildren = this.findDirectChildElements(containerInner);
-
-      const childFlexes = directChildren
-        .filter(c => c.tagName === 'div' && c.styleAttr)
-        .slice(0, 10)
-        .map(c => {
-          const childProps = new Map<string, string>();
-          for (const d of parseStyleDeclarations(c.styleAttr!)) childProps.set(d.key, d.value);
-          return { flex: childProps.get('flex') || '', childDir: childProps.get('flex-direction') || '' };
-        });
-      const hasChildUl = directChildren.some(c => c.tagName === 'ul' || c.tagName === 'ol')
-        || directChildren.some(c => c.tagName === 'div' && /<(ul|ol)[\s>]/i.test(c.innerPreview || ''));
-      const hasChildImg = directChildren.some(c => c.tagName === 'img' || c.tagName === 'picture')
-        || directChildren.some(c => c.tagName === 'div' && /<(img|picture)[\s>]/i.test(c.innerPreview || ''));
-      const hasChild55 = childFlexes.some(c => /0\s+0\s+55%/.test(c.flex) || c.childDir === 'column');
-      const hasChild45 = childFlexes.some(c => /0\s+0\s+45%/.test(c.flex));
-
-      // ========== 外层横排父容器（左右两列布局的 wrapper）→ flex:1 1 0% 占满 H2 下方剩余宽度 ==========
-      const isRowWrapper = (!flexDir || flexDir === 'row') &&
-        ((hasChildUl && hasChildImg) || (hasChild55 && hasChild45));
-      if (isRowWrapper) {
-        // A2：若已经存在合理 flex 值（1 / 1 1 0% / 1 1 auto）则不覆盖
+        // —— T5-FR5 防误伤：跳过「1280×720 画布根容器」——
+        // 根容器特征（缺一不可）：width:100% + height:100%，且没有明确的百分比 flex-basis（0 0 55% / 0 0 45%）。
+        // 把根容器当「文字列」改 flex:0 0 55% 会把图片列挤出可见区域（整页只剩 55% 宽）。
+        const w = (props.get('width') || '').trim();
+        const h = (props.get('height') || '').trim();
         const curFlex = (props.get('flex') || '').trim();
-        const flexAlreadyOk = /^(1|flex|auto)\b/.test(curFlex) || /^1\s+1\s+/.test(curFlex);
-        if (!flexAlreadyOk) props.set('flex', '1 1 0%');
-        if (!props.has('min-height')) props.set('min-height', '0');
-        if (!props.has('min-width')) props.set('min-width', '0');
-        if (!props.has('gap')) props.set('gap', '40px');
-        if (!props.has('align-items')) props.set('align-items', 'stretch');
-        props.delete('overflow');
-        const ns = Array.from(props.entries()).map(([k,v])=>`${k}:${v}`).join(';');
-        return `${pre}${ns}${post}`; // A1 修复：pre 已含 <div，不再重复拼
-      }
+        const isCanvasRoot = w === '100%' && h === '100%' && !/0\s+0\s+(?:\d+)%/.test(curFlex);
+        if (isCanvasRoot) return _m;
 
-      // ========== 文字列（column 且包 ul，内部无大 img 列）→ flex:0 0 55% ==========
-      if (flexDir === 'column' && hasChildUl && !hasChildImg && !hasChild45) {
-        // A2：已有 0 0 55% 则不覆盖；若 flex 非空但不符合目标也不强制（保留 AI 原值）
-        const curFlex = (props.get('flex') || '').trim();
-        if (!curFlex || /0\s+0\s+55%/.test(curFlex)) {
-          props.set('flex', '0 0 55%');
+        // —— B2：使用栈式精确扫描直接子节点，不包含孙节点 ——
+        const contentStart = offset + _m.length;
+        const closeIdx = this.findClosingTagIndex(result.substring(offset), 'div');
+        const containerInner =
+          closeIdx >= 0
+            ? result.substring(contentStart, offset + closeIdx)
+            : result.substring(contentStart, contentStart + 8000);
+        const directChildren = this.findDirectChildElements(containerInner);
+
+        const childFlexes = directChildren
+          .filter((c) => c.tagName === 'div' && c.styleAttr)
+          .slice(0, 10)
+          .map((c) => {
+            const childProps = new Map<string, string>();
+            for (const d of parseStyleDeclarations(c.styleAttr!)) childProps.set(d.key, d.value);
+            return {
+              flex: childProps.get('flex') || '',
+              childDir: childProps.get('flex-direction') || '',
+            };
+          });
+        const hasChildUl =
+          directChildren.some((c) => c.tagName === 'ul' || c.tagName === 'ol') ||
+          directChildren.some(
+            (c) => c.tagName === 'div' && /<(ul|ol)[\s>]/i.test(c.innerPreview || ''),
+          );
+        const hasChildImg =
+          directChildren.some((c) => c.tagName === 'img' || c.tagName === 'picture') ||
+          directChildren.some(
+            (c) => c.tagName === 'div' && /<(img|picture)[\s>]/i.test(c.innerPreview || ''),
+          );
+        const hasChild55 = childFlexes.some(
+          (c) => /0\s+0\s+55%/.test(c.flex) || c.childDir === 'column',
+        );
+        const hasChild45 = childFlexes.some((c) => /0\s+0\s+45%/.test(c.flex));
+
+        // ========== 外层横排父容器（左右两列布局的 wrapper）→ flex:1 1 0% 占满 H2 下方剩余宽度 ==========
+        const isRowWrapper =
+          (!flexDir || flexDir === 'row') &&
+          ((hasChildUl && hasChildImg) || (hasChild55 && hasChild45));
+        if (isRowWrapper) {
+          // A2：若已经存在合理 flex 值（1 / 1 1 0% / 1 1 auto）则不覆盖
+          const curFlex = (props.get('flex') || '').trim();
+          const flexAlreadyOk = /^(1|flex|auto)\b/.test(curFlex) || /^1\s+1\s+/.test(curFlex);
+          if (!flexAlreadyOk) props.set('flex', '1 1 0%');
+          if (!props.has('min-height')) props.set('min-height', '0');
+          if (!props.has('min-width')) props.set('min-width', '0');
+          if (!props.has('gap')) props.set('gap', '40px');
+          if (!props.has('align-items')) props.set('align-items', 'stretch');
+          props.delete('overflow');
+          const ns = Array.from(props.entries())
+            .map(([k, v]) => `${k}:${v}`)
+            .join(';');
+          return `${pre}${ns}${post}`; // A1 修复：pre 已含 <div，不再重复拼
         }
-        if (!props.has('min-height')) props.set('min-height', '0');
-        if (!props.has('min-width')) props.set('min-width', '0');
-        props.delete('overflow');
-        if (!props.has('justify-content')) props.set('justify-content', 'space-evenly');
-        if (!props.has('align-items')) props.set('align-items', 'stretch');
-        const ns = Array.from(props.entries()).map(([k,v])=>`${k}:${v}`).join(';');
-        return `${pre}${ns}${post}`; // A1 修复
-      }
 
-      // ========== 图片列（包含 <img 或 picture）→ flex:0 0 45% ==========
-      if ((!flexDir || flexDir === 'row') && hasChildImg && !hasChildUl && !hasChild55) {
-        // A2：已有 0 0 45% 则不覆盖
-        const curFlex = (props.get('flex') || '').trim();
-        if (!curFlex || /0\s+0\s+45%/.test(curFlex)) {
-          props.set('flex', '0 0 45%');
+        // ========== 文字列（column 且包 ul，内部无大 img 列）→ flex:0 0 55% ==========
+        if (flexDir === 'column' && hasChildUl && !hasChildImg && !hasChild45) {
+          // A2：已有 0 0 55% 则不覆盖；若 flex 非空但不符合目标也不强制（保留 AI 原值）
+          const curFlex = (props.get('flex') || '').trim();
+          if (!curFlex || /0\s+0\s+55%/.test(curFlex)) {
+            props.set('flex', '0 0 55%');
+          }
+          if (!props.has('min-height')) props.set('min-height', '0');
+          if (!props.has('min-width')) props.set('min-width', '0');
+          props.delete('overflow');
+          if (!props.has('justify-content')) props.set('justify-content', 'space-evenly');
+          if (!props.has('align-items')) props.set('align-items', 'stretch');
+          const ns = Array.from(props.entries())
+            .map(([k, v]) => `${k}:${v}`)
+            .join(';');
+          return `${pre}${ns}${post}`; // A1 修复
         }
-        if (!props.has('min-height')) props.set('min-height', '0');
-        if (!props.has('min-width')) props.set('min-width', '0');
-        const ns = Array.from(props.entries()).map(([k,v])=>`${k}:${v}`).join(';');
-        return `${pre}${ns}${post}`; // A1 修复
-      }
 
-      return _m;
-    });
+        // ========== 图片列（包含 <img 或 picture）→ flex:0 0 45% ==========
+        if ((!flexDir || flexDir === 'row') && hasChildImg && !hasChildUl && !hasChild55) {
+          // A2：已有 0 0 45% 则不覆盖
+          const curFlex = (props.get('flex') || '').trim();
+          if (!curFlex || /0\s+0\s+45%/.test(curFlex)) {
+            props.set('flex', '0 0 45%');
+          }
+          if (!props.has('min-height')) props.set('min-height', '0');
+          if (!props.has('min-width')) props.set('min-width', '0');
+          const ns = Array.from(props.entries())
+            .map(([k, v]) => `${k}:${v}`)
+            .join(';');
+          return `${pre}${ns}${post}`; // A1 修复
+        }
+
+        return _m;
+      },
+    );
 
     // 2. 兜底清除：所有 <ul> 上被编辑器附加的固定 height/width/max-height/max-width（会导致最后一行被裁剪）
     // A3：父列已有正确比例（0 0 55%）下的 ul、或当前 ul 的 flex 已正确时，仅删坏属性不设 flex:1 1 auto
@@ -7051,89 +8924,102 @@ ${tail}`;
         if (!curFlex) {
           props.set('flex', '1 1 auto');
         }
-        const ns = Array.from(props.entries()).map(([k,v])=>`${k}:${v}`).join(';');
+        const ns = Array.from(props.entries())
+          .map(([k, v]) => `${k}:${v}`)
+          .join(';');
         return `${pre}${ns}${post}`; // A1 修复：pre 已含 <ul
-      }
+      },
     );
 
     // 2~4. 把每个 li 变成卡片条（非对比页，li 里有图标+文字 span 对）
     // B3：所有属性缺失时才补默认值，已有值保留不覆盖
-    const liPattern = /<li([^>]*style=")([^"]*)("[^>]*>\s*)(<span[^>]*style="[^"]*display\s*:\s*inline-flex[^"]*"[^>]*>[\s\S]*?<\/span>)\s*(<span[^>]*style=")([^"]*)("[^>]*>[\s\S]*?<\/span>\s*<\/li>)/gi;
+    const liPattern =
+      /<li([^>]*style=")([^"]*)("[^>]*>\s*)(<span[^>]*style="[^"]*display\s*:\s*inline-flex[^"]*"[^>]*>[\s\S]*?<\/span>)\s*(<span[^>]*style=")([^"]*)("[^>]*>[\s\S]*?<\/span>\s*<\/li>)/gi;
     let safety = 0;
     while (safety++ < 8) {
       const before = result;
-      result = result.replace(liPattern, (_m, liPre, liStyle, liMid, iconSpan, txtPre, txtStyle, txtRest) => {
-        // 升级 li 样式：卡片条（B3：已有值优先，缺失才补默认）
-        const liProps = new Map<string, string>();
-        for (const d of parseStyleDeclarations(liStyle)) liProps.set(d.key, d.value);
-        if (!liProps.has('padding')) liProps.set('padding', '20px 24px');
-        if (!liProps.has('border-radius')) liProps.set('border-radius', '14px');
-        if (!liProps.has('background')) liProps.set('background', CARD_BG);
-        if (!liProps.has('border-left')) liProps.set('border-left', `5px solid ${primaryColor}`);
-        if (!liProps.has('box-shadow')) liProps.set('box-shadow', CARD_SHADOW);
-        if (!liProps.has('gap')) liProps.set('gap', '18px');
-        if (!liProps.has('min-width')) liProps.set('min-width', '0');
-        const liNew = Array.from(liProps.entries()).map(([k,v])=>`${k}:${v}`).join(';');
+      result = result.replace(
+        liPattern,
+        (_m, liPre, liStyle, liMid, iconSpan, txtPre, txtStyle, txtRest) => {
+          // 升级 li 样式：卡片条（B3：已有值优先，缺失才补默认）
+          const liProps = new Map<string, string>();
+          for (const d of parseStyleDeclarations(liStyle)) liProps.set(d.key, d.value);
+          if (!liProps.has('padding')) liProps.set('padding', '20px 24px');
+          if (!liProps.has('border-radius')) liProps.set('border-radius', '14px');
+          if (!liProps.has('background')) liProps.set('background', CARD_BG);
+          if (!liProps.has('border-left')) liProps.set('border-left', `5px solid ${primaryColor}`);
+          if (!liProps.has('box-shadow')) liProps.set('box-shadow', CARD_SHADOW);
+          if (!liProps.has('gap')) liProps.set('gap', '18px');
+          if (!liProps.has('min-width')) liProps.set('min-width', '0');
+          const liNew = Array.from(liProps.entries())
+            .map(([k, v]) => `${k}:${v}`)
+            .join(';');
 
-        // 升级图标 span：28 → 40px（B3：只有值偏小才升级，background / box-shadow 仅缺失才补）
-        let newIconSpan = iconSpan.replace(
-          /style="([^"]*)"/i,
-          (_sm: string, is: string) => {
+          // 升级图标 span：28 → 40px（B3：只有值偏小才升级，background / box-shadow 仅缺失才补）
+          let newIconSpan = iconSpan.replace(/style="([^"]*)"/i, (_sm: string, is: string) => {
             const ip = new Map<string, string>();
             for (const d of parseStyleDeclarations(is)) ip.set(d.key, d.value);
             let w = parseFloat(ip.get('width') || '0');
             let h = parseFloat(ip.get('height') || '0');
             if (!w || w < 36) ip.set('width', '40px');
             if (!h || h < 36) ip.set('height', '40px');
-            if (!ip.has('background')) ip.set('background', `linear-gradient(135deg,${primaryColor},${darker})`);
+            if (!ip.has('background'))
+              ip.set('background', `linear-gradient(135deg,${primaryColor},${darker})`);
             if (!ip.has('box-shadow')) ip.set('box-shadow', `0 2px 8px ${primaryColor}40`);
-            const ni = Array.from(ip.entries()).map(([k,v])=>`${k}:${v}`).join(';');
+            const ni = Array.from(ip.entries())
+              .map(([k, v]) => `${k}:${v}`)
+              .join(';');
             return `style="${ni}"`;
-          }
-        );
-        // 升级 svg 宽高 15→22px（如果在 20 以下）
-        newIconSpan = newIconSpan.replace(/svg\s+width="(\d+)"\s+height="(\d+)"/gi, (_svm: string, w: string, h: string) => {
-          const nw = parseInt(w,10) < 20 ? 22 : parseInt(w,10);
-          const nh = parseInt(h,10) < 20 ? 22 : parseInt(h,10);
-          return `svg width="${nw}" height="${nh}"`;
-        });
+          });
+          // 升级 svg 宽高 15→22px（如果在 20 以下）
+          newIconSpan = newIconSpan.replace(
+            /svg\s+width="(\d+)"\s+height="(\d+)"/gi,
+            (_svm: string, w: string, h: string) => {
+              const nw = parseInt(w, 10) < 20 ? 22 : parseInt(w, 10);
+              const nh = parseInt(h, 10) < 20 ? 22 : parseInt(h, 10);
+              return `svg width="${nw}" height="${nh}"`;
+            },
+          );
 
-        // 升级文字 span（B3：已有值优先）
-        const txtProps = new Map<string, string>();
-        for (const d of parseStyleDeclarations(txtStyle)) txtProps.set(d.key, d.value);
-        const fs = parseFloat(txtProps.get('font-size') || '0');
-        if (!fs || fs < 26) txtProps.set('font-size', '28px');
-        if (!txtProps.has('font-weight')) txtProps.set('font-weight', '600');
-        if (!txtProps.has('color')) txtProps.set('color', '#111827');
-        if (!txtProps.has('line-height')) txtProps.set('line-height', '1.4');
-        if (!txtProps.has('flex')) txtProps.set('flex', '1');
-        if (!txtProps.has('min-width')) txtProps.set('min-width', '0');
-        const txtNew = Array.from(txtProps.entries()).map(([k,v])=>`${k}:${v}`).join(';');
+          // 升级文字 span（B3：已有值优先）
+          const txtProps = new Map<string, string>();
+          for (const d of parseStyleDeclarations(txtStyle)) txtProps.set(d.key, d.value);
+          const fs = parseFloat(txtProps.get('font-size') || '0');
+          if (!fs || fs < 26) txtProps.set('font-size', '28px');
+          if (!txtProps.has('font-weight')) txtProps.set('font-weight', '600');
+          if (!txtProps.has('color')) txtProps.set('color', '#111827');
+          if (!txtProps.has('line-height')) txtProps.set('line-height', '1.4');
+          if (!txtProps.has('flex')) txtProps.set('flex', '1');
+          if (!txtProps.has('min-width')) txtProps.set('min-width', '0');
+          const txtNew = Array.from(txtProps.entries())
+            .map(([k, v]) => `${k}:${v}`)
+            .join(';');
 
-        // —— 捕获组复核（FIX-1：2026-08-03 灾难修复）——
-        // liPattern = /<li([^>]*style=")([^"]*)("[^>]*>\s*)(<span...inline-flex...>...<\/span>)\s*(<span[^>]*style=")([^"]*)("[^>]*>...<\/span>\s*<\/li>)/
-        // 组 1(liPre)   = [^>]*style="     → 例： style=" 或  data-x="y" style="  —— ⚠️不含字面量 <li
-        // 组 2(liStyle) = style 内部值
-        // 组 3(liMid)   = "[^>]*>\s*       → 例：">
-        // 组 4(iconSpan)= 图标 span 全段（含 <span 开标签）
-        // 组 5(txtPre)  = <span[^>]*style=" → ⚠️这里又含 <span（字面量在括号里）
-        // 组 6(txtStyle)= 文字 span style 值
-        // 组 7(txtRest) = "[^>]*>...<\/span>\s*<\/li>
-        return `<li${liPre}${liNew}${liMid}${newIconSpan}${txtPre}${txtNew}${txtRest}`;
-      });
+          // —— 捕获组复核（FIX-1：2026-08-03 灾难修复）——
+          // liPattern = /<li([^>]*style=")([^"]*)("[^>]*>\s*)(<span...inline-flex...>...<\/span>)\s*(<span[^>]*style=")([^"]*)("[^>]*>...<\/span>\s*<\/li>)/
+          // 组 1(liPre)   = [^>]*style="     → 例： style=" 或  data-x="y" style="  —— ⚠️不含字面量 <li
+          // 组 2(liStyle) = style 内部值
+          // 组 3(liMid)   = "[^>]*>\s*       → 例：">
+          // 组 4(iconSpan)= 图标 span 全段（含 <span 开标签）
+          // 组 5(txtPre)  = <span[^>]*style=" → ⚠️这里又含 <span（字面量在括号里）
+          // 组 6(txtStyle)= 文字 span style 值
+          // 组 7(txtRest) = "[^>]*>...<\/span>\s*<\/li>
+          return `<li${liPre}${liNew}${liMid}${newIconSpan}${txtPre}${txtNew}${txtRest}`;
+        },
+      );
       if (result === before) break;
     }
 
     // 5. 文字列容器 justify-content: center → space-evenly
     result = result.replace(
       /(<div[^>]*style="[^"]*display\s*:\s*flex[^"]*flex-direction\s*:\s*column[^"]*min-width\s*:\s*0[^"]*overflow\s*:\s*hidden[^"]*)justify-content\s*:\s*center([^"]*"[^>]*>[\s\S]{0,200}?<ul)/gi,
-      (_m, pre, post) => `${pre}justify-content:space-evenly${post}`
+      (_m, pre, post) => `${pre}justify-content:space-evenly${post}`,
     );
 
     // 额外：ul gap: 16 → 24
     result = result.replace(
       /(<ul[^>]*style="[^"]*display\s*:\s*flex[^"]*flex-direction\s*:\s*column[^"]*)gap\s*:\s*16px([^"]*")/gi,
-      (_m, pre, post) => `${pre}gap:24px${post}`
+      (_m, pre, post) => `${pre}gap:24px${post}`,
     );
 
     // ===== 新增：卡片条化后自适应压缩，防最后一行裁剪
@@ -7143,31 +9029,33 @@ ${tail}`;
     const liCount = countMatches ? countMatches.length : 0;
     if (liCount >= 4) {
       // padding: 20px 24px → 16px 20px
-      result = result.replace(
-        /<li([^>]*style="[^"]*)padding\s*:\s*20px\s+24px\s*;?/gi,
-        (_m, pre) => `${_m.startsWith('<li') ? `<li${pre}padding:16px 20px;` : `${pre}padding:16px 20px;`}`.replace(/padding:16px 20px;{2,}/g, 'padding:16px 20px;')
+      result = result.replace(/<li([^>]*style="[^"]*)padding\s*:\s*20px\s+24px\s*;?/gi, (_m, pre) =>
+        `${_m.startsWith('<li') ? `<li${pre}padding:16px 20px;` : `${pre}padding:16px 20px;`}`.replace(
+          /padding:16px 20px;{2,}/g,
+          'padding:16px 20px;',
+        ),
       );
       // 修正：直接替换 style 里的 padding 值
       result = result.replace(
         /(<li[^>]*style=")([^"]*?padding\s*:\s*)20px\s+24px\s*;?([^"]*"[^>]*>)/gi,
-        (_m, pre, padPre, padPost: string) => `${pre}${padPre}16px 20px;${padPost}`
+        (_m, pre, padPre, padPost: string) => `${pre}${padPre}16px 20px;${padPost}`,
       );
       // ul gap 24 → 20
       result = result.replace(
         /(<ul[^>]*style="[^"]*display\s*:\s*flex[^"]*flex-direction\s*:\s*column[^"]*)gap\s*:\s*24px\s*;?([^"]*")/gi,
-        (_m, pre, post) => `${pre}gap:20px;${post}`.replace(/gap:20px;{2,}/g, 'gap:20px;')
+        (_m, pre, post) => `${pre}gap:20px;${post}`.replace(/gap:20px;{2,}/g, 'gap:20px;'),
       );
     }
     if (liCount >= 5) {
       // li 文字字号 28 → 25
       result = result.replace(
         /(<li[^>]*>[\s\S]{0,400}?<span[^>]*style=")([^"]*?)font-size\s*:\s*28px\s*;?([^"]*"[^>]*>)/gi,
-        (_m, pre, _szPre, szPost: string) => `${pre}${_szPre}font-size:25px;${szPost}`
+        (_m, pre, _szPre, szPost: string) => `${pre}${_szPre}font-size:25px;${szPost}`,
       );
       // 图标 40 → 36
       result = result.replace(
         /(<li[^>]*>[\s\S]{0,200}?<span[^>]*style=")([^"]*?)width\s*:\s*40px\s*;\s*height\s*:\s*40px\s*;?([^"]*"[^>]*>)/gi,
-        (_m, pre, _szPre, szPost: string) => `${pre}${_szPre}width:36px;height:36px;${szPost}`
+        (_m, pre, _szPre, szPost: string) => `${pre}${_szPre}width:36px;height:36px;${szPost}`,
       );
     }
     return result;
@@ -7186,12 +9074,13 @@ ${tail}`;
     let result = html;
     const hasCardGrid = /grid-template-columns:\s*repeat\(\s*(?:2|3)\s*,\s*1fr\s*\)/i.test(result);
     if (!hasCardGrid) return result;
-    const GRAD_TEXT_ANY = 'background:linear-gradient(135deg,#7c3aed,#5b21b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;';
+    const GRAD_TEXT_ANY =
+      'background:linear-gradient(135deg,#7c3aed,#5b21b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;';
 
     // 1. 圆标：56x56 → 48x48，字号 24→22
     result = result.replace(
       /<span([^>]*style="[^"]*width\s*:\s*)56px([^"]*height\s*:\s*)56px([^"]*font-size\s*:\s*)24px([^"]*)"/gi,
-      (_m, pre, p2, p3, p4) => `<span${pre}48px${p2}48px${p3}22px${p4}"`
+      (_m, pre, p2, p3, p4) => `<span${pre}48px${p2}48px${p3}22px${p4}"`,
     );
 
     // 2. H3：22→32，700→800，color 主色改渐变
@@ -7228,9 +9117,11 @@ ${tail}`;
           props.set('-webkit-text-fill-color', 'transparent');
           props.set('background-clip', 'text');
         }
-        const ns = Array.from(props.entries()).map(([k,v])=>`${k}:${v}`).join(';');
+        const ns = Array.from(props.entries())
+          .map(([k, v]) => `${k}:${v}`)
+          .join(';');
         return `<h3${pre}${ns}${post}${txt}</h3>`;
-      }
+      },
     );
 
     // 3. p 18→24，400→500，1.8→1.6
@@ -7247,25 +9138,27 @@ ${tail}`;
         if (lh >= 1.8 || Number.isNaN(lh)) props.set('line-height', '1.6');
         // color #6B7280 → #374151（更深点）
         if (props.get('color')?.toLowerCase() === '#6b7280') props.set('color', '#374151');
-        const ns = Array.from(props.entries()).map(([k,v])=>`${k}:${v}`).join(';');
+        const ns = Array.from(props.entries())
+          .map(([k, v]) => `${k}:${v}`)
+          .join(';');
         return `<p${pre}${ns}${post}${txt}</p>`;
-      }
+      },
     );
 
     // 4. 卡片 padding:32px → 36px
     result = result.replace(
       /(<div[^>]*style="[^"]*padding\s*:\s*)32px([^"]*border-radius\s*:\s*16px[^"]*grid|grid-template[^"]*padding\s*:\s*)32px/gi,
-      (_m, pre, rest) => `${pre}36px${rest}`
+      (_m, pre, rest) => `${pre}36px${rest}`,
     );
     // 再次：对卡片容器 padding:32 → 36（用更宽松正则）
     result = result.replace(
       /(<div[^>]*style="[^"]*background\s*:\s*#F9FAFB[^"]*border-radius\s*:\s*16px[^"]*)padding\s*:\s*32px([^"]*")/gi,
-      (_m, pre, post) => `${pre}padding:36px${post}`
+      (_m, pre, post) => `${pre}padding:36px${post}`,
     );
     // 卡片 gap:16 → 20
     result = result.replace(
       /(<div[^>]*style="[^"]*background\s*:\s*#F9FAFB[^"]*)gap\s*:\s*16px([^"]*")/gi,
-      (_m, pre, post) => `${pre}gap:20px${post}`
+      (_m, pre, post) => `${pre}gap:20px${post}`,
     );
     return result;
   }
@@ -7279,18 +9172,23 @@ ${tail}`;
     // ============================================================
     for (let i = 0; i < 3; i++) {
       const before = result;
-      result = result.replace(/<div(\s+[^>]*)?>\s*<\/div>/gi, (match: string, attrs: string | undefined) => {
-        const a = (attrs || '').trim();
-        // 如果没有 style 属性 → 可以删
-        const styleIdx = a.search(/style\s*=/i);
-        if (styleIdx === -1) return '';
-        // 有 style 属性，提取值；如果值本身是空字符串 → 可以删（垃圾空容器）
-        // 允许 style="   " 这种只有空格的空 style
-        const styleValMatch = a.slice(styleIdx).match(/^style\s*=\s*"([^"]*)"/i) || a.slice(styleIdx).match(/^style\s*=\s*'([^']*)'/i);
-        if (!styleValMatch || styleValMatch[1].trim() === '') return '';
-        // 否则：有真实 style 内容 → 100% 保留（AI 既然写了 style 就必然有它的用意）
-        return match;
-      });
+      result = result.replace(
+        /<div(\s+[^>]*)?>\s*<\/div>/gi,
+        (match: string, attrs: string | undefined) => {
+          const a = (attrs || '').trim();
+          // 如果没有 style 属性 → 可以删
+          const styleIdx = a.search(/style\s*=/i);
+          if (styleIdx === -1) return '';
+          // 有 style 属性，提取值；如果值本身是空字符串 → 可以删（垃圾空容器）
+          // 允许 style="   " 这种只有空格的空 style
+          const styleValMatch =
+            a.slice(styleIdx).match(/^style\s*=\s*"([^"]*)"/i) ||
+            a.slice(styleIdx).match(/^style\s*=\s*'([^']*)'/i);
+          if (!styleValMatch || styleValMatch[1].trim() === '') return '';
+          // 否则：有真实 style 内容 → 100% 保留（AI 既然写了 style 就必然有它的用意）
+          return match;
+        },
+      );
       if (result === before) break;
     }
     return result;
@@ -7308,10 +9206,12 @@ ${tail}`;
       if (!styleMatch) return match;
       const style = styleMatch[1];
       // 判断是否为图标容器：必须同时具备 inline-flex + flex-shrink + 宽高/圆角
-      const hasInlineFlex = /display\s*:\s*inline-flex/i.test(style) || /display\s*:\s*inline-flex/i.test(style);
+      const hasInlineFlex =
+        /display\s*:\s*inline-flex/i.test(style) || /display\s*:\s*inline-flex/i.test(style);
       const hasFlexShrink = /flex-shrink\s*:\s*0/i.test(style);
       const hasSize = /width\s*:\s*\d+px/i.test(style) && /height\s*:\s*\d+px/i.test(style);
-      const hasRadius = /border-radius\s*:\s*\d+px/i.test(style) || /border-radius\s*:\s*50%/i.test(style);
+      const hasRadius =
+        /border-radius\s*:\s*\d+px/i.test(style) || /border-radius\s*:\s*50%/i.test(style);
       if (!(hasInlineFlex && hasFlexShrink && hasSize && hasRadius)) {
         return match;
       }
@@ -7321,7 +9221,9 @@ ${tail}`;
         styles[key] = value;
       }
       delete styles['margin-top'];
-      const newStyle = Object.entries(styles).map(([k, v]) => `${k}:${v}`).join(';');
+      const newStyle = Object.entries(styles)
+        .map(([k, v]) => `${k}:${v}`)
+        .join(';');
       return match.replace(/style="[^"]*"/i, `style="${newStyle}"`);
     });
   }
@@ -7346,7 +9248,16 @@ ${tail}`;
       // T6-FR6：作者显式指定 align-items（≠空/≠stretch 默认）时尊重原值，
       // 仅在缺失或 inherit/initial/normal 无意义默认时才补 center，避免把 flex-start 顶对齐的大图标垂直关系打坏。
       const rawAlign = (styles['align-items'] || '').trim().toLowerCase();
-      const explicitAlignMeaningful = ['flex-start', 'flex-end', 'start', 'end', 'center', 'baseline', 'self-start', 'self-end'].includes(rawAlign);
+      const explicitAlignMeaningful = [
+        'flex-start',
+        'flex-end',
+        'start',
+        'end',
+        'center',
+        'baseline',
+        'self-start',
+        'self-end',
+      ].includes(rawAlign);
       if (!explicitAlignMeaningful) styles['align-items'] = 'center';
       if (!styles['gap']) {
         styles['gap'] = '14px';
@@ -7354,7 +9265,9 @@ ${tail}`;
       if (!styles['list-style']) {
         styles['list-style'] = 'none';
       }
-      const newStyle = Object.entries(styles).map(([k, v]) => `${k}:${v}`).join(';');
+      const newStyle = Object.entries(styles)
+        .map(([k, v]) => `${k}:${v}`)
+        .join(';');
       return match.replace(/style="[^"]*"/i, `style="${newStyle}"`);
     });
   }
@@ -7397,7 +9310,9 @@ ${tail}`;
         styles['gap'] = '16px';
       }
       if (!styles['min-width']) styles['min-width'] = '0';
-      const newStyle = Object.entries(styles).map(([k, v]) => `${k}:${v}`).join(';');
+      const newStyle = Object.entries(styles)
+        .map(([k, v]) => `${k}:${v}`)
+        .join(';');
       return match.replace(/style="[^"]*"/i, `style="${newStyle}"`);
     });
 
@@ -7409,7 +9324,7 @@ ${tail}`;
     const iconSpanPattern = (flags: string = '') =>
       new RegExp(
         '<span([^>]*style="(?=[^"]*display\\s*:\\s*inline-flex)(?=[^"]*flex-shrink\\s*:\\s*0)[^"]*"[^>]*)>[\\s\\S]*?</span>',
-        flags
+        flags,
       );
 
     // 先用完整模式（li > iconSpan + textSpan）匹配
@@ -7420,28 +9335,33 @@ ${tail}`;
     //   $4 = textSpanAttrs（真正的文字 span 属性，必须取这个）
     const combinedPattern = new RegExp(
       '<li([^>]*)>(\\s*' + iconSpanPattern().source + ')\\s*<span([^>]*)>',
-      'gi'
+      'gi',
     );
-    result = result.replace(combinedPattern, (_match, liAttrs, iconSpan, _iconSpanAttrsUnused, textSpanAttrs) => {
-      // 给文字 span 补 style：line-height:1.4 和 flex:1
-      let newTextSpanAttrs = textSpanAttrs;
-      const styleMatch = newTextSpanAttrs.match(/style="([^"]*)"/i);
-      const styles: Record<string, string> = {};
-      if (styleMatch) {
-        for (const { key, value } of parseStyleDeclarations(styleMatch[1])) {
-          styles[key] = value;
+    result = result.replace(
+      combinedPattern,
+      (_match, liAttrs, iconSpan, _iconSpanAttrsUnused, textSpanAttrs) => {
+        // 给文字 span 补 style：line-height:1.4 和 flex:1
+        let newTextSpanAttrs = textSpanAttrs;
+        const styleMatch = newTextSpanAttrs.match(/style="([^"]*)"/i);
+        const styles: Record<string, string> = {};
+        if (styleMatch) {
+          for (const { key, value } of parseStyleDeclarations(styleMatch[1])) {
+            styles[key] = value;
+          }
         }
-      }
-      if (!styles['line-height']) styles['line-height'] = '1.4';
-      if (!styles['flex']) styles['flex'] = '1';
-      const newStyle = Object.entries(styles).map(([k, v]) => `${k}:${v}`).join(';');
-      if (styleMatch) {
-        newTextSpanAttrs = newTextSpanAttrs.replace(/style="[^"]*"/i, `style="${newStyle}"`);
-      } else {
-        newTextSpanAttrs = `${newTextSpanAttrs} style="${newStyle}"`;
-      }
-      return `<li${liAttrs}>${iconSpan}<span${newTextSpanAttrs}>`;
-    });
+        if (!styles['line-height']) styles['line-height'] = '1.4';
+        if (!styles['flex']) styles['flex'] = '1';
+        const newStyle = Object.entries(styles)
+          .map(([k, v]) => `${k}:${v}`)
+          .join(';');
+        if (styleMatch) {
+          newTextSpanAttrs = newTextSpanAttrs.replace(/style="[^"]*"/i, `style="${newStyle}"`);
+        } else {
+          newTextSpanAttrs = `${newTextSpanAttrs} style="${newStyle}"`;
+        }
+        return `<li${liAttrs}>${iconSpan}<span${newTextSpanAttrs}>`;
+      },
+    );
 
     return result;
   }
@@ -7481,8 +9401,11 @@ ${tail}`;
       const lower = styleAttr.toLowerCase();
       // --- 原有视觉属性判定（完全保留）---
       const hasVisual =
-        (lower.includes('background') && (lower.includes('color') || lower.includes('image') || lower.includes('gradient'))) ||
-        lower.includes('border') || lower.includes('box-shadow') || lower.includes('border-radius');
+        (lower.includes('background') &&
+          (lower.includes('color') || lower.includes('image') || lower.includes('gradient'))) ||
+        lower.includes('border') ||
+        lower.includes('box-shadow') ||
+        lower.includes('border-radius');
       if (hasVisual) return true;
       // --- 新增：影响布局/间距/溢出的关键约束（RC-1 修复）---
       const hasMargin =
@@ -7500,8 +9423,20 @@ ${tail}`;
       while ((sm = sizeRe.exec(lower)) !== null) {
         const v = (sm[3] || '').trim().toLowerCase();
         if (!v) continue;
-        if (v === 'auto' || v === 'inherit' || v === 'initial' || v === 'unset' || v === 'fit-content' || v === 'max-content' || v === 'min-content') continue;
-        if (/\d/.test(v)) { hasExplicitSize = true; break; }
+        if (
+          v === 'auto' ||
+          v === 'inherit' ||
+          v === 'initial' ||
+          v === 'unset' ||
+          v === 'fit-content' ||
+          v === 'max-content' ||
+          v === 'min-content'
+        )
+          continue;
+        if (/\d/.test(v)) {
+          hasExplicitSize = true;
+          break;
+        }
       }
       return hasMargin || hasPadding || hasOverflow || hasFlex || hasAspectRatio || hasExplicitSize;
     };
@@ -7509,13 +9444,16 @@ ${tail}`;
       const match = tag.match(/style="([^"]*)"/i);
       return match ? match[1] : '';
     };
-    const hasOnlyOneChild = (innerContent: string): { onlyChild: boolean; childTag?: string; childFull?: string } => {
+    const hasOnlyOneChild = (
+      innerContent: string,
+    ): { onlyChild: boolean; childTag?: string; childFull?: string } => {
       const trimmed = innerContent.trim();
       if (!trimmed) return { onlyChild: false };
       const firstTagMatch = trimmed.match(/^<([a-zA-Z0-9]+)(\s[^>]*)?>/);
       if (!firstTagMatch) return { onlyChild: false };
       const childTag = firstTagMatch[1].toLowerCase();
-      const isSelfClosing = firstTagMatch[0].endsWith('/>') || ['br', 'img', 'hr', 'input'].includes(childTag);
+      const isSelfClosing =
+        firstTagMatch[0].endsWith('/>') || ['br', 'img', 'hr', 'input'].includes(childTag);
       if (isSelfClosing) {
         const rest = trimmed.slice(firstTagMatch[0].length).trim();
         return { onlyChild: rest.length === 0, childTag, childFull: firstTagMatch[0] };
@@ -7526,7 +9464,11 @@ ${tail}`;
       const before = trimmed.slice(0, firstTagMatch.index).trim();
       const after = trimmed.slice(closingIndex + closingTag.length).trim();
       if (before.length === 0 && after.length === 0) {
-        return { onlyChild: true, childTag, childFull: trimmed.slice(0, closingIndex + closingTag.length) };
+        return {
+          onlyChild: true,
+          childTag,
+          childFull: trimmed.slice(0, closingIndex + closingTag.length),
+        };
       }
       return { onlyChild: false };
     };
@@ -7538,24 +9480,36 @@ ${tail}`;
         const styleAttr = getStyleAttr(match);
         if (hasVisualStyleOrLayoutConstraint(styleAttr)) {
           const innerFlattened = flattenOnce(innerContent);
-          return innerFlattened === innerContent ? match : `<${tag}${attrs || ''}>${innerFlattened}</${tag}>`;
+          return innerFlattened === innerContent
+            ? match
+            : `<${tag}${attrs || ''}>${innerFlattened}</${tag}>`;
         }
         const childInfo = hasOnlyOneChild(innerContent);
         if (!childInfo.onlyChild || !childInfo.childTag) {
           const innerFlattened = flattenOnce(innerContent);
-          return innerFlattened === innerContent ? match : `<${tag}${attrs || ''}>${innerFlattened}</${tag}>`;
+          return innerFlattened === innerContent
+            ? match
+            : `<${tag}${attrs || ''}>${innerFlattened}</${tag}>`;
         }
         // FR-1b: 图片包裹保护——直接子代是 <img> 时，无论容器是否有样式，均不剥离外层
         // （图片包裹对 flex:column / grid 等布局至关重要，丢掉外层会让 height:100% 挤爆画布）
         if (childInfo.childTag === 'img') {
           const innerFlattened = flattenOnce(innerContent);
-          return innerFlattened === innerContent ? match : `<${tag}${attrs || ''}>${innerFlattened}</${tag}>`;
+          return innerFlattened === innerContent
+            ? match
+            : `<${tag}${attrs || ''}>${innerFlattened}</${tag}>`;
         }
-        if (['h1','h2','h3','h4','h5','h6','p','span','ul','ol','table'].includes(childInfo.childTag)) {
+        if (
+          ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span', 'ul', 'ol', 'table'].includes(
+            childInfo.childTag,
+          )
+        ) {
           return childInfo.childFull!;
         }
         const innerFlattened = flattenOnce(innerContent);
-        return innerFlattened === innerContent ? match : `<${tag}${attrs || ''}>${innerFlattened}</${tag}>`;
+        return innerFlattened === innerContent
+          ? match
+          : `<${tag}${attrs || ''}>${innerFlattened}</${tag}>`;
       });
     };
     do {
@@ -7588,7 +9542,8 @@ ${tail}`;
    * 避免写死默认值覆盖 LLM 设定的设计（如 kicker 的 16px / 参考色 / letter-spacing）。
    */
   private composeInheritedPStyle(parentStyle?: string): string {
-    if (!parentStyle) return 'font-size:24px;color:#374151;font-weight:600;line-height:2.0;overflow-wrap:break-word;word-break:break-word;';
+    if (!parentStyle)
+      return 'font-size:24px;color:#374151;font-weight:600;line-height:2.0;overflow-wrap:break-word;word-break:break-word;';
     const grab = (re: RegExp): string | undefined => {
       const m = re.exec(parentStyle);
       return m ? m[1].trim() : undefined;
@@ -7604,7 +9559,9 @@ ${tail}`;
     if (ls) parts.push(`letter-spacing:${ls};`);
     if (lh) parts.push(`line-height:${lh};`);
     if (fw) parts.push(`font-weight:${fw};`);
-    return parts.length > 1 ? parts.join('') : 'font-size:24px;color:#374151;font-weight:600;line-height:2.0;overflow-wrap:break-word;word-break:break-word;';
+    return parts.length > 1
+      ? parts.join('')
+      : 'font-size:24px;color:#374151;font-weight:600;line-height:2.0;overflow-wrap:break-word;word-break:break-word;';
   }
 
   private ensureSemanticWrapping(html: string): string {
@@ -7613,22 +9570,62 @@ ${tail}`;
     // 注意：这里不包含 span/a/strong 等 inline，因为它们作为"裸文本字符"处理时，
     // inline 标签本身会被拼入裸文本缓冲（和相邻字符一起包一层 p）。
     const TEXT_TAGS = new Set([
-      'h1','h2','h3','h4','h5','h6','p','li','figcaption','td','th','label','button',
-      'pre','code','blockquote','sup','sub','textarea','option','title','style','script','noscript',
+      'h1',
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
+      'p',
+      'li',
+      'figcaption',
+      'td',
+      'th',
+      'label',
+      'button',
+      'pre',
+      'code',
+      'blockquote',
+      'sup',
+      'sub',
+      'textarea',
+      'option',
+      'title',
+      'style',
+      'script',
+      'noscript',
     ]);
     // "布局容器"——它们的**直接子节点中出现的可见字符** = 裸文本，必须处理
     const CONTAINER_TAGS = new Set([
-      'div','section','article','aside','nav','main','header','footer','body',
-      'figure','ul','ol','table','thead','tbody','tfoot','tr','form','details','summary',
+      'div',
+      'section',
+      'article',
+      'aside',
+      'nav',
+      'main',
+      'header',
+      'footer',
+      'body',
+      'figure',
+      'ul',
+      'ol',
+      'table',
+      'thead',
+      'tbody',
+      'tfoot',
+      'tr',
+      'form',
+      'details',
+      'summary',
     ]);
 
     interface StackFrame {
       tagName: string;
-      openTagFull: string;    // 原始的开标签字符串（含属性），最后拼回去
+      openTagFull: string; // 原始的开标签字符串（含属性），最后拼回去
       inTextContext: boolean; // 该 frame 本身或其祖先中存在 text 标签 → 全局 text 上下文
-      pendingBare: string;    // 累积的裸文本缓冲（仅当 frame.isContainer 时有用）
-      isContainer: boolean;   // 是否 CONTAINER_TAGS 之一（决定是否要在弹栈时处理 pendingBare）
-      innerBuffer: string;    // 已经处理完的子内容（用于在弹栈时一次性组装：openTag + processedContent + closeTag）
+      pendingBare: string; // 累积的裸文本缓冲（仅当 frame.isContainer 时有用）
+      isContainer: boolean; // 是否 CONTAINER_TAGS 之一（决定是否要在弹栈时处理 pendingBare）
+      innerBuffer: string; // 已经处理完的子内容（用于在弹栈时一次性组装：openTag + processedContent + closeTag）
       isBadgeContainer: boolean; // === 修复 D：该容器本身就是 Badge/胶囊（inline-flex+padding+radius 999px），内部字符视为安全文本，不包 p
     }
 
@@ -7638,17 +9635,31 @@ ${tail}`;
       if (!sm) return false;
       const s = sm[1];
       const hasInlineFlex = /display\s*:\s*(?:inline-flex|flex)\b/i.test(s);
-      const hasBadgePadding = /padding\s*:[^;]*(?:1[0-9]px\s+2[0-9]px|10px\s+28px|12px\s+24px)\b/i.test(s);
+      const hasBadgePadding =
+        /padding\s*:[^;]*(?:1[0-9]px\s+2[0-9]px|10px\s+28px|12px\s+24px)\b/i.test(s);
       const hasRadius999 = /border-radius\s*:[^;]*999px/i.test(s);
-      const hasBgTint = /background\s*:[^;]*(?:#[0-9a-f]{6,8}1[0-9a-f]|rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*0\.0[5-9])/i.test(s);
+      const hasBgTint =
+        /background\s*:[^;]*(?:#[0-9a-f]{6,8}1[0-9a-f]|rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*0\.0[5-9])/i.test(
+          s,
+        );
       // 命中 3/4 以上特征，认定是 Badge 容器（避免误判普通 flex div）
-      const score = [hasInlineFlex, hasBadgePadding, hasRadius999, hasBgTint].filter(Boolean).length;
+      const score = [hasInlineFlex, hasBadgePadding, hasRadius999, hasBgTint].filter(
+        Boolean,
+      ).length;
       return score >= 3;
     };
 
     // 准备栈，先塞一个"根虚拟帧"
     const stack: StackFrame[] = [
-      { tagName: '__root__', openTagFull: '', inTextContext: false, pendingBare: '', isContainer: false, innerBuffer: '', isBadgeContainer: false },
+      {
+        tagName: '__root__',
+        openTagFull: '',
+        inTextContext: false,
+        pendingBare: '',
+        isContainer: false,
+        innerBuffer: '',
+        isBadgeContainer: false,
+      },
     ];
 
     // flushBare: 把当前帧的 pendingBare 处理成若干 <p>，append 到当前帧的 innerBuffer
@@ -7682,7 +9693,10 @@ ${tail}`;
         if (/^<svg[\s>]/i.test(html.slice(i, i + 20))) {
           const lower = html.toLowerCase();
           const openTagEnd = lower.indexOf('>', i);
-          if (openTagEnd === -1) { i++; continue; }
+          if (openTagEnd === -1) {
+            i++;
+            continue;
+          }
           // self-closing <svg ... />（极少见，但防御）
           if (html[openTagEnd - 1] === '/') {
             const top = stack[stack.length - 1];
@@ -7778,7 +9792,21 @@ ${tail}`;
         const tagName = tagMatch[1].toLowerCase();
         const isClosing = tagFull[1] === '/';
         // self-closing：显式写成 />，或单例标签
-        const selfClosingSingleton = new Set(['br','img','hr','input','meta','link','wbr','area','base','col','embed','source','track']);
+        const selfClosingSingleton = new Set([
+          'br',
+          'img',
+          'hr',
+          'input',
+          'meta',
+          'link',
+          'wbr',
+          'area',
+          'base',
+          'col',
+          'embed',
+          'source',
+          'track',
+        ]);
         const isSelfClosing = tagFull.endsWith('/>') || selfClosingSingleton.has(tagName);
 
         if (isSelfClosing) {
@@ -7801,7 +9829,8 @@ ${tail}`;
           }
           // === 修复 D：Badge 容器本身视作 text 上下文（不包 p），且也不是"需处理裸文本的容器" ===
           const badged = isBadgeStyle(tagFull);
-          const inTextContext = top.inTextContext || TEXT_TAGS.has(tagName) || badged || top.isBadgeContainer;
+          const inTextContext =
+            top.inTextContext || TEXT_TAGS.has(tagName) || badged || top.isBadgeContainer;
           const isContainer = !inTextContext && CONTAINER_TAGS.has(tagName);
           const frame: StackFrame = {
             tagName,
@@ -7810,7 +9839,7 @@ ${tail}`;
             pendingBare: '',
             isContainer,
             innerBuffer: '',
-            isBadgeContainer: badged || top.isBadgeContainer,  // 子节点也继承 Badge 上下文（防 badge 内再嵌套容器又误包 p）
+            isBadgeContainer: badged || top.isBadgeContainer, // 子节点也继承 Badge 上下文（防 badge 内再嵌套容器又误包 p）
           };
           stack.push(frame);
           i = tagEnd + 1;
@@ -7820,7 +9849,10 @@ ${tail}`;
           // 找到匹配的栈帧（最近的 tagName 相同的 frame；若没找到就只跳过当前 tagFull）
           let popIdx = -1;
           for (let k = stack.length - 1; k >= 1; k--) {
-            if (stack[k].tagName === tagName) { popIdx = k; break; }
+            if (stack[k].tagName === tagName) {
+              popIdx = k;
+              break;
+            }
           }
           if (popIdx === -1) {
             // 无匹配的开标签：把关标签当作普通字符处理
@@ -7864,7 +9896,10 @@ ${tail}`;
     while (stack.length > 1) {
       const popped = stack.pop()!;
       if (popped.isContainer) flushBare(popped);
-      const assembled = popped.openTagFull + popped.innerBuffer + (popped.tagName !== '__root__' ? `</${popped.tagName}>` : '');
+      const assembled =
+        popped.openTagFull +
+        popped.innerBuffer +
+        (popped.tagName !== '__root__' ? `</${popped.tagName}>` : '');
       stack[stack.length - 1].innerBuffer += assembled;
     }
     // 最后处理 root 的残余裸文本（理论上不该发生，但兜底以防万一）
@@ -7903,14 +9938,37 @@ ${tail}`;
    * 用于 enforceLeftRight5545AndCardBar 的角色判定，避免 rawTail.substring(0,N) 粗扫描
    * 把孙节点的 <ul>/<img> 误判成当前 div 的直接子节点，从而错判列归属角色。
    */
-  private findDirectChildElements(html: string): Array<{ tagName: string; styleAttr: string | null; innerPreview: string | null }> {
-    const result: Array<{ tagName: string; styleAttr: string | null; innerPreview: string | null }> = [];
+  private findDirectChildElements(
+    html: string,
+  ): Array<{ tagName: string; styleAttr: string | null; innerPreview: string | null }> {
+    const result: Array<{
+      tagName: string;
+      styleAttr: string | null;
+      innerPreview: string | null;
+    }> = [];
     if (!html) return result;
-    const SINGLETON = new Set(['br', 'img', 'hr', 'input', 'meta', 'link', 'wbr', 'area', 'base', 'col', 'embed', 'source', 'track']);
+    const SINGLETON = new Set([
+      'br',
+      'img',
+      'hr',
+      'input',
+      'meta',
+      'link',
+      'wbr',
+      'area',
+      'base',
+      'col',
+      'embed',
+      'source',
+      'track',
+    ]);
     const n = html.length;
     let i = 0;
     while (i < n) {
-      if (html[i] !== '<') { i++; continue; }
+      if (html[i] !== '<') {
+        i++;
+        continue;
+      }
       // 跳过注释
       if (html.startsWith('<!--', i)) {
         const end = html.indexOf('-->', i);
@@ -7927,9 +9985,15 @@ ${tail}`;
       if (tagEnd === -1) break;
       const tagFull = html.slice(i, tagEnd + 1);
       // 只处理顶层打开标签（闭合标签直接跳过不加入 result）
-      if (tagFull[1] === '/') { i = tagEnd + 1; continue; }
+      if (tagFull[1] === '/') {
+        i = tagEnd + 1;
+        continue;
+      }
       const tagMatch = tagFull.match(/^<\s*([a-zA-Z0-9]+)/);
-      if (!tagMatch) { i = tagEnd + 1; continue; }
+      if (!tagMatch) {
+        i = tagEnd + 1;
+        continue;
+      }
       const tagName = tagMatch[1].toLowerCase();
       const isSelfClosing = tagFull.endsWith('/>') || SINGLETON.has(tagName);
       // 提取 style 属性（若无则 null）
@@ -7964,7 +10028,10 @@ ${tail}`;
           j = te === -1 ? nc : te + 1;
         } else {
           depth--;
-          if (depth === 0) { closeIdx = nc; break; }
+          if (depth === 0) {
+            closeIdx = nc;
+            break;
+          }
           j = nc + closeTagSeq.length;
         }
       }
@@ -7996,7 +10063,10 @@ ${tail}`;
           if (content.startsWith('<!--', i)) {
             const endIdx = content.indexOf('-->', i);
             const j = endIdx === -1 ? content.length : endIdx + 3;
-            if (buffer.trim()) { segments.push({ type: 'text', content: buffer }); buffer = ''; }
+            if (buffer.trim()) {
+              segments.push({ type: 'text', content: buffer });
+              buffer = '';
+            }
             segments.push({ type: 'block', content: content.slice(i, j) });
             i = j;
             continue;
@@ -8004,7 +10074,10 @@ ${tail}`;
           if (content.startsWith('<![CDATA[', i)) {
             const endIdx = content.indexOf(']]>', i);
             const j = endIdx === -1 ? content.length : endIdx + 3;
-            if (buffer.trim()) { segments.push({ type: 'text', content: buffer }); buffer = ''; }
+            if (buffer.trim()) {
+              segments.push({ type: 'text', content: buffer });
+              buffer = '';
+            }
             segments.push({ type: 'block', content: content.slice(i, j) });
             i = j;
             continue;
@@ -8012,30 +10085,81 @@ ${tail}`;
           if (content.startsWith('<!', i)) {
             const endIdx = content.indexOf('>', i);
             const j = endIdx === -1 ? content.length : endIdx + 1;
-            if (buffer.trim()) { segments.push({ type: 'text', content: buffer }); buffer = ''; }
+            if (buffer.trim()) {
+              segments.push({ type: 'text', content: buffer });
+              buffer = '';
+            }
             segments.push({ type: 'block', content: content.slice(i, j) });
             i = j;
             continue;
           }
           // ===== 注释识别结束 =====
           const tagEnd = content.indexOf('>', i);
-          if (tagEnd === -1) { buffer += content.slice(i); break; }
+          if (tagEnd === -1) {
+            buffer += content.slice(i);
+            break;
+          }
           const tagFull = content.slice(i, tagEnd + 1);
           const tagMatch = tagFull.match(/^<\/?([a-zA-Z0-9]+)/);
-          if (!tagMatch) { buffer += content[i]; i++; continue; }
+          if (!tagMatch) {
+            buffer += content[i];
+            i++;
+            continue;
+          }
           const tagName = tagMatch[1].toLowerCase();
           const isClosing = tagFull[1] === '/';
-          const isSelfClosing = tagFull[tagFull.length - 2] === '/' || ['br','img','hr','input'].includes(tagName);
-          const isInline = ['span','strong','em','b','i','u','a','br','sup','sub','font'].includes(tagName);
-          const isBlock = ['h1','h2','h3','h4','h5','h6','p','ul','ol','li','div','section','article','table','blockquote','img','video','figure','figcaption','pre','code'].includes(tagName);
+          const isSelfClosing =
+            tagFull[tagFull.length - 2] === '/' || ['br', 'img', 'hr', 'input'].includes(tagName);
+          const isInline = [
+            'span',
+            'strong',
+            'em',
+            'b',
+            'i',
+            'u',
+            'a',
+            'br',
+            'sup',
+            'sub',
+            'font',
+          ].includes(tagName);
+          const isBlock = [
+            'h1',
+            'h2',
+            'h3',
+            'h4',
+            'h5',
+            'h6',
+            'p',
+            'ul',
+            'ol',
+            'li',
+            'div',
+            'section',
+            'article',
+            'table',
+            'blockquote',
+            'img',
+            'video',
+            'figure',
+            'figcaption',
+            'pre',
+            'code',
+          ].includes(tagName);
           if (isInline || isSelfClosing) {
             if (isSelfClosing && !isInline) {
-              if (buffer.trim()) { segments.push({ type: 'text', content: buffer }); buffer = ''; }
+              if (buffer.trim()) {
+                segments.push({ type: 'text', content: buffer });
+                buffer = '';
+              }
               segments.push({ type: 'block', content: tagFull });
-            } else { buffer += tagFull; }
+            } else {
+              buffer += tagFull;
+            }
             i = tagEnd + 1;
           } else if (isBlock && !isClosing) {
-            let depth = 1, j = tagEnd + 1;
+            let depth = 1,
+              j = tagEnd + 1;
             while (j < content.length && depth > 0) {
               if (content[j] === '<') {
                 // ===== 新增：嵌套匹配时也要跳过注释 =====
@@ -8054,33 +10178,47 @@ ${tail}`;
                 j = nt + 1;
               } else j++;
             }
-            if (buffer.trim()) { segments.push({ type: 'text', content: buffer }); buffer = ''; }
+            if (buffer.trim()) {
+              segments.push({ type: 'text', content: buffer });
+              buffer = '';
+            }
             segments.push({ type: 'block', content: content.slice(i, j) });
             i = j;
           } else if (isBlock && isClosing) {
-            if (buffer.trim()) { segments.push({ type: 'text', content: buffer }); buffer = ''; }
+            if (buffer.trim()) {
+              segments.push({ type: 'text', content: buffer });
+              buffer = '';
+            }
             segments.push({ type: 'block', content: tagFull });
             i = tagEnd + 1;
-          } else { buffer += tagFull; i = tagEnd + 1; }
-        } else { buffer += content[i]; i++; }
+          } else {
+            buffer += tagFull;
+            i = tagEnd + 1;
+          }
+        } else {
+          buffer += content[i];
+          i++;
+        }
       }
       if (buffer.trim()) segments.push({ type: 'text', content: buffer });
       // ===== 增强：裸文本缓冲按换行拆分，每行独立包裹 <p> =====
       // 原来：多行裸文本合并成一个 <p> → 内部换行丢失，视觉上堆叠在一起
       // 现在：每行（trim 后非空）单独生成一个 <p>，模拟"每行要点"的呈现效果
-      return segments.map(seg => {
-        if (seg.type === 'text' && seg.content.trim()) {
-          const lines = seg.content.split(/\r?\n/);
-          const wrapped: string[] = [];
-          for (const rawLine of lines) {
-            const line = rawLine.trim();
-            if (!line) continue;
-            wrapped.push(`<p style="${this.composeInheritedPStyle(parentStyle)}">${line}</p>`);
+      return segments
+        .map((seg) => {
+          if (seg.type === 'text' && seg.content.trim()) {
+            const lines = seg.content.split(/\r?\n/);
+            const wrapped: string[] = [];
+            for (const rawLine of lines) {
+              const line = rawLine.trim();
+              if (!line) continue;
+              wrapped.push(`<p style="${this.composeInheritedPStyle(parentStyle)}">${line}</p>`);
+            }
+            return wrapped.join('');
           }
-          return wrapped.join('');
-        }
-        return seg.content;
-      }).join('');
+          return seg.content;
+        })
+        .join('');
     };
     const replaceTextInDiv = (htmlStr: string): string => {
       const divRegex = /<(div|section|article)(\s[^>]*)?>([\s\S]*?)<\/\1>/gi;
@@ -8145,29 +10283,55 @@ ${tail}`;
  */
 function derivePrimaryColorLighter(primaryHex: string): string {
   const c = primaryHex.trim().toLowerCase().replace(/^#/, '');
-  const hex = c.length === 3 ? c.split('').map((x) => x + x).join('') : c;
+  const hex =
+    c.length === 3
+      ? c
+          .split('')
+          .map((x) => x + x)
+          .join('')
+      : c;
   // 已知色表：primary(500/600) → lighter(-300/-400)，与之前 #3b82f6→#60a5fa (blue-500→blue-400) 一致的档级差
   const known: Record<string, string> = {
     // 蓝系（历史默认）
-    '3b82f6': '60a5fa', '2563eb': '60a5fa', '1d4ed8': '3b82f6',
+    '3b82f6': '60a5fa',
+    '2563eb': '60a5fa',
+    '1d4ed8': '3b82f6',
     // 绿系
-    '10b981': '6ee7b7', '059669': '34d399', '047857': '10b981',
+    '10b981': '6ee7b7',
+    '059669': '34d399',
+    '047857': '10b981',
     // 橙系
-    'f97316': 'fdba74', 'ea580c': 'fb923c', 'c2410c': 'f97316',
+    f97316: 'fdba74',
+    ea580c: 'fb923c',
+    c2410c: 'f97316',
     // 紫系（violet）
-    '8b5cf6': 'c4b5fd', '7c3aed': 'a78bfa', '6d28d9': '8b5cf6',
+    '8b5cf6': 'c4b5fd',
+    '7c3aed': 'a78bfa',
+    '6d28d9': '8b5cf6',
     // 青系（cyan）
-    '06b6d4': '67e8f9', '0891b2': '22d3ee', '0e7490': '06b6d4',
+    '06b6d4': '67e8f9',
+    '0891b2': '22d3ee',
+    '0e7490': '06b6d4',
     // 靛系（indigo）
-    '6366f1': 'a5b4fc', '4f46e5': '818cf8', '4338ca': '6366f1',
+    '6366f1': 'a5b4fc',
+    '4f46e5': '818cf8',
+    '4338ca': '6366f1',
     // 玫红系（pink）
-    'ec4899': 'f9a8d4', 'db2777': 'f472b6', 'be185d': 'ec4899',
+    ec4899: 'f9a8d4',
+    db2777: 'f472b6',
+    be185d: 'ec4899',
     // 红系
-    'ef4444': 'fca5a5', 'dc2626': 'f87171', 'b91c1c': 'ef4444',
+    ef4444: 'fca5a5',
+    dc2626: 'f87171',
+    b91c1c: 'ef4444',
     // 黄系
-    'eab308': 'fde047', 'ca8a04': 'facc15', 'a16207': 'eab308',
+    eab308: 'fde047',
+    ca8a04: 'facc15',
+    a16207: 'eab308',
     // 灰系
-    '6b7280': 'd1d5db', '4b5563': '9ca3af', '374151': '6b7280',
+    '6b7280': 'd1d5db',
+    '4b5563': '9ca3af',
+    '374151': '6b7280',
   };
   if (hex in known) return '#' + known[hex];
   if (!/^[0-9a-f]{6}$/.test(hex)) return '#60a5fa'; // 完全非法 hex → 兜底浅蓝
@@ -8219,7 +10383,10 @@ function detectComparisonIntent(topic: string): { isComparison: boolean; trigger
     { word: 'vs', re: /\bvs\.?\b|[vs]\s[vs]\s/ }, // "A vs B" / "A vs. B"
     { word: 'benchmark', re: /\bbenchmark(ing)?\b/ },
     // 第 3 组：典型二分式结构 "X 和 Y 比较/评测"
-    { word: 'X和Y比较', re: /(.+?)(和|跟|与|同|vs\.?|pk)\s*(.+?)(做|做一个|做个|做一次|进行)?\s*(深度|全面|详细)?\s*(对比|比较|评测|测评|横评|pk)/ },
+    {
+      word: 'X和Y比较',
+      re: /(.+?)(和|跟|与|同|vs\.?|pk)\s*(.+?)(做|做一个|做个|做一次|进行)?\s*(深度|全面|详细)?\s*(对比|比较|评测|测评|横评|pk)/,
+    },
   ];
   const hits: string[] = [];
   for (const t of triggers) if (t.re.test(text)) hits.push(t.word);
@@ -8235,21 +10402,33 @@ function detectComparisonIntent(topic: string): { isComparison: boolean; trigger
  *   - advantageIndices → 挑 metricValues[i] >= 85 的那些索引（至少保证 1 项；若全 < 85 则取第 0 个）
  *   - needsImage → false（对比页不配图，文字为主）
  */
-function autoCompleteComparisonPage<T extends { pageType: string; keyPoints?: unknown[] | string; styleTheme?: unknown; layoutParams?: unknown; metricValues?: unknown; advantageIndices?: unknown; needsImage?: unknown }>(page: T): T {
+function autoCompleteComparisonPage<
+  T extends {
+    pageType: string;
+    keyPoints?: unknown[] | string;
+    styleTheme?: unknown;
+    layoutParams?: unknown;
+    metricValues?: unknown;
+    advantageIndices?: unknown;
+    needsImage?: unknown;
+  },
+>(page: T): T {
   const kps = Array.isArray(page.keyPoints) ? page.keyPoints : [];
   const N = Math.min(5, Math.max(3, kps.length || 4)); // 默认 4 项，最少 3，最多 5
   // metricValues 预设：有层次感（非全同），默认值 92/78/86/95/89，取前 N 个
   const defaultMetrics: number[] = [92, 78, 86, 95, 89].slice(0, N);
   const rawMetrics: unknown = (page as any).metricValues;
-  const metrics: number[] = (Array.isArray(rawMetrics) && rawMetrics.length >= N
-    ? rawMetrics.map((x) => typeof x === 'number' ? x : (parseInt(String(x), 10) || 0))
-    : defaultMetrics) as number[];
+  const metrics: number[] = (
+    Array.isArray(rawMetrics) && rawMetrics.length >= N
+      ? rawMetrics.map((x) => (typeof x === 'number' ? x : parseInt(String(x), 10) || 0))
+      : defaultMetrics
+  ) as number[];
   // advantageIndices：挑 >= 85 的索引；若一个都没有就 [0]
   const rawAdv: unknown = (page as any).advantageIndices;
   let advIdx: number[];
   if (Array.isArray(rawAdv) && rawAdv.length > 0) {
     advIdx = rawAdv
-      .map((x) => (typeof x === 'number' ? x : (parseInt(String(x), 10) || -1)))
+      .map((x) => (typeof x === 'number' ? x : parseInt(String(x), 10) || -1))
       .filter((x: number) => Number.isFinite(x));
   } else {
     advIdx = metrics
@@ -8266,15 +10445,23 @@ function autoCompleteComparisonPage<T extends { pageType: string; keyPoints?: un
     contentAlignment: 'left' as const,
     gridCols: 2 as const,
   };
-  const lp = (typeof page.layoutParams === 'object' && page.layoutParams !== null) ? { ...baseLP, ...(page.layoutParams as any) } : baseLP;
+  const lp =
+    typeof page.layoutParams === 'object' && page.layoutParams !== null
+      ? { ...baseLP, ...(page.layoutParams as any) }
+      : baseLP;
 
   return {
     ...page,
     pageType: 'comparison-deep-dive',
-    styleTheme: (page.styleTheme && typeof page.styleTheme === 'string' && page.styleTheme !== 'none') ? page.styleTheme : 'mixed',
+    styleTheme:
+      page.styleTheme && typeof page.styleTheme === 'string' && page.styleTheme !== 'none'
+        ? page.styleTheme
+        : 'mixed',
     layoutParams: lp,
     metricValues: metrics,
-    advantageIndices: Array.from(new Set<number>(advIdx)).filter((i: number) => i >= 0 && i < metrics.length),
+    advantageIndices: Array.from(new Set<number>(advIdx)).filter(
+      (i: number) => i >= 0 && i < metrics.length,
+    ),
     needsImage: false,
   } as any;
 }
@@ -8294,9 +10481,10 @@ export function computeU17EffectivePrimaryColor(
   colorTheme: ColorTheme | undefined,
   primaryColor: string,
 ): string {
-  const forced = (colorTheme && COLOR_THEMES[colorTheme])
-    ? COLOR_THEMES[colorTheme]
-    : (COLOR_THEMES[style] || primaryColor || '#2563eb');
+  const forced =
+    colorTheme && COLOR_THEMES[colorTheme]
+      ? COLOR_THEMES[colorTheme]
+      : COLOR_THEMES[style] || primaryColor || '#2563eb';
   // 兜底：若走到 || primaryColor 分支但其值非法 → 返回默认蓝
   return /^#[0-9a-fA-F]{6}$/.test(forced) ? forced : '#2563eb';
 }
@@ -8314,31 +10502,59 @@ export function buildPlanningMessagesForTest(params: {
   imagePreference: ImagePreference;
   primaryColor: string;
   backgroundEnabled: boolean;
-  pageHints: { contentOnly: boolean; disableCover: boolean; disableToc: boolean; disableConclusion: boolean };
+  pageHints: {
+    contentOnly: boolean;
+    disableCover: boolean;
+    disableToc: boolean;
+    disableConclusion: boolean;
+  };
   iconStyle: IconStyle;
   fontFamily: 'sans' | 'serif' | 'mono';
   colorTheme?: ColorTheme;
   referenceHtmlBrief?: string;
   userSettingsOverride?: string;
 }): ChatMessage[] {
-  const agent = new HTMLPresentationAgent({ name: 'stub', config: {} as any, chat: async () => ({ content: '', usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 } }) } as any);
-  const effectiveColor = computeU17EffectivePrimaryColor(params.style, params.colorTheme, params.primaryColor);
-  const userOverride = (agent as any).buildUserSettingsPriorityOverridePrompt?.({
-    slideCount: params.slideSpec,
-    style: params.style,
-    density: params.density,
-    imagePreference: params.imagePreference,
-    colorTheme: params.colorTheme,
-    iconStyle: params.iconStyle,
-    fontFamily: params.fontFamily,
-    backgroundEnabled: params.backgroundEnabled,
-    audience: params.audience,
-  }) || params.userSettingsOverride || '';
+  const agent = new HTMLPresentationAgent({
+    name: 'stub',
+    config: {} as any,
+    chat: async () => ({
+      content: '',
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    }),
+  } as any);
+  const effectiveColor = computeU17EffectivePrimaryColor(
+    params.style,
+    params.colorTheme,
+    params.primaryColor,
+  );
+  const userOverride =
+    (agent as any).buildUserSettingsPriorityOverridePrompt?.({
+      slideCount: params.slideSpec,
+      style: params.style,
+      density: params.density,
+      imagePreference: params.imagePreference,
+      colorTheme: params.colorTheme,
+      iconStyle: params.iconStyle,
+      fontFamily: params.fontFamily,
+      backgroundEnabled: params.backgroundEnabled,
+      audience: params.audience,
+    }) ||
+    params.userSettingsOverride ||
+    '';
   const systemPrompt = (agent as any).buildPlanningPrompt(
-    params.topic, params.style, params.audience, params.slideSpec,
-    params.density, params.imagePreference, params.backgroundEnabled, params.pageHints,
-    params.iconStyle, params.fontFamily, params.colorTheme,
-    params.referenceHtmlBrief || '', userOverride,
+    params.topic,
+    params.style,
+    params.audience,
+    params.slideSpec,
+    params.density,
+    params.imagePreference,
+    params.backgroundEnabled,
+    params.pageHints,
+    params.iconStyle,
+    params.fontFamily,
+    params.colorTheme,
+    params.referenceHtmlBrief || '',
+    userOverride,
     effectiveColor,
   );
   return [

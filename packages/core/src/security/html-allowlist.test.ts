@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  ALLOWED_TAGS,
-  ALLOWED_ATTRIBUTES,
-  ALLOWED_CSS_PROPERTIES,
-} from './html-allowlist';
+import { ALLOWED_TAGS, ALLOWED_ATTRIBUTES, ALLOWED_CSS_PROPERTIES } from './html-allowlist';
 
 describe('html-allowlist（server/web 单一真源 · 防漂移回归）', () => {
   it('ALLOWED_ATTRIBUTES 必须放行全部母版/封面幂等标记', () => {

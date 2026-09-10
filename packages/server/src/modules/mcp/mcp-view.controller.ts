@@ -1,4 +1,12 @@
-import { BadRequestException, Controller, Get, NotFoundException, Param, Req, Res } from '@nestjs/common';
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Req,
+  Res,
+} from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { createScopedStorage, sanitizeScopeSegment } from '../../common/storage.service';
 import { PresentationService } from '../presentation/presentation.service';
@@ -40,7 +48,9 @@ export class McpViewController {
       safeId = sanitizeScopeSegment(presentationId, 'presentationId');
     } catch (e) {
       throw new BadRequestException(
-        e instanceof McpError ? e.toBody(getRequestLocale(req)) : { error: 'invalid_scope', message: '参数非法' },
+        e instanceof McpError
+          ? e.toBody(getRequestLocale(req))
+          : { error: 'invalid_scope', message: '参数非法' },
       );
     }
 

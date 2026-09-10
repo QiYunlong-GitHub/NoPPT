@@ -246,7 +246,11 @@ function getSessionKey(trace: string | undefined): string {
 // 改为与 LLM 设计风格一致的白底 + 主色渐变标题 + 主色卡片（活力橙/蓝/紫均自消毒通过）。
 // 新增参数 primaryColor（默认 #2563eb 蓝兼容旧调用）；字号 H2 50px / 正文 19px = 2.63 满足字号层次审计。
 function escapeHtmlText(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 function darkenColorHex(hex: string, pct: number = 20): string {
@@ -266,8 +270,8 @@ function buildFallbackSlideHtml(
   slideHeight: number,
   primaryColor: string = '#2563eb',
 ): string {
-  const padX = Math.max(32, Math.round(((64 * slideWidth) / 1280) / 8) * 8);
-  const padY = Math.max(24, Math.round(((48 * slideHeight) / 720) / 8) * 8);
+  const padX = Math.max(32, Math.round((64 * slideWidth) / 1280 / 8) * 8);
+  const padY = Math.max(24, Math.round((48 * slideHeight) / 720 / 8) * 8);
   const safeTitle = escapeHtmlText(title);
   const darker = darkenColorHex(primaryColor, 20);
   // 8 位 alpha 附加：将 primaryColor #RRGGBB → #RRGGBB08 / #RRGGBB10 / #RRGGBB15
@@ -340,9 +344,8 @@ export class AiService {
   }
 
   private createImageProvider(config: any, gatewayVendor?: string) {
-    const effectiveProvider = config.provider === 'company-gateway'
-      ? (gatewayVendor || 'openai')
-      : config.provider;
+    const effectiveProvider =
+      config.provider === 'company-gateway' ? gatewayVendor || 'openai' : config.provider;
     switch (effectiveProvider) {
       case 'openai':
         return new OpenAIProvider(config);
@@ -358,10 +361,8 @@ export class AiService {
   }
 
   private createAgentContext(req: GeneratePresentationRequest, traceSessionId?: string) {
-    const {
-      modelConfig, modelConfigs, imageConfig,
-      imagePreference, presentationId, logSettings,
-    } = req;
+    const { modelConfig, modelConfigs, imageConfig, imagePreference, presentationId, logSettings } =
+      req;
 
     const logSettingsNormalized: LogConfig = {
       consoleVerbosity: 'detailed',
@@ -378,13 +379,19 @@ export class AiService {
         } → normalized=${JSON.stringify(logSettingsNormalized)}`,
       );
     } else {
-      simpleLog('AI:LOG', `本次请求 logSettings 最终：console=${logSettingsNormalized.consoleVerbosity} file=${logSettingsNormalized.fileVerbosity}`, {
-        raw: logSettings ? JSON.stringify(logSettings) : 'absent',
-      });
+      simpleLog(
+        'AI:LOG',
+        `本次请求 logSettings 最终：console=${logSettingsNormalized.consoleVerbosity} file=${logSettingsNormalized.fileVerbosity}`,
+        {
+          raw: logSettings ? JSON.stringify(logSettings) : 'absent',
+        },
+      );
     }
 
     const requestWantsImages: boolean =
-      imagePreference === 'all' || imagePreference === 'content-only' || imagePreference === 'minimal';
+      imagePreference === 'all' ||
+      imagePreference === 'content-only' ||
+      imagePreference === 'minimal';
     const imageSwitchOff: boolean = !imageConfig?.enabled;
     if (requestWantsImages && imageSwitchOff) {
       const prefTextMap: Record<string, string> = {
@@ -410,7 +417,10 @@ export class AiService {
     const contentProvider = this.createProvider(contentConfig);
     const editingProvider = this.createProvider(editingConfig);
 
-    const effectiveTraceSessionId = traceSessionId || presentationId || `trace_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const effectiveTraceSessionId =
+      traceSessionId ||
+      presentationId ||
+      `trace_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     openTraceSession(effectiveTraceSessionId);
     (planningProvider as TraceableProvider).activeTraceSessionId = effectiveTraceSessionId;
     (contentProvider as TraceableProvider).activeTraceSessionId = effectiveTraceSessionId;
@@ -426,13 +436,16 @@ export class AiService {
           model: imageConfig.model || imageConfig.modelConfig?.model || 'dall-e-3',
         };
         if (consoleDetailedLocal) {
-          console.log(`[${formatBeijingTime()}] [AI] Image provider merged config (useDefaultProvider):`, {
-            provider: mergedConfig.provider,
-            baseUrl: mergedConfig.baseUrl,
-            model: mergedConfig.model,
-            gatewayVendor: imageConfig.gatewayVendor,
-            hasApiKey: !!mergedConfig.apiKey,
-          });
+          console.log(
+            `[${formatBeijingTime()}] [AI] Image provider merged config (useDefaultProvider):`,
+            {
+              provider: mergedConfig.provider,
+              baseUrl: mergedConfig.baseUrl,
+              model: mergedConfig.model,
+              gatewayVendor: imageConfig.gatewayVendor,
+              hasApiKey: !!mergedConfig.apiKey,
+            },
+          );
         } else {
           simpleLog('AI:IMG', '开始生成图片', {
             provider: mergedConfig.provider,
@@ -502,10 +515,31 @@ export class AiService {
 
   async generatePresentation(req: GeneratePresentationRequest): Promise<Presentation> {
     const {
-      topic, modelConfig, modelConfigs, imageConfig, style, audience, slideCount, slideCountMin, slideCountMax,
-      density, imagePreference, colorTheme, primaryColor, backgroundEnabled, iconStyle, fontFamily,
-      referenceHtml, referenceImage, referenceText, presentationId,
-      slideWidth, slideHeight, logSettings, enableAudit, language,
+      topic,
+      modelConfig,
+      modelConfigs,
+      imageConfig,
+      style,
+      audience,
+      slideCount,
+      slideCountMin,
+      slideCountMax,
+      density,
+      imagePreference,
+      colorTheme,
+      primaryColor,
+      backgroundEnabled,
+      iconStyle,
+      fontFamily,
+      referenceHtml,
+      referenceImage,
+      referenceText,
+      presentationId,
+      slideWidth,
+      slideHeight,
+      logSettings,
+      enableAudit,
+      language,
     } = req;
 
     // ——— 注入本次请求的日志级别（覆盖默认配置）———
@@ -527,17 +561,37 @@ export class AiService {
         } → normalized=${JSON.stringify(logSettingsNormalized)}`,
       );
     } else {
-      simpleLog('AI:LOG', `本次请求 logSettings 最终：console=${logSettingsNormalized.consoleVerbosity} file=${logSettingsNormalized.fileVerbosity}`, {
-        raw: logSettings ? JSON.stringify(logSettings) : 'absent',
-      });
+      simpleLog(
+        'AI:LOG',
+        `本次请求 logSettings 最终：console=${logSettingsNormalized.consoleVerbosity} file=${logSettingsNormalized.fileVerbosity}`,
+        {
+          raw: logSettings ? JSON.stringify(logSettings) : 'absent',
+        },
+      );
     }
 
     if (consoleDetailedLocal) {
       console.log(`[${formatBeijingTime()}] [AI] === 开始生成演示文稿 ===`);
       console.log(`[${formatBeijingTime()}] [AI] topic:`, topic);
-      console.log(`[${formatBeijingTime()}] [AI] style:`, style, '| audience:', audience, '| density:', density);
-      console.log(`[${formatBeijingTime()}] [AI] imagePreference:`, imagePreference, '| colorTheme:', colorTheme);
-      console.log(`[${formatBeijingTime()}] [AI] slideCount:`, { exact: slideCount, min: slideCountMin, max: slideCountMax });
+      console.log(
+        `[${formatBeijingTime()}] [AI] style:`,
+        style,
+        '| audience:',
+        audience,
+        '| density:',
+        density,
+      );
+      console.log(
+        `[${formatBeijingTime()}] [AI] imagePreference:`,
+        imagePreference,
+        '| colorTheme:',
+        colorTheme,
+      );
+      console.log(`[${formatBeijingTime()}] [AI] slideCount:`, {
+        exact: slideCount,
+        min: slideCountMin,
+        max: slideCountMax,
+      });
     } else {
       simpleLog('AI', '开始生成幻灯片', {
         topic: topic.length > 30 ? topic.substring(0, 30) + '…' : topic,
@@ -557,7 +611,9 @@ export class AiService {
     //   2) pref=all / content-only / minimal，且 enabled=false  → 直接 BadRequest，明确提示用户去打开开关
     //   3) （防御）plan 阶段 needsImage=true 但实际 imageOptions=undefined → agent 内部兜底转 none
     const requestWantsImages: boolean =
-      imagePreference === 'all' || imagePreference === 'content-only' || imagePreference === 'minimal';
+      imagePreference === 'all' ||
+      imagePreference === 'content-only' ||
+      imagePreference === 'minimal';
     const imageSwitchOff: boolean = !imageConfig?.enabled;
     if (requestWantsImages && imageSwitchOff) {
       const prefTextMap: Record<string, string> = {
@@ -580,8 +636,13 @@ export class AiService {
     const contentConfig = modelConfigs?.content || modelConfig!;
     const editingConfig = modelConfigs?.editing || modelConfig!;
 
-    if (!/plus|max/i.test(String(contentConfig?.model || '').toLowerCase()) && /flash/i.test(String(contentConfig?.model || '').toLowerCase())) {
-      console.warn(`[MODEL] 当前生成模型为 flash 档（${contentConfig?.model}），质量建议 ≥ plus 档；如需高质量请调整模型路由（不影响本次流程）。`);
+    if (
+      !/plus|max/i.test(String(contentConfig?.model || '').toLowerCase()) &&
+      /flash/i.test(String(contentConfig?.model || '').toLowerCase())
+    ) {
+      console.warn(
+        `[MODEL] 当前生成模型为 flash 档（${contentConfig?.model}），质量建议 ≥ plus 档；如需高质量请调整模型路由（不影响本次流程）。`,
+      );
     }
 
     const planningProvider = this.createProvider(planningConfig);
@@ -590,7 +651,8 @@ export class AiService {
 
     // ——— 打开 LLM 调用追踪会话（无截断完整报文），并绑定到三个 provider ———
     // 如果已有 presentationId 就复用，否则生成临时 traceId，保证 provider 第一次 chat 之前 sessionId 就存在
-    const traceSessionId = presentationId || `trace_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const traceSessionId =
+      presentationId || `trace_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     openTraceSession(traceSessionId);
     (planningProvider as TraceableProvider).activeTraceSessionId = traceSessionId;
     (contentProvider as TraceableProvider).activeTraceSessionId = traceSessionId;
@@ -607,13 +669,16 @@ export class AiService {
           model: imageConfig.model || imageConfig.modelConfig?.model || 'dall-e-3',
         };
         if (consoleDetailedLocal) {
-          console.log(`[${formatBeijingTime()}] [AI] Image provider merged config (useDefaultProvider):`, {
-            provider: mergedConfig.provider,
-            baseUrl: mergedConfig.baseUrl,
-            model: mergedConfig.model,
-            gatewayVendor: imageConfig.gatewayVendor,
-            hasApiKey: !!mergedConfig.apiKey,
-          });
+          console.log(
+            `[${formatBeijingTime()}] [AI] Image provider merged config (useDefaultProvider):`,
+            {
+              provider: mergedConfig.provider,
+              baseUrl: mergedConfig.baseUrl,
+              model: mergedConfig.model,
+              gatewayVendor: imageConfig.gatewayVendor,
+              hasApiKey: !!mergedConfig.apiKey,
+            },
+          );
         } else {
           simpleLog('AI:IMG', '开始生成图片', {
             provider: mergedConfig.provider,
@@ -654,7 +719,7 @@ export class AiService {
       contentProvider,
       editingProvider,
     });
-    
+
     const imageOptions = imageConfig?.enabled
       ? {
           enabled: true,
@@ -684,62 +749,62 @@ export class AiService {
       const referenceOriginals = await this.persistReferenceOriginals(req);
       this.attachMasterLogoSources(referenceVisualAttributes, referenceOriginals);
       presentation = await agent.generatePresentation(topic, {
-      style,
-      audience,
-      slideCount,
-      slideCountMin,
-      slideCountMax,
-      density: density || 'normal',
-      imagePreference: imagePreference || 'content-only',
-      colorTheme,
-      primaryColor,
-      imageOptions,
-      imageProvider: imageProvider || undefined,
-      referenceImage: referenceImage || undefined,
-      referenceHtml: referenceHtml || undefined,
-      referenceText: referenceText || undefined,
-      referenceVisualAttributes,
-      referenceHtmlBrief,
-      slideWidth: slideWidth || 1280,
-      slideHeight: slideHeight || 720,
-      backgroundEnabled: backgroundEnabled || false,
-      iconStyle: iconStyle || 'auto',
-      fontFamily: fontFamily || 'sans',
-      language: (language === 'en' ? 'en' : 'zh') as 'en' | 'zh',
-      onProgress: () => {},
-      critique: req.critique,
-      postHtmlAuditHook: this.buildHtmlAuditHook({
+        style,
+        audience,
+        slideCount,
+        slideCountMin,
+        slideCountMax,
+        density: density || 'normal',
+        imagePreference: imagePreference || 'content-only',
+        colorTheme,
+        primaryColor,
+        imageOptions,
+        imageProvider: imageProvider || undefined,
+        referenceImage: referenceImage || undefined,
+        referenceHtml: referenceHtml || undefined,
+        referenceText: referenceText || undefined,
         referenceVisualAttributes,
         referenceHtmlBrief,
-        agent,
-        topic,
-        options: {
-          style,
-          audience,
-          slideCount,
-          slideCountMin,
-          slideCountMax,
-          density: density || 'normal',
-          imagePreference: imagePreference || 'content-only',
-          colorTheme,
-          primaryColor,
-          imageOptions,
-          referenceImage: referenceImage || undefined,
-          referenceHtml: referenceHtml || undefined,
-      referenceVisualAttributes,
-          slideWidth: slideWidth || 1280,
-          slideHeight: slideHeight || 720,
-          backgroundEnabled: backgroundEnabled || false,
-          iconStyle: iconStyle || 'auto',
-          fontFamily: fontFamily || 'sans',
-          language: language === 'en' ? 'en' : 'zh',
-          critique: req.critique,
-          onProgress: () => {},
-        },
-        maxRetries: htmlAuditMaxRetries,
         slideWidth: slideWidth || 1280,
         slideHeight: slideHeight || 720,
-      }),
+        backgroundEnabled: backgroundEnabled || false,
+        iconStyle: iconStyle || 'auto',
+        fontFamily: fontFamily || 'sans',
+        language: (language === 'en' ? 'en' : 'zh') as 'en' | 'zh',
+        onProgress: () => {},
+        critique: req.critique,
+        postHtmlAuditHook: this.buildHtmlAuditHook({
+          referenceVisualAttributes,
+          referenceHtmlBrief,
+          agent,
+          topic,
+          options: {
+            style,
+            audience,
+            slideCount,
+            slideCountMin,
+            slideCountMax,
+            density: density || 'normal',
+            imagePreference: imagePreference || 'content-only',
+            colorTheme,
+            primaryColor,
+            imageOptions,
+            referenceImage: referenceImage || undefined,
+            referenceHtml: referenceHtml || undefined,
+            referenceVisualAttributes,
+            slideWidth: slideWidth || 1280,
+            slideHeight: slideHeight || 720,
+            backgroundEnabled: backgroundEnabled || false,
+            iconStyle: iconStyle || 'auto',
+            fontFamily: fontFamily || 'sans',
+            language: language === 'en' ? 'en' : 'zh',
+            critique: req.critique,
+            onProgress: () => {},
+          },
+          maxRetries: htmlAuditMaxRetries,
+          slideWidth: slideWidth || 1280,
+          slideHeight: slideHeight || 720,
+        }),
       });
     } catch (genErr) {
       // r6 Task5: 会话级连续超时告警（不自动切换、不重试）
@@ -748,7 +813,10 @@ export class AiService {
         const c = (sessionTimeoutCount.get(genKey) || 0) + 1;
         sessionTimeoutCount.set(genKey, c);
         if (c % 2 === 0) {
-          console.warn('[MODEL] 连续 2 次超时，请检查模型网关或切换模型', { key: genKey, model: contentConfig?.model });
+          console.warn('[MODEL] 连续 2 次超时，请检查模型网关或切换模型', {
+            key: genKey,
+            model: contentConfig?.model,
+          });
         }
       }
       throw genErr;
@@ -807,7 +875,7 @@ export class AiService {
         imageOptions,
         referenceImage: referenceImage || undefined,
         referenceHtml: referenceHtml || undefined,
-      referenceVisualAttributes,
+        referenceVisualAttributes,
         slideWidth: slideWidth || 1280,
         slideHeight: slideHeight || 720,
         backgroundEnabled: backgroundEnabled || false,
@@ -821,9 +889,27 @@ export class AiService {
 
   async planPresentation(req: PlanPresentationRequest): Promise<PresentationPlan> {
     const {
-      topic, modelConfig, modelConfigs, imageConfig, style, audience, slideCount, slideCountMin, slideCountMax,
-      density, imagePreference, colorTheme, primaryColor, backgroundEnabled, iconStyle, fontFamily,
-      referenceHtml, slideWidth, slideHeight, presentationId, logSettings,
+      topic,
+      modelConfig,
+      modelConfigs,
+      imageConfig,
+      style,
+      audience,
+      slideCount,
+      slideCountMin,
+      slideCountMax,
+      density,
+      imagePreference,
+      colorTheme,
+      primaryColor,
+      backgroundEnabled,
+      iconStyle,
+      fontFamily,
+      referenceHtml,
+      slideWidth,
+      slideHeight,
+      presentationId,
+      logSettings,
     } = req;
 
     const logSettingsNormalized: LogConfig = {
@@ -841,17 +927,37 @@ export class AiService {
         } → normalized=${JSON.stringify(logSettingsNormalized)}`,
       );
     } else {
-      simpleLog('AI:LOG', `本次请求 logSettings 最终：console=${logSettingsNormalized.consoleVerbosity} file=${logSettingsNormalized.fileVerbosity}`, {
-        raw: logSettings ? JSON.stringify(logSettings) : 'absent',
-      });
+      simpleLog(
+        'AI:LOG',
+        `本次请求 logSettings 最终：console=${logSettingsNormalized.consoleVerbosity} file=${logSettingsNormalized.fileVerbosity}`,
+        {
+          raw: logSettings ? JSON.stringify(logSettings) : 'absent',
+        },
+      );
     }
 
     if (consoleDetailedLocal) {
       console.log(`[${formatBeijingTime()}] [AI] === 开始规划演示文稿（仅计划阶段）===`);
       console.log(`[${formatBeijingTime()}] [AI] topic:`, topic);
-      console.log(`[${formatBeijingTime()}] [AI] style:`, style, '| audience:', audience, '| density:', density);
-      console.log(`[${formatBeijingTime()}] [AI] imagePreference:`, imagePreference, '| colorTheme:', colorTheme);
-      console.log(`[${formatBeijingTime()}] [AI] slideCount:`, { exact: slideCount, min: slideCountMin, max: slideCountMax });
+      console.log(
+        `[${formatBeijingTime()}] [AI] style:`,
+        style,
+        '| audience:',
+        audience,
+        '| density:',
+        density,
+      );
+      console.log(
+        `[${formatBeijingTime()}] [AI] imagePreference:`,
+        imagePreference,
+        '| colorTheme:',
+        colorTheme,
+      );
+      console.log(`[${formatBeijingTime()}] [AI] slideCount:`, {
+        exact: slideCount,
+        min: slideCountMin,
+        max: slideCountMax,
+      });
     } else {
       simpleLog('AI', '开始规划幻灯片', {
         topic: topic.length > 30 ? topic.substring(0, 30) + '…' : topic,
@@ -861,7 +967,9 @@ export class AiService {
     }
 
     const requestWantsImages: boolean =
-      imagePreference === 'all' || imagePreference === 'content-only' || imagePreference === 'minimal';
+      imagePreference === 'all' ||
+      imagePreference === 'content-only' ||
+      imagePreference === 'minimal';
     const imageSwitchOff: boolean = !imageConfig?.enabled;
     if (requestWantsImages && imageSwitchOff) {
       const prefTextMap: Record<string, string> = {
@@ -887,7 +995,8 @@ export class AiService {
     const contentProvider = this.createProvider(contentConfig);
     const editingProvider = this.createProvider(editingConfig);
 
-    const traceSessionId = presentationId || `trace_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const traceSessionId =
+      presentationId || `trace_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     openTraceSession(traceSessionId);
     (planningProvider as TraceableProvider).activeTraceSessionId = traceSessionId;
     (contentProvider as TraceableProvider).activeTraceSessionId = traceSessionId;
@@ -899,7 +1008,9 @@ export class AiService {
       editingProvider,
     });
 
-    let slideSpec: { exact: number; min?: undefined; max?: undefined } | { min: number; max: number; exact?: undefined };
+    let slideSpec:
+      | { exact: number; min?: undefined; max?: undefined }
+      | { min: number; max: number; exact?: undefined };
     if (typeof slideCountMin === 'number' && typeof slideCountMax === 'number') {
       const min = Math.max(1, Math.min(slideCountMin, slideCountMax));
       const max = Math.max(1, Math.max(slideCountMin, slideCountMax));
@@ -920,7 +1031,8 @@ export class AiService {
     // FR-2.x：参考主色纳入单源链（参考 > 用户显式 > 默认蓝），落实架构「参考最高优先级」
     const refDeckPrimary = resolveDeckReferencePrimaryColor(referenceVisualAttributes);
     const resolvedPrimaryColor =
-      refDeckPrimary ?? (primaryColor && /^#[0-9a-fA-F]{6}$/.test(primaryColor) ? primaryColor : '#2563eb');
+      refDeckPrimary ??
+      (primaryColor && /^#[0-9a-fA-F]{6}$/.test(primaryColor) ? primaryColor : '#2563eb');
     const referenceOriginals = await this.persistReferenceOriginals(req);
     this.attachMasterLogoSources(referenceVisualAttributes, referenceOriginals);
     const referenceHtmlBrief = this.buildReferenceBrief(referenceVisualAttributes);
@@ -948,7 +1060,9 @@ export class AiService {
       );
 
       if (consoleDetailedLocal) {
-        console.log(`[${formatBeijingTime()}] [AI] Plan generated: ${plan.slides.length} slides, title: "${plan.title}"`);
+        console.log(
+          `[${formatBeijingTime()}] [AI] Plan generated: ${plan.slides.length} slides, title: "${plan.title}"`,
+        );
       }
 
       if (plan) plan.refAttrsVersion = refAttrsVersion;
@@ -981,34 +1095,57 @@ export class AiService {
               topic,
               style,
               audience,
-              slideCount, slideCountMin, slideCountMax,
-              density, imagePreference, colorTheme, primaryColor,
-              backgroundEnabled, iconStyle, fontFamily,
+              slideCount,
+              slideCountMin,
+              slideCountMax,
+              density,
+              imagePreference,
+              colorTheme,
+              primaryColor,
+              backgroundEnabled,
+              iconStyle,
+              fontFamily,
               referenceHtmlLength: referenceHtml?.length || 0,
               modelConfigs: {
-                planning: { provider: planningConfig.provider, model: planningConfig.model, baseUrl: planningConfig.baseUrl },
-                content: { provider: contentConfig.provider, model: contentConfig.model, baseUrl: contentConfig.baseUrl },
+                planning: {
+                  provider: planningConfig.provider,
+                  model: planningConfig.model,
+                  baseUrl: planningConfig.baseUrl,
+                },
+                content: {
+                  provider: contentConfig.provider,
+                  model: contentConfig.model,
+                  baseUrl: contentConfig.baseUrl,
+                },
               },
             },
-            response: plan ? {
-              plan: {
-                title: plan.title,
-                description: plan.description || null,
-                narrativeArc: (plan as any).narrativeArc || null,
-                primaryColor: plan.primaryColor || null,
-                slideCount: plan.slides?.length || 0,
-                slides: (plan.slides || []).map((s: any) => ({
-                  pageType: s?.pageType, title: s?.title, keyPoints: s?.keyPoints,
-                  imagePrompt: s?.imagePrompt, imageRatio: s?.imageRatio, needsImage: s?.needsImage,
-                })),
-              },
-            } : {
-              error: planError
-                ? { message: planError.message, stack: planError.stack || '' }
-                : null,
-            },
+            response: plan
+              ? {
+                  plan: {
+                    title: plan.title,
+                    description: plan.description || null,
+                    narrativeArc: (plan as any).narrativeArc || null,
+                    primaryColor: plan.primaryColor || null,
+                    slideCount: plan.slides?.length || 0,
+                    slides: (plan.slides || []).map((s: any) => ({
+                      pageType: s?.pageType,
+                      title: s?.title,
+                      keyPoints: s?.keyPoints,
+                      imagePrompt: s?.imagePrompt,
+                      imageRatio: s?.imageRatio,
+                      needsImage: s?.needsImage,
+                    })),
+                  },
+                }
+              : {
+                  error: planError
+                    ? { message: planError.message, stack: planError.stack || '' }
+                    : null,
+                },
             llmCalls: planLLMTraces.map((t) => ({
-              stage: t.stage, provider: t.provider, model: t.model,
+              stage: t.stage,
+              provider: t.provider,
+              model: t.model,
               durationMs: t.durationMs,
               startedAt: new Date(t.startedAt).toISOString(),
               endedAt: new Date(t.endedAt).toISOString(),
@@ -1036,7 +1173,9 @@ export class AiService {
   }
 
   // Task 2/3：4 类参考属性提取 + assemble（HTML 全文解析 + 图片 VLM 五档降级）
-  private async buildReferenceVisualAttributes(req: GeneratePresentationRequest): Promise<ReferenceVisualAttributes | null> {
+  private async buildReferenceVisualAttributes(
+    req: GeneratePresentationRequest,
+  ): Promise<ReferenceVisualAttributes | null> {
     // 单份 referenceHtml 回落防护：HTML 通道不再把单份参考同时灌入 cover/content/summary 三个分类，
     // 而是只写入 global 槽（结构层门控见 reference-attribute-resolver 的 resolveStructureSource：
     // global 仅定向兜底 content 结构，绝不污染 cover/summary）。图片通道回落（imgCover/imgContent/imgSummary）
@@ -1093,7 +1232,8 @@ export class AiService {
           vlmProvider = {
             async generateText({ prompt, imageDataUrl }) {
               const content: any[] = [];
-              if (imageDataUrl) content.push({ type: 'image_url', image_url: { url: imageDataUrl } });
+              if (imageDataUrl)
+                content.push({ type: 'image_url', image_url: { url: imageDataUrl } });
               content.push({ type: 'text', text: prompt });
               const startedAt = Date.now();
               let responseText = '';
@@ -1160,7 +1300,8 @@ export class AiService {
           const result = urlToResult.get(t.url);
           await this.logsService.logAICall(refPresId, 'reference-parse', {
             category: cats,
-            source: t.url.length > 120 ? `${t.url.slice(0, 60)}…[dataURL ${t.url.length} chars]` : t.url,
+            source:
+              t.url.length > 120 ? `${t.url.slice(0, 60)}…[dataURL ${t.url.length} chars]` : t.url,
             sessionId: req.traceSessionId || undefined,
             model: t.model,
             provider: t.provider,
@@ -1237,7 +1378,8 @@ export class AiService {
     const summaryRef = mergeReferenceAttrs(sH, sI);
     const globalRef = mergeReferenceAttrs(gH, gI);
 
-    if (!coverRef.uploaded && !contentRef.uploaded && !summaryRef.uploaded && !globalRef.uploaded) return null;
+    if (!coverRef.uploaded && !contentRef.uploaded && !summaryRef.uploaded && !globalRef.uploaded)
+      return null;
 
     const rva = assembleReferenceVisualAttributes({ coverRef, contentRef, summaryRef, globalRef });
     // FR-15：把各类别上传的原始参考图地址挂到 byCategory/global，供文生图按分类选取 img2img seed。
@@ -1271,9 +1413,7 @@ export class AiService {
   }
 
   // 解析参考属性：优先复用缓存（回传版本号 + 内容 hash 一致），否则就地重算并持久化。
-  private async resolveReferenceVisualAttributes(
-    req: GeneratePresentationRequest,
-  ): Promise<{
+  private async resolveReferenceVisualAttributes(req: GeneratePresentationRequest): Promise<{
     referenceVisualAttributes: ReferenceVisualAttributes | null;
     refAttrsVersion: string;
     source: 'reused' | 'recomputed';
@@ -1310,7 +1450,9 @@ export class AiService {
       }
     }
 
-    console.log(`[REF-CACHE] presentationId=${presentationId ?? '-'} hash=${hash} hit=${source === 'reused'} source=${source}`);
+    console.log(
+      `[REF-CACHE] presentationId=${presentationId ?? '-'} hash=${hash} hit=${source === 'reused'} source=${source}`,
+    );
     // 缓存命中时也写一条 reference-parse 记录（cacheHit=true），让排查脚本能完整呈现"复用了哪份参考属性"，
     // 避免下次同类问题在报文里完全看不到参考解析痕迹（无 llmCalls、无 VLM 报文但仍有解析结果）。
     if (source === 'reused' && presentationId) {
@@ -1353,7 +1495,12 @@ export class AiService {
   private collectAppliedReferenceFields(rva: ReferenceVisualAttributes | null): string[] {
     if (!rva) return [];
     const appliedFields = new Set<string>();
-    for (const c of [rva.global, rva.byCategory.cover, rva.byCategory.content, rva.byCategory.summary]) {
+    for (const c of [
+      rva.global,
+      rva.byCategory.cover,
+      rva.byCategory.content,
+      rva.byCategory.summary,
+    ]) {
       if (!c?.uploaded || !c.style) continue;
       for (const k of Object.keys(c.style)) appliedFields.add(k);
     }
@@ -1369,7 +1516,11 @@ export class AiService {
   ): void {
     if (!referenceVisualAttributes || !presentationId) return;
     try {
-      const originals: { cover?: { url: string; width?: number; height?: number }; content?: { url: string; width?: number; height?: number }; summary?: { url: string; width?: number; height?: number } } = {};
+      const originals: {
+        cover?: { url: string; width?: number; height?: number };
+        content?: { url: string; width?: number; height?: number };
+        summary?: { url: string; width?: number; height?: number };
+      } = {};
       let count = 0;
       for (const slot of ['cover', 'content', 'summary'] as const) {
         try {
@@ -1393,11 +1544,17 @@ export class AiService {
 
   // 将参考图片原图副本（Q7）按 presentationId 暂存，供后续母版 LOGO 开窗复用（FR-16）。
   // 返回各分类暂存后可访问的 URL 映射，供 applyMasterLogoSources 回写到 master.logo.src。
-  private async persistReferenceOriginals(
-    req: GeneratePresentationRequest,
-  ): Promise<{ cover?: { url: string; width?: number; height?: number }; content?: { url: string; width?: number; height?: number }; summary?: { url: string; width?: number; height?: number } }> {
+  private async persistReferenceOriginals(req: GeneratePresentationRequest): Promise<{
+    cover?: { url: string; width?: number; height?: number };
+    content?: { url: string; width?: number; height?: number };
+    summary?: { url: string; width?: number; height?: number };
+  }> {
     const presentationId = req.presentationId;
-    const result: { cover?: { url: string; width?: number; height?: number }; content?: { url: string; width?: number; height?: number }; summary?: { url: string; width?: number; height?: number } } = {};
+    const result: {
+      cover?: { url: string; width?: number; height?: number };
+      content?: { url: string; width?: number; height?: number };
+      summary?: { url: string; width?: number; height?: number };
+    } = {};
     if (!presentationId) return result;
     const slots: Array<['cover' | 'content' | 'summary', string | undefined]> = [
       ['cover', req.referenceImageCoverOriginal],
@@ -1407,7 +1564,11 @@ export class AiService {
     for (const [slot, dataUrl] of slots) {
       if (dataUrl) {
         try {
-          result[slot] = await this.storage.saveReferenceOriginalImage(presentationId, slot, dataUrl);
+          result[slot] = await this.storage.saveReferenceOriginalImage(
+            presentationId,
+            slot,
+            dataUrl,
+          );
         } catch (e) {
           console.warn(`[REF-CACHE] save original image failed (${slot}):`, e);
         }
@@ -1429,7 +1590,11 @@ export class AiService {
   // 使 P1 CSS 开窗复用路径在渲染母版 LOGO 时生效。
   private attachMasterLogoSources(
     referenceVisualAttributes: ReferenceVisualAttributes | null | undefined,
-    originals: { cover?: { url: string; width?: number; height?: number }; content?: { url: string; width?: number; height?: number }; summary?: { url: string; width?: number; height?: number } },
+    originals: {
+      cover?: { url: string; width?: number; height?: number };
+      content?: { url: string; width?: number; height?: number };
+      summary?: { url: string; width?: number; height?: number };
+    },
   ): void {
     if (!referenceVisualAttributes) return;
     try {
@@ -1464,7 +1629,8 @@ export class AiService {
     referenceHtmlBrief: string;
     refAttrsVersion: string;
   }> {
-    const { referenceVisualAttributes, refAttrsVersion, source } = await this.resolveReferenceVisualAttributes(req);
+    const { referenceVisualAttributes, refAttrsVersion, source } =
+      await this.resolveReferenceVisualAttributes(req);
     const referenceHtmlBrief = this.buildReferenceBrief(referenceVisualAttributes);
     // 可观测：统一在生成入口记录四类参考 HTML 长度与 brief 长度、版本号与来源，
     // 便于在报文/日志中判断"参考文件是否上传成功、抽到了哪些内容"。
@@ -1486,10 +1652,31 @@ export class AiService {
 
   async generateFromPlan(req: GenerateFromPlanRequest): Promise<Presentation> {
     const {
-      topic, plan, modelConfig, modelConfigs, imageConfig, style, audience, slideCount, slideCountMin, slideCountMax,
-      density, imagePreference, colorTheme, primaryColor, backgroundEnabled, iconStyle, fontFamily,
-      referenceHtml, referenceImage, presentationId,
-      slideWidth, slideHeight, logSettings, enableAudit, language,
+      topic,
+      plan,
+      modelConfig,
+      modelConfigs,
+      imageConfig,
+      style,
+      audience,
+      slideCount,
+      slideCountMin,
+      slideCountMax,
+      density,
+      imagePreference,
+      colorTheme,
+      primaryColor,
+      backgroundEnabled,
+      iconStyle,
+      fontFamily,
+      referenceHtml,
+      referenceImage,
+      presentationId,
+      slideWidth,
+      slideHeight,
+      logSettings,
+      enableAudit,
+      language,
     } = req;
 
     const logSettingsNormalized: LogConfig = {
@@ -1507,9 +1694,13 @@ export class AiService {
         } → normalized=${JSON.stringify(logSettingsNormalized)}`,
       );
     } else {
-      simpleLog('AI:LOG', `本次请求 logSettings 最终：console=${logSettingsNormalized.consoleVerbosity} file=${logSettingsNormalized.fileVerbosity}`, {
-        raw: logSettings ? JSON.stringify(logSettings) : 'absent',
-      });
+      simpleLog(
+        'AI:LOG',
+        `本次请求 logSettings 最终：console=${logSettingsNormalized.consoleVerbosity} file=${logSettingsNormalized.fileVerbosity}`,
+        {
+          raw: logSettings ? JSON.stringify(logSettings) : 'absent',
+        },
+      );
     }
 
     if (consoleDetailedLocal) {
@@ -1524,7 +1715,9 @@ export class AiService {
     }
 
     const requestWantsImages: boolean =
-      imagePreference === 'all' || imagePreference === 'content-only' || imagePreference === 'minimal';
+      imagePreference === 'all' ||
+      imagePreference === 'content-only' ||
+      imagePreference === 'minimal';
     const imageSwitchOff: boolean = !imageConfig?.enabled;
     if (requestWantsImages && imageSwitchOff) {
       const prefTextMap: Record<string, string> = {
@@ -1550,7 +1743,8 @@ export class AiService {
     const contentProvider = this.createProvider(contentConfig);
     const editingProvider = this.createProvider(editingConfig);
 
-    const traceSessionId = presentationId || `trace_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const traceSessionId =
+      presentationId || `trace_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     openTraceSession(traceSessionId);
     (planningProvider as TraceableProvider).activeTraceSessionId = traceSessionId;
     (contentProvider as TraceableProvider).activeTraceSessionId = traceSessionId;
@@ -1566,13 +1760,16 @@ export class AiService {
           model: imageConfig.model || imageConfig.modelConfig?.model || 'dall-e-3',
         };
         if (consoleDetailedLocal) {
-          console.log(`[${formatBeijingTime()}] [AI] Image provider merged config (useDefaultProvider):`, {
-            provider: mergedConfig.provider,
-            baseUrl: mergedConfig.baseUrl,
-            model: mergedConfig.model,
-            gatewayVendor: imageConfig.gatewayVendor,
-            hasApiKey: !!mergedConfig.apiKey,
-          });
+          console.log(
+            `[${formatBeijingTime()}] [AI] Image provider merged config (useDefaultProvider):`,
+            {
+              provider: mergedConfig.provider,
+              baseUrl: mergedConfig.baseUrl,
+              model: mergedConfig.model,
+              gatewayVendor: imageConfig.gatewayVendor,
+              hasApiKey: !!mergedConfig.apiKey,
+            },
+          );
         } else {
           simpleLog('AI:IMG', '开始生成图片', {
             provider: mergedConfig.provider,
@@ -1624,7 +1821,8 @@ export class AiService {
       : undefined;
 
     const htmlAuditMaxRetries = req.critique?.maxRetries ?? 1;
-    const { referenceVisualAttributes, referenceHtmlBrief } = await this.resolveReferenceForGeneration(req);
+    const { referenceVisualAttributes, referenceHtmlBrief } =
+      await this.resolveReferenceForGeneration(req);
     const referenceOriginals = await this.persistReferenceOriginals(req);
     this.attachMasterLogoSources(referenceVisualAttributes, referenceOriginals);
     const genOptions = {
@@ -1669,7 +1867,7 @@ export class AiService {
           imageOptions,
           referenceImage: referenceImage || undefined,
           referenceHtml: referenceHtml || undefined,
-      referenceVisualAttributes,
+          referenceVisualAttributes,
           slideWidth: slideWidth || 1280,
           slideHeight: slideHeight || 720,
           backgroundEnabled: backgroundEnabled || false,
@@ -1726,16 +1924,31 @@ export class AiService {
 
   async generateDesignProposals(req: DesignProposalsRequest): Promise<DesignProposal[]> {
     const {
-      topic, plan, style, audience, density, imagePreference, colorTheme,
-      primaryColor, fontFamily, backgroundEnabled, iconStyle, referenceHtml,
-      slideWidth, slideHeight, presentationId, critique, traceSessionId,
+      topic,
+      plan,
+      style,
+      audience,
+      density,
+      imagePreference,
+      colorTheme,
+      primaryColor,
+      fontFamily,
+      backgroundEnabled,
+      iconStyle,
+      referenceHtml,
+      slideWidth,
+      slideHeight,
+      presentationId,
+      critique,
+      traceSessionId,
       proposalCount,
     } = req;
 
     const effectiveSessionId = traceSessionId || presentationId;
     const ctx = this.createAgentContext(req, effectiveSessionId);
 
-    const { referenceVisualAttributes, referenceHtmlBrief } = await this.resolveReferenceForGeneration(req);
+    const { referenceVisualAttributes, referenceHtmlBrief } =
+      await this.resolveReferenceForGeneration(req);
     const referenceOriginals = await this.persistReferenceOriginals(req);
     this.attachMasterLogoSources(referenceVisualAttributes, referenceOriginals);
 
@@ -1796,15 +2009,27 @@ export class AiService {
 
   async renderSlides(req: RenderSlidesRequest): Promise<RenderedSlide[]> {
     const {
-      topic, plan, design, style, audience, imagePreference,
-      referenceHtml, slideWidth, slideHeight, presentationId, critique,
-      startIndex, endIndex, traceSessionId,
+      topic,
+      plan,
+      design,
+      style,
+      audience,
+      imagePreference,
+      referenceHtml,
+      slideWidth,
+      slideHeight,
+      presentationId,
+      critique,
+      startIndex,
+      endIndex,
+      traceSessionId,
     } = req;
 
     const effectiveSessionId = traceSessionId || presentationId;
     const ctx = this.createAgentContext(req, effectiveSessionId);
 
-    const { referenceVisualAttributes, referenceHtmlBrief } = await this.resolveReferenceForGeneration(req);
+    const { referenceVisualAttributes, referenceHtmlBrief } =
+      await this.resolveReferenceForGeneration(req);
     try {
       const options = {
         style,
@@ -1864,14 +2089,26 @@ export class AiService {
 
   async regenerateSlide(req: RegenerateSlideRequest): Promise<RenderedSlide> {
     const {
-      topic, plan, design, slideIndex, style, audience, imagePreference,
-      referenceHtml, slideWidth, slideHeight, presentationId, critique, traceSessionId,
+      topic,
+      plan,
+      design,
+      slideIndex,
+      style,
+      audience,
+      imagePreference,
+      referenceHtml,
+      slideWidth,
+      slideHeight,
+      presentationId,
+      critique,
+      traceSessionId,
     } = req;
 
     const effectiveSessionId = traceSessionId || presentationId;
     const ctx = this.createAgentContext(req, effectiveSessionId);
 
-    const { referenceVisualAttributes, referenceHtmlBrief } = await this.resolveReferenceForGeneration(req);
+    const { referenceVisualAttributes, referenceHtmlBrief } =
+      await this.resolveReferenceForGeneration(req);
     try {
       const options = {
         style,
@@ -1894,7 +2131,17 @@ export class AiService {
         critique,
       };
 
-      return await ctx.agent.regenerateSingleSlide(topic, plan, design, slideIndex, options, ctx.traceSessionId, undefined, 'placeholder', req.slides?.[slideIndex]?.html);
+      return await ctx.agent.regenerateSingleSlide(
+        topic,
+        plan,
+        design,
+        slideIndex,
+        options,
+        ctx.traceSessionId,
+        undefined,
+        'placeholder',
+        req.slides?.[slideIndex]?.html,
+      );
     } finally {
       if (!traceSessionId && !presentationId) closeTraceSession(ctx.traceSessionId);
     }
@@ -1902,16 +2149,32 @@ export class AiService {
 
   async assembleImages(req: AssembleImagesRequest): Promise<RenderedSlide[]> {
     const {
-      topic, plan, design, slides, style, audience, density, imagePreference,
-      colorTheme, primaryColor, fontFamily, backgroundEnabled, iconStyle,
-      referenceHtml, slideWidth, slideHeight, presentationId, traceSessionId,
+      topic,
+      plan,
+      design,
+      slides,
+      style,
+      audience,
+      density,
+      imagePreference,
+      colorTheme,
+      primaryColor,
+      fontFamily,
+      backgroundEnabled,
+      iconStyle,
+      referenceHtml,
+      slideWidth,
+      slideHeight,
+      presentationId,
+      traceSessionId,
     } = req;
 
     const effectiveSessionId = traceSessionId || presentationId;
     const ctx = this.createAgentContext(req, effectiveSessionId);
 
     // 与 finalizePresentation 对齐：显式解析参考属性，避免下游 generationOptions 缺来源（回归修复一致性）。
-    const { referenceVisualAttributes, referenceHtmlBrief } = await this.resolveReferenceForGeneration(req);
+    const { referenceVisualAttributes, referenceHtmlBrief } =
+      await this.resolveReferenceForGeneration(req);
 
     try {
       const options = {
@@ -1934,7 +2197,14 @@ export class AiService {
         onProgress: () => {},
       };
 
-      return await ctx.agent.assembleImages(topic, slides, plan, design, options, ctx.traceSessionId);
+      return await ctx.agent.assembleImages(
+        topic,
+        slides,
+        plan,
+        design,
+        options,
+        ctx.traceSessionId,
+      );
     } finally {
       if (!traceSessionId && !presentationId) closeTraceSession(ctx.traceSessionId);
     }
@@ -1942,10 +2212,30 @@ export class AiService {
 
   async finalizePresentation(req: FinalizeRequest): Promise<Presentation> {
     const {
-      topic, plan, design, slides, style, audience, slideCount, slideCountMin, slideCountMax,
-      density, imagePreference, colorTheme, primaryColor, backgroundEnabled, iconStyle, fontFamily,
-      referenceHtml, referenceImage, presentationId,
-      slideWidth, slideHeight, logSettings, enableAudit, traceSessionId,
+      topic,
+      plan,
+      design,
+      slides,
+      style,
+      audience,
+      slideCount,
+      slideCountMin,
+      slideCountMax,
+      density,
+      imagePreference,
+      colorTheme,
+      primaryColor,
+      backgroundEnabled,
+      iconStyle,
+      fontFamily,
+      referenceHtml,
+      referenceImage,
+      presentationId,
+      slideWidth,
+      slideHeight,
+      logSettings,
+      enableAudit,
+      traceSessionId,
     } = req;
 
     const effectiveSessionId = traceSessionId || presentationId;
@@ -1954,7 +2244,8 @@ export class AiService {
     // FR-A（回归修复）：终局重放依赖 generationOptions.referenceVisualAttributes 取参考主色；
     // 分步模式下本方法此前未传该字段，导致 finalMainColor 回落 design 默认蓝 #2563eb，把参考红色全量重染。
     // 这里显式解析（缓存命中零 I/O）并写入 options（即下游的 generationOptions），与 generateFromPlan 对齐。
-    const { referenceVisualAttributes, referenceHtmlBrief } = await this.resolveReferenceForGeneration(req);
+    const { referenceVisualAttributes, referenceHtmlBrief } =
+      await this.resolveReferenceForGeneration(req);
 
     try {
       const options = {
@@ -1981,7 +2272,12 @@ export class AiService {
       };
 
       const presentation = await ctx.agent.finalizePresentation(
-        topic, slides, plan, design, options, ctx.traceSessionId,
+        topic,
+        slides,
+        plan,
+        design,
+        options,
+        ctx.traceSessionId,
       );
 
       return await this.postProcessPresentation(presentation, {
@@ -2117,18 +2413,22 @@ export class AiService {
     const finalEffectivePrimary = refDeckPrimaryForFinal
       ? refDeckPrimaryForFinal
       : resolveEffectivePrimaryColor(
-        { primaryColor, colorTheme },
-        {
-          primaryColor: (design as any)?.primaryColor ?? (presentation as any).design?.primaryColor,
-          colorTheme: (design as any)?.colorTheme ?? (presentation as any).design?.colorTheme,
-        },
-        '#2563eb',
-      );
+          { primaryColor, colorTheme },
+          {
+            primaryColor:
+              (design as any)?.primaryColor ?? (presentation as any).design?.primaryColor,
+            colorTheme: (design as any)?.colorTheme ?? (presentation as any).design?.colorTheme,
+          },
+          '#2563eb',
+        );
     // 如果 presentation.result 内 design.primaryColor（旧值）与 5 级链结果不一致 → 写回修正 presentation
     {
       const presDesign = (presentation as any).design;
       if (presDesign && typeof presDesign === 'object') {
-        if (presDesign.primaryColor && presDesign.primaryColor.toLowerCase() !== finalEffectivePrimary) {
+        if (
+          presDesign.primaryColor &&
+          presDesign.primaryColor.toLowerCase() !== finalEffectivePrimary
+        ) {
           console.warn(
             `[DESIGN] presentation.design.primaryColor(${presDesign.primaryColor}) 与 5 级链结果(${finalEffectivePrimary}) 不一致，已覆盖（colorTheme=${colorTheme ?? 'N/A'} primaryColorOption=${primaryColor ?? 'N/A'}）。`,
           );
@@ -2164,17 +2464,19 @@ export class AiService {
     } else {
       result = LayoutEngine.createPresentation(presentation.title, finalWidth, finalHeight);
     }
-    
-    result.slides = presentation.slides.map((slide, index) => LayoutEngine.normalizeAISlide({
-      id: LayoutEngine.createSlide(index).id,
-      title: slide.title,
-      html: slide.html,
-      notes: slide.notes,
-      hidden: false,
-      index,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    }));
+
+    result.slides = presentation.slides.map((slide, index) =>
+      LayoutEngine.normalizeAISlide({
+        id: LayoutEngine.createSlide(index).id,
+        title: slide.title,
+        html: slide.html,
+        notes: slide.notes,
+        hidden: false,
+        index,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      }),
+    );
 
     // ———— 溢出风险指数估算日志（便于后续观察上图下文/纯文字页溢出率） ————
     try {
@@ -2199,7 +2501,9 @@ export class AiService {
             if (imgM && listM && imgM.index != null && listM.index != null) {
               // 找 <img 之前最近的 div(flex:0 0 XX%)
               const beforeImg = after.slice(0, imgM.index);
-              const divFlexM = beforeImg.match(/<div\b[^>]*style="[^"]*flex\s*:\s*0\s+0\s+(\d+)(?:\.\d+)?%[^"]*"[^>]*>(?=[^>]*$)/);
+              const divFlexM = beforeImg.match(
+                /<div\b[^>]*style="[^"]*flex\s*:\s*0\s+0\s+(\d+)(?:\.\d+)?%[^"]*"[^>]*>(?=[^>]*$)/,
+              );
               // 上面的断言可能太严格，退一步：取 beforeImg 中最后一个 <div style="...flex:0 0 XX%"> 的匹配
               let lastFlex: RegExpMatchArray | null = null;
               const re = /<div\b[^>]*style="[^"]*flex\s*:\s*0\s+0\s+(\d+)(?:\.\d+)?%[^"]*"[^>]*>/gi;
@@ -2216,12 +2520,17 @@ export class AiService {
           }
         }
         const hasVerticalImg = layoutMode != null;
-        const imgH = imgFlexPct != null ? (availH * imgFlexPct / 100) : 0;
-        const h2H = hasH2 ? (44 * 1.25 + 32) : 0;
-        const avgLiH = liCount > 0 && /padding\s*:\s*12px\s+20px/i.test(h) ? (12*2 + 20*1.4 + 12) : (16*2 + 24*1.4 + 16);
-        const liH = liCount > 0
-          ? (avgLiH * (hasVerticalImg && /display\s*:\s*grid/i.test(h) ? Math.ceil(liCount / 2) : liCount))
-          : 0;
+        const imgH = imgFlexPct != null ? (availH * imgFlexPct) / 100 : 0;
+        const h2H = hasH2 ? 44 * 1.25 + 32 : 0;
+        const avgLiH =
+          liCount > 0 && /padding\s*:\s*12px\s+20px/i.test(h)
+            ? 12 * 2 + 20 * 1.4 + 12
+            : 16 * 2 + 24 * 1.4 + 16;
+        const liH =
+          liCount > 0
+            ? avgLiH *
+              (hasVerticalImg && /display\s*:\s*grid/i.test(h) ? Math.ceil(liCount / 2) : liCount)
+            : 0;
         const estH = h2H + imgH + liH;
         const ratio = availH > 0 ? estH / availH : 0;
         const level: 'low' | 'mid' | 'high' = ratio > 1.05 ? 'high' : ratio > 0.92 ? 'mid' : 'low';
@@ -2232,11 +2541,11 @@ export class AiService {
             `vLayout=${layoutMode ?? 'none'} imgFlex=${imgFlexPct ?? 0}% liCount=${liCount} grid=${isGrid}`;
           if (level === 'high') {
             console.warn(
-              `[${formatBeijingTime()}] [AI:OVERFLOW-RISK] slide ${i + 1} "${s.title}": ${msgBase}`
+              `[${formatBeijingTime()}] [AI:OVERFLOW-RISK] slide ${i + 1} "${s.title}": ${msgBase}`,
             );
           } else if (consoleDetailedLocal && hasVerticalImg) {
             console.log(
-              `[${formatBeijingTime()}] [AI:OVERFLOW-RISK] slide ${i + 1} "${s.title}": ${msgBase}`
+              `[${formatBeijingTime()}] [AI:OVERFLOW-RISK] slide ${i + 1} "${s.title}": ${msgBase}`,
             );
           }
         }
@@ -2273,7 +2582,10 @@ export class AiService {
 
     if (detailed) {
       console.log(`[${formatBeijingTime()}] [AI] Image config enabled:`, imageConfig?.enabled);
-      console.log(`[${formatBeijingTime()}] [AI] Image useDefaultProvider:`, imageConfig?.useDefaultProvider);
+      console.log(
+        `[${formatBeijingTime()}] [AI] Image useDefaultProvider:`,
+        imageConfig?.useDefaultProvider,
+      );
     }
 
     for (let slideIndex = 0; slideIndex < result.slides.length; slideIndex++) {
@@ -2285,16 +2597,26 @@ export class AiService {
       if (slide.html.length !== preLength) {
         bareTextFixed++;
         if (detailed) {
-          console.log(`[${formatBeijingTime()}] [AI] Slide ${slideIndex + 1} "${slide.title}" cleaned bare text (${preLength} → ${slide.html.length} chars) by server-side ensureSemanticWrapping`);
+          console.log(
+            `[${formatBeijingTime()}] [AI] Slide ${slideIndex + 1} "${slide.title}" cleaned bare text (${preLength} → ${slide.html.length} chars) by server-side ensureSemanticWrapping`,
+          );
         }
       }
       const hasPlaceholder = slide.html.includes(IMAGE_PLACEHOLDER);
       if (hasPlaceholder && detailed) {
-        console.log(`[${formatBeijingTime()}] [AI] Slide ${slideIndex + 1} "${slide.title}" has image placeholder - removing (image gen failed or disabled)`);
+        console.log(
+          `[${formatBeijingTime()}] [AI] Slide ${slideIndex + 1} "${slide.title}" has image placeholder - removing (image gen failed or disabled)`,
+        );
       }
       if (hasPlaceholder) {
-        slide.html = slide.html.replace(/<div[^>]*>\s*<img[^>]*src=["']https:\/\/NOPPT_IMAGE_PLACEHOLDER["'][^>]*>\s*<\/div>/gi, '');
-        slide.html = slide.html.replace(/<img[^>]*src=["']https:\/\/NOPPT_IMAGE_PLACEHOLDER["'][^>]*>/gi, '');
+        slide.html = slide.html.replace(
+          /<div[^>]*>\s*<img[^>]*src=["']https:\/\/NOPPT_IMAGE_PLACEHOLDER["'][^>]*>\s*<\/div>/gi,
+          '',
+        );
+        slide.html = slide.html.replace(
+          /<img[^>]*src=["']https:\/\/NOPPT_IMAGE_PLACEHOLDER["'][^>]*>/gi,
+          '',
+        );
       }
 
       const imgRegex = /<img[^>]*src\s*=\s*["']([^"']*)["'][^>]*>/gi;
@@ -2302,19 +2624,33 @@ export class AiService {
       const imgsToReplace: Array<{ original: string; replacement: string }> = [];
 
       while ((match = imgRegex.exec(slide.html)) !== null) {
-        const originalUrl = match[1].trim().replace(/^`|`$/g, '').trim().replace(/^["']|["']$/g, '').trim();
+        const originalUrl = match[1]
+          .trim()
+          .replace(/^`|`$/g, '')
+          .trim()
+          .replace(/^["']|["']$/g, '')
+          .trim();
 
-        const isPlaceholder = originalUrl === IMAGE_PLACEHOLDER || originalUrl.includes('NOPPT_IMAGE_PLACEHOLDER');
+        const isPlaceholder =
+          originalUrl === IMAGE_PLACEHOLDER || originalUrl.includes('NOPPT_IMAGE_PLACEHOLDER');
         if (isPlaceholder) {
           imgsToReplace.push({ original: match[0], replacement: '' });
           continue;
         }
 
-        if (originalUrl && !originalUrl.startsWith('/data/') && !originalUrl.startsWith('http://localhost') && !originalUrl.startsWith('#') && !originalUrl.startsWith('data:')) {
+        if (
+          originalUrl &&
+          !originalUrl.startsWith('/data/') &&
+          !originalUrl.startsWith('http://localhost') &&
+          !originalUrl.startsWith('#') &&
+          !originalUrl.startsWith('data:')
+        ) {
           if (!imgUrlCache.has(originalUrl)) {
             try {
               if (detailed) {
-                console.log(`[${formatBeijingTime()}] [AI] Downloading image from URL: ${originalUrl.substring(0, 100)}...`);
+                console.log(
+                  `[${formatBeijingTime()}] [AI] Downloading image from URL: ${originalUrl.substring(0, 100)}...`,
+                );
               }
               const localPath = await this.storage.saveImageFromUrl(result.id, originalUrl);
               imgUrlCache.set(originalUrl, localPath);
@@ -2343,34 +2679,58 @@ export class AiService {
       const bgImgsToReplace: Array<{ original: string; url: string; replacement: string }> = [];
 
       while ((bgMatch = bgImgRegex.exec(slide.html)) !== null) {
-        const originalUrl = bgMatch[1].trim().replace(/^`|`$/g, '').trim().replace(/^["']|["']$/g, '').trim();
+        const originalUrl = bgMatch[1]
+          .trim()
+          .replace(/^`|`$/g, '')
+          .trim()
+          .replace(/^["']|["']$/g, '')
+          .trim();
 
-        const isPlaceholder = originalUrl.includes('NOPPT_BG_PLACEHOLDER') || originalUrl.includes('NOPPT_IMAGE_PLACEHOLDER');
+        const isPlaceholder =
+          originalUrl.includes('NOPPT_BG_PLACEHOLDER') ||
+          originalUrl.includes('NOPPT_IMAGE_PLACEHOLDER');
         if (isPlaceholder) {
           continue;
         }
 
-        if (originalUrl && !originalUrl.startsWith('/data/') && !originalUrl.startsWith('http://localhost') && !originalUrl.startsWith('#') && !originalUrl.startsWith('data:')) {
+        if (
+          originalUrl &&
+          !originalUrl.startsWith('/data/') &&
+          !originalUrl.startsWith('http://localhost') &&
+          !originalUrl.startsWith('#') &&
+          !originalUrl.startsWith('data:')
+        ) {
           if (!imgUrlCache.has(originalUrl)) {
             try {
               if (detailed) {
-                console.log(`[${formatBeijingTime()}] [AI] Downloading background image from URL: ${originalUrl.substring(0, 100)}...`);
+                console.log(
+                  `[${formatBeijingTime()}] [AI] Downloading background image from URL: ${originalUrl.substring(0, 100)}...`,
+                );
               }
               const localPath = await this.storage.saveImageFromUrl(result.id, originalUrl);
               imgUrlCache.set(originalUrl, localPath);
               downloadedCount++;
               if (detailed) {
-                console.log(`[${formatBeijingTime()}] [AI] Background image saved locally to: ${localPath}`);
+                console.log(
+                  `[${formatBeijingTime()}] [AI] Background image saved locally to: ${localPath}`,
+                );
               }
             } catch (e) {
-              console.error(`[${formatBeijingTime()}] [AI] Failed to download/save background image:`, e);
+              console.error(
+                `[${formatBeijingTime()}] [AI] Failed to download/save background image:`,
+                e,
+              );
               imgUrlCache.set(originalUrl, originalUrl);
             }
           }
           const localUrl = imgUrlCache.get(originalUrl);
           if (localUrl && localUrl !== originalUrl) {
             const newBgDecl = bgMatch[0].replace(originalUrl, localUrl);
-            bgImgsToReplace.push({ original: bgMatch[0], url: originalUrl, replacement: newBgDecl });
+            bgImgsToReplace.push({
+              original: bgMatch[0],
+              url: originalUrl,
+              replacement: newBgDecl,
+            });
           }
         }
       }
@@ -2397,27 +2757,36 @@ export class AiService {
     try {
       const imagesDir = this.storage.getImagesDir(result.id);
       const allFiles = this.storage.listDir(imagesDir);
-      const imageFiles = allFiles.filter(f => /\.(png|jpe?g|webp)$/i.test(f));
-      const htmlSoup = result.slides.map(s => s.html).join('\n');
-      const orphans = imageFiles.filter(name => !htmlSoup.includes(name));
+      const imageFiles = allFiles.filter((f) => /\.(png|jpe?g|webp)$/i.test(f));
+      const htmlSoup = result.slides.map((s) => s.html).join('\n');
+      const orphans = imageFiles.filter((name) => !htmlSoup.includes(name));
       if (orphans.length > 0) {
         if (detailed) {
-          console.log(`[${formatBeijingTime()}] [AI] Found ${orphans.length} orphan images on disk, trying to rescue:`, orphans);
+          console.log(
+            `[${formatBeijingTime()}] [AI] Found ${orphans.length} orphan images on disk, trying to rescue:`,
+            orphans,
+          );
         }
 
         // B-3 · step1：确定本次生成的 imagePreference
         const explicitPref = (result as any).imagePreference as ImagePreference | undefined;
         const pref = explicitPref || this.inferImagePreferenceFromPresentation(result);
         if (detailed) {
-          console.log(`[${formatBeijingTime()}] [AI]   effective imagePreference: ${pref} (explicit=${Boolean(explicitPref)})`);
+          console.log(
+            `[${formatBeijingTime()}] [AI]   effective imagePreference: ${pref} (explicit=${Boolean(explicitPref)})`,
+          );
         }
 
         let orphanIdx = 0;
-        const orphanUrlAt = (i: number) => `/data/workspace/presentations/${result.id}/assets/images/${orphans[i]}`;
+        const orphanUrlAt = (i: number) =>
+          `/data/workspace/presentations/${result.id}/assets/images/${orphans[i]}`;
 
         // B-3 · step2：all 模式优先回填封面（第一张 cover-like）和总结（最后一张 summary-like）
         const singleSlideMode = result.slides.length === 1;
-        if ((pref === 'all' || pref === 'content-only' || singleSlideMode) && result.slides.length > 0) {
+        if (
+          (pref === 'all' || pref === 'content-only' || singleSlideMode) &&
+          result.slides.length > 0
+        ) {
           const tryInjectCoverSummary = (index: number, kind: 'cover' | 'summary') => {
             if (orphanIdx >= orphans.length) return;
             const slide = result.slides[index];
@@ -2425,10 +2794,14 @@ export class AiService {
             if (/<img\b/i.test(slide.html)) return;
             if (pref !== 'all' && !singleSlideMode) return;
             const orphanUrl = orphanUrlAt(orphanIdx);
-            const rebuilt = this.injectOrphanImageIntoBackground(slide.html, orphanUrl, kind, { pageType: (slide as any).pageType });
+            const rebuilt = this.injectOrphanImageIntoBackground(slide.html, orphanUrl, kind, {
+              pageType: (slide as any).pageType,
+            });
             if (rebuilt !== slide.html) {
               if (detailed) {
-                console.log(`[${formatBeijingTime()}] [AI]   + slide ${index + 1} "${slide.title}" <-- ${orphans[orphanIdx]} (${kind} BG injection)`);
+                console.log(
+                  `[${formatBeijingTime()}] [AI]   + slide ${index + 1} "${slide.title}" <-- ${orphans[orphanIdx]} (${kind} BG injection)`,
+                );
               }
               slide.html = rebuilt;
               orphanIdx++;
@@ -2441,19 +2814,30 @@ export class AiService {
         if (orphanIdx < orphans.length) {
           const rescueFew = pref === 'minimal' || pref === 'none';
           const maxFill = rescueFew ? Math.min(2, orphans.length) : orphans.length;
-          for (let s = 0; s < result.slides.length && orphanIdx < orphans.length && orphanIdx < maxFill; s++) {
+          for (
+            let s = 0;
+            s < result.slides.length && orphanIdx < orphans.length && orphanIdx < maxFill;
+            s++
+          ) {
             const slide = result.slides[s];
             if (/<img\b/i.test(slide.html)) continue;
             if (pref !== 'all' && !singleSlideMode) {
-              const isCoverLike = /font-size:\s*[7-9]\dpx|font-size:\s*1\d{2,}px|<h1\b|目录|总结|感谢|开启.*纪元|结论/i.test(`${slide.title} ${slide.html}`);
+              const isCoverLike =
+                /font-size:\s*[7-9]\dpx|font-size:\s*1\d{2,}px|<h1\b|目录|总结|感谢|开启.*纪元|结论/i.test(
+                  `${slide.title} ${slide.html}`,
+                );
               if (isCoverLike) continue;
             }
             if (!this.slideHasMeaningfulBody(slide.html)) continue;
             const orphanUrl = orphanUrlAt(orphanIdx);
-            const rebuilt = this.injectOrphanImageIntoSlide(slide.html, orphanUrl, { pageType: (slide as any).pageType });
+            const rebuilt = this.injectOrphanImageIntoSlide(slide.html, orphanUrl, {
+              pageType: (slide as any).pageType,
+            });
             if (rebuilt !== slide.html) {
               if (detailed) {
-                console.log(`[${formatBeijingTime()}] [AI]   + slide ${s + 1} "${slide.title}" <-- ${orphans[orphanIdx]}`);
+                console.log(
+                  `[${formatBeijingTime()}] [AI]   + slide ${s + 1} "${slide.title}" <-- ${orphans[orphanIdx]}`,
+                );
               }
               slide.html = rebuilt;
               orphanIdx++;
@@ -2463,16 +2847,26 @@ export class AiService {
         orphanRescued = orphanIdx;
         if (orphanIdx > 0) {
           if (detailed) {
-            console.log(`[${formatBeijingTime()}] [AI] Orphan rescue complete: ${orphanIdx}/${orphans.length} attached (pref=${pref})`);
+            console.log(
+              `[${formatBeijingTime()}] [AI] Orphan rescue complete: ${orphanIdx}/${orphans.length} attached (pref=${pref})`,
+            );
           } else {
-            simpleLog('AI:ORPHAN', '孤儿配图救援完成', { rescued: `${orphanIdx}/${orphans.length}`, pref });
+            simpleLog('AI:ORPHAN', '孤儿配图救援完成', {
+              rescued: `${orphanIdx}/${orphans.length}`,
+              pref,
+            });
           }
         } else if (orphans.length > 0) {
-          console.warn(`[${formatBeijingTime()}] [AI] Orphan rescue: none of ${orphans.length} could be injected (pref=${pref})`);
+          console.warn(
+            `[${formatBeijingTime()}] [AI] Orphan rescue: none of ${orphans.length} could be injected (pref=${pref})`,
+          );
         }
       }
     } catch (orphanErr) {
-      console.warn(`[${formatBeijingTime()}] [AI] Orphan image rescue skipped due to error:`, orphanErr);
+      console.warn(
+        `[${formatBeijingTime()}] [AI] Orphan image rescue skipped due to error:`,
+        orphanErr,
+      );
     }
 
     // ========== 终局兜底（写入磁盘前的最后防线）==========
@@ -2487,7 +2881,9 @@ export class AiService {
         if (slide.html.length !== prevLen) {
           finalGuardFixed++;
           if (detailed) {
-            console.log(`[${formatBeijingTime()}] [AI] [FINAL-GUARD-1] slide ${idx + 1} "${slide.title}" final bare-text cleanup (${prevLen}→${slide.html.length})`);
+            console.log(
+              `[${formatBeijingTime()}] [AI] [FINAL-GUARD-1] slide ${idx + 1} "${slide.title}" final bare-text cleanup (${prevLen}→${slide.html.length})`,
+            );
           }
         }
       }
@@ -2495,32 +2891,46 @@ export class AiService {
       try {
         const imagesDir2 = this.storage.getImagesDir(result.id);
         const allFiles2 = this.storage.listDir(imagesDir2);
-        const imageFiles2 = allFiles2.filter(f => /\.(png|jpe?g|webp)$/i.test(f));
-        const soup2 = result.slides.map(s => s.html).join('\n');
-        const orphans2 = imageFiles2.filter(name => !soup2.includes(name));
+        const imageFiles2 = allFiles2.filter((f) => /\.(png|jpe?g|webp)$/i.test(f));
+        const soup2 = result.slides.map((s) => s.html).join('\n');
+        const orphans2 = imageFiles2.filter((name) => !soup2.includes(name));
         if (orphans2.length > 0) {
           if (detailed) {
-            console.log(`[${formatBeijingTime()}] [AI] [FINAL-GUARD-2] found ${orphans2.length} unplaced images after main guard, retry rescue...`);
+            console.log(
+              `[${formatBeijingTime()}] [AI] [FINAL-GUARD-2] found ${orphans2.length} unplaced images after main guard, retry rescue...`,
+            );
           }
           const explicitPref2 = (result as any).imagePreference as ImagePreference | undefined;
           const pref2 = explicitPref2 || this.inferImagePreferenceFromPresentation(result);
           const singleSlide2 = result.slides.length === 1;
-          const urlOf = (i: number) => `/data/workspace/presentations/${result.id}/assets/images/${orphans2[i]}`;
+          const urlOf = (i: number) =>
+            `/data/workspace/presentations/${result.id}/assets/images/${orphans2[i]}`;
           let oi = 0;
           const rescueFew2 = pref2 === 'minimal' || pref2 === 'none';
           const maxF = rescueFew2 ? Math.min(2, orphans2.length) : orphans2.length;
-          for (let sIdx = 0; sIdx < result.slides.length && oi < orphans2.length && oi < maxF; sIdx++) {
+          for (
+            let sIdx = 0;
+            sIdx < result.slides.length && oi < orphans2.length && oi < maxF;
+            sIdx++
+          ) {
             const slide = result.slides[sIdx];
             if (/<img\b/i.test(slide.html)) continue;
             if (pref2 !== 'all' && !singleSlide2) {
-              const cLike = /font-size:\s*[7-9]\dpx|font-size:\s*1\d{2,}px|<h1\b|目录|总结|感谢|开启.*纪元|结论/i.test(`${slide.title} ${slide.html}`);
+              const cLike =
+                /font-size:\s*[7-9]\dpx|font-size:\s*1\d{2,}px|<h1\b|目录|总结|感谢|开启.*纪元|结论/i.test(
+                  `${slide.title} ${slide.html}`,
+                );
               if (cLike) continue;
             }
             if (!this.slideHasMeaningfulBody(slide.html)) continue;
-            const rebuilt = this.injectOrphanImageIntoSlide(slide.html, urlOf(oi), { pageType: (slide as any).pageType });
+            const rebuilt = this.injectOrphanImageIntoSlide(slide.html, urlOf(oi), {
+              pageType: (slide as any).pageType,
+            });
             if (rebuilt !== slide.html) {
               if (detailed) {
-                console.log(`[${formatBeijingTime()}] [AI] [FINAL-GUARD-2] slide ${sIdx + 1} "${slide.title}" <-- ${orphans2[oi]}`);
+                console.log(
+                  `[${formatBeijingTime()}] [AI] [FINAL-GUARD-2] slide ${sIdx + 1} "${slide.title}" <-- ${orphans2[oi]}`,
+                );
               }
               slide.html = rebuilt;
               oi++;
@@ -2528,14 +2938,22 @@ export class AiService {
           }
           finalGuardRescued = oi;
           if (oi > 0 && detailed) {
-            console.log(`[${formatBeijingTime()}] [AI] [FINAL-GUARD-2] rescued ${oi}/${orphans2.length} images via final guard`);
+            console.log(
+              `[${formatBeijingTime()}] [AI] [FINAL-GUARD-2] rescued ${oi}/${orphans2.length} images via final guard`,
+            );
           }
         }
       } catch (e2) {
-        console.warn(`[${formatBeijingTime()}] [AI] [FINAL-GUARD-2] skipped due to error:`, (e2 as Error).message);
+        console.warn(
+          `[${formatBeijingTime()}] [AI] [FINAL-GUARD-2] skipped due to error:`,
+          (e2 as Error).message,
+        );
       }
     } catch (finalGuardErr) {
-      console.warn(`[${formatBeijingTime()}] [AI] [FINAL-GUARD] skipped due to error:`, (finalGuardErr as Error).message);
+      console.warn(
+        `[${formatBeijingTime()}] [AI] [FINAL-GUARD] skipped due to error:`,
+        (finalGuardErr as Error).message,
+      );
     }
 
     if (!detailed) {
@@ -2568,14 +2986,18 @@ export class AiService {
       // FR-A（回归修复）：参考属性来源兜底。generationOptions 在分步 finalizePresentation 等路径可能未带来源，
       // 此时用 presentationId + req 字段回源重解析（resolveReferenceVisualAttributes 内部走 sha1 缓存，命中零 I/O），
       // 确保逐页参考主色裁决不丢失（否则回落默认蓝，把参考红色重染）。
-      let rva: ReferenceVisualAttributes | null | undefined = generationOptions?.referenceVisualAttributes;
+      let rva: ReferenceVisualAttributes | null | undefined =
+        generationOptions?.referenceVisualAttributes;
       if (!rva) {
         try {
-          rva = (await this.resolveReferenceVisualAttributes({
-            presentationId,
-            referenceHtml,
-            referenceImage,
-          } as any)).referenceVisualAttributes ?? undefined;
+          rva =
+            (
+              await this.resolveReferenceVisualAttributes({
+                presentationId,
+                referenceHtml,
+                referenceImage,
+              } as any)
+            ).referenceVisualAttributes ?? undefined;
         } catch {
           rva = undefined;
         }
@@ -2589,17 +3011,28 @@ export class AiService {
         // FR-0/FR-4：优先用 slide 自身 pageType；缺失（如前端 editor 落盘的残缺版本）时按位置兜底，
         // 避免 pageTypeToCategory('') 一律回落 'content'，使封面/总结取到各自参考色而非默认蓝。
         const rawPageType = String((slide as any)?.pageType ?? '').toLowerCase();
-        const pageType = rawPageType ||
+        const pageType =
+          rawPageType ||
           (i === 0 ? 'cover' : i === result.slides.length - 1 ? 'summary' : 'content');
         // 终局逐页取色三级链：分类参考主色 → deck 级参考主色 → finalEffectivePrimary（用户显式/默认蓝）。
         // 修复收尾缺口：某分类参考图缺失（或 VLM 未抽出主色）且 global 也无主色时，取 deck 级参考红，
         // 避免该页回落默认蓝 #2563eb（plan 第 ④ 项）。
         const pageRefPrimary = resolveReferencePrimaryColor(rva ?? undefined, pageType);
-        const finalMainColor = resolveFinalPagePrimaryColor(rva ?? undefined, pageType, finalEffectivePrimary);
+        const finalMainColor = resolveFinalPagePrimaryColor(
+          rva ?? undefined,
+          pageType,
+          finalEffectivePrimary,
+        );
         // 参考撞色板 / 标题色 / 正文色 / 描边色 → 终局越权信号白名单，避免参考多色页被误判越权而反复重放。
-        const cat = pageType === 'cover' || pageType === 'page-cover' ? 'cover'
-          : pageType === 'summary' || pageType === 'conclusion' || pageType === 'ending' || pageType === 'end' ? 'summary'
-          : 'content';
+        const cat =
+          pageType === 'cover' || pageType === 'page-cover'
+            ? 'cover'
+            : pageType === 'summary' ||
+                pageType === 'conclusion' ||
+                pageType === 'ending' ||
+                pageType === 'end'
+              ? 'summary'
+              : 'content';
         const slidePalette = rva ? getReferencePaletteForPage(rva, pageType) : undefined;
         const styleRef = rva ? (rva.byCategory[cat] ?? rva.global) : undefined;
         const allowedAccentHexes = new Set<string>(
@@ -2609,7 +3042,9 @@ export class AiService {
             slidePalette?.primary,
             (styleRef as any)?.style?.titleColor,
             (styleRef as any)?.style?.bodyColor,
-          ].filter((c): c is string => !!c).map((c) => c.toLowerCase()),
+          ]
+            .filter((c): c is string => !!c)
+            .map((c) => c.toLowerCase()),
         );
         if (!pageRefPrimary && finalMainColor !== finalEffectivePrimary) {
           console.log(
@@ -2647,13 +3082,23 @@ export class AiService {
             });
             if (slide.html !== before) finalSanitizeStat.reapplied++;
           } catch (e) {
-            console.warn('[FINAL] postProcessHtmlSnapshot 重放失败:', e instanceof Error ? e.message : e);
+            console.warn(
+              '[FINAL] postProcessHtmlSnapshot 重放失败:',
+              e instanceof Error ? e.message : e,
+            );
           }
         }
         // 重放后再断言
         let after = slide.html;
-        const remain: StyleViolationBreakdown = styleViolationSignal(after, finalMainColor, { allowedAccentHexes });
-        let remain2: StyleViolationBreakdown = { neutralFont22_29: 0, neutralPxSticky: 0, colorViolations: 0, total: 0 };
+        const remain: StyleViolationBreakdown = styleViolationSignal(after, finalMainColor, {
+          allowedAccentHexes,
+        });
+        let remain2: StyleViolationBreakdown = {
+          neutralFont22_29: 0,
+          neutralPxSticky: 0,
+          colorViolations: 0,
+          total: 0,
+        };
         if (exceedsThreshold(remain) && agent) {
           try {
             after = agent.postProcessHtmlSnapshot(after, {
@@ -2692,7 +3137,9 @@ export class AiService {
             'content-cards',
           ]);
           const explicitLayout = String((slide as any)?.pageType ?? '').toLowerCase() || undefined;
-          const layoutFromHtml2 = (after.match(/<\s*(?:div|section|article)\b[^>]*\bdata-layout\s*=\s*["']?([a-z0-9-]+)["']?[^>]*>/i) || [])[1]?.toLowerCase();
+          const layoutFromHtml2 = (after.match(
+            /<\s*(?:div|section|article)\b[^>]*\bdata-layout\s*=\s*["']?([a-z0-9-]+)["']?[^>]*>/i,
+          ) || [])[1]?.toLowerCase();
           const isProtectedAdvancedLayout =
             (explicitLayout && NEVER_FALLBACK_FOR_ADVANCED.has(explicitLayout)) ||
             (layoutFromHtml2 && NEVER_FALLBACK_FOR_ADVANCED.has(layoutFromHtml2));
@@ -2706,7 +3153,8 @@ export class AiService {
             expectedPrimary: finalMainColor,
           };
           // 无论是否替换，都把 sanitizationFailed 条目写入以便审计追溯
-          if (!(result as any).sanitizationFailed) (result as any).sanitizationFailed = { pages: [] };
+          if (!(result as any).sanitizationFailed)
+            (result as any).sanitizationFailed = { pages: [] };
           (result as any).sanitizationFailed.pages.push({
             index: i + 1,
             // remain: 保持旧字段兼容（存 breakdown.total 作为数字）
@@ -2742,7 +3190,13 @@ export class AiService {
             const fbKeyPoints: string[] = Array.isArray(slidePlanSrc?.keyPoints)
               ? slidePlanSrc.keyPoints.map((k: unknown) => String(k))
               : [];
-            slide.html = buildFallbackSlideHtml(fbTitle, fbKeyPoints, slideW, slideH, finalMainColor);
+            slide.html = buildFallbackSlideHtml(
+              fbTitle,
+              fbKeyPoints,
+              slideW,
+              slideH,
+              finalMainColor,
+            );
             // AC-8 / Task10b：在 slide 对象上打标记（_sanitizationFallbackApplied），
             // auditEngine 的 sanitization engine 消费它 → 生成结构化 sanitization-fallback-applied issue 并写入 latest-report。
             // 标记结构刻意与 sanitizationFailed.pages[n] 对齐，便于 audit 端透传 metadata。
@@ -2775,7 +3229,10 @@ export class AiService {
       }
       simpleLog('AI:FINAL', '终局消毒防线（三分量阈值化 v2）', finalSanitizeStat);
 
-      const presentationFile = join(this.storage.getPresentationDir(result.id), 'presentation.json');
+      const presentationFile = join(
+        this.storage.getPresentationDir(result.id),
+        'presentation.json',
+      );
       result.updatedAt = Date.now();
       // 防御性校验（无论详细/简单模式都打日志）：终局 <img> 数量，便于以后再次排查「图片消失」类问题
       const slideImgReport = result.slides.map((s, idx) => ({
@@ -2849,13 +3306,13 @@ export class AiService {
         const maxRegenRetries = auditSettings.maxRegenerationRetries ?? 0;
 
         // ——— 第 1 步：初次审核（全引擎 + 布局自动修复）———
-        const auditResult = await this.auditService.auditPresentationFromData(
-          result,
-          result.id,
-          { plan, designContext: auditDesignContext, referenceContext },
-        );
-        const errorCount = auditResult.issues.filter(i => i.severity === 'error').length;
-        const warnCount = auditResult.issues.filter(i => i.severity === 'warn').length;
+        const auditResult = await this.auditService.auditPresentationFromData(result, result.id, {
+          plan,
+          designContext: auditDesignContext,
+          referenceContext,
+        });
+        const errorCount = auditResult.issues.filter((i) => i.severity === 'error').length;
+        const warnCount = auditResult.issues.filter((i) => i.severity === 'warn').length;
         const fixedCount = auditResult.fixSummary?.fixedCount ?? 0;
 
         if (auditResult.fixSummary && auditResult.fixSummary.fixedCount > 0) {
@@ -2871,9 +3328,9 @@ export class AiService {
 
         // —— 模型档位建议（仅 flash 档 + 审核有 error 时给出，不弹窗）——
         if (
-          errorCount > 0
-          && /flash/i.test(String(contentConfig?.model || ''))
-          && !/plus|max/i.test(String(contentConfig?.model || ''))
+          errorCount > 0 &&
+          /flash/i.test(String(contentConfig?.model || '')) &&
+          !/plus|max/i.test(String(contentConfig?.model || ''))
         ) {
           (result as any).modelRecommendation = {
             message: '建议将生成模型提升至 plus / max 档以降低重复生成与质量返工',
@@ -2887,12 +3344,7 @@ export class AiService {
         // 最多重试 maxRegenerationRetries 次，触发上限后保留最优版本。
         let imageRegenCount = 0;
         let imageRegenAttempts = 0;
-        if (
-          imageProvider &&
-          maxRegenRetries > 0 &&
-          auditSettings.vlmReview !== false &&
-          agent
-        ) {
+        if (imageProvider && maxRegenRetries > 0 && auditSettings.vlmReview !== false && agent) {
           try {
             const triageResult = await this.runPostImageVlmTriageLoop({
               result,
@@ -2921,15 +3373,15 @@ export class AiService {
 
             // ——— 第 3 步：最终审核（仅在确实重生成了内容时执行，刷新 latest-report.json 反映最终画面）———
             if (imageRegenCount > 0) {
-              await this.auditService.auditPresentationFromData(
-                result,
-                result.id,
-                { plan, designContext: auditDesignContext, referenceContext },
-              );
+              await this.auditService.auditPresentationFromData(result, result.id, {
+                plan,
+                designContext: auditDesignContext,
+                referenceContext,
+              });
             }
           } catch (regenErr) {
             console.warn(
-              `${formatBeijingTime()} ${tagAuditProviderError("[AI:AUDIT-IMG] VLM 分诊重生成闭环异常（不影响生成结果）", regenErr)}:`,
+              `${formatBeijingTime()} ${tagAuditProviderError('[AI:AUDIT-IMG] VLM 分诊重生成闭环异常（不影响生成结果）', regenErr)}:`,
               regenErr instanceof Error ? regenErr.message : regenErr,
             );
           }
@@ -2948,7 +3400,7 @@ export class AiService {
         });
       } catch (auditErr) {
         console.warn(
-          `${formatBeijingTime()} ${tagAuditProviderError("[AI:AUDIT] 审核流程异常（不影响生成结果）", auditErr)}:`,
+          `${formatBeijingTime()} ${tagAuditProviderError('[AI:AUDIT] 审核流程异常（不影响生成结果）', auditErr)}:`,
           auditErr instanceof Error ? auditErr.message : auditErr,
         );
       }
@@ -3011,13 +3463,25 @@ export class AiService {
           slideWidth,
           slideHeight,
           referenceHtmlLength: referenceHtml?.length || 0,
-          referenceHtml,                              // 完整原文，方便排查参考文件问题
+          referenceHtml, // 完整原文，方便排查参考文件问题
           referenceImageLength: referenceImage?.length || 0,
-          referenceImage,                             // 完整 base64，方便排查参考图问题
+          referenceImage, // 完整 base64，方便排查参考图问题
           modelConfigs: {
-            planning: { provider: planningConfig.provider, model: planningConfig.model, baseUrl: planningConfig.baseUrl },
-            content: { provider: contentConfig.provider, model: contentConfig.model, baseUrl: contentConfig.baseUrl },
-            editing: { provider: editingConfig.provider, model: editingConfig.model, baseUrl: editingConfig.baseUrl },
+            planning: {
+              provider: planningConfig.provider,
+              model: planningConfig.model,
+              baseUrl: planningConfig.baseUrl,
+            },
+            content: {
+              provider: contentConfig.provider,
+              model: contentConfig.model,
+              baseUrl: contentConfig.baseUrl,
+            },
+            editing: {
+              provider: editingConfig.provider,
+              model: editingConfig.model,
+              baseUrl: editingConfig.baseUrl,
+            },
           },
           imageConfig: imageConfig
             ? {
@@ -3052,7 +3516,7 @@ export class AiService {
             htmlLength: s.html.length,
             hasImage: /<img\b/i.test(s.html),
             hasBgImage: /background-image/i.test(s.html),
-            html: s.html,                                // ← 关键：完整 HTML 原文
+            html: s.html, // ← 关键：完整 HTML 原文
             imagePrompt: (s as any).imagePrompt,
             imageRatio: (s as any).imageRatio,
             pageType: (s as any).pageType,
@@ -3150,7 +3614,12 @@ export class AiService {
     return result;
   }
 
-  private createEditContext(req: { modelConfig?: ModelConfig; modelConfigs?: StageModelConfigs; presentationId?: string; logSettings?: LogConfig }) {
+  private createEditContext(req: {
+    modelConfig?: ModelConfig;
+    modelConfigs?: StageModelConfigs;
+    presentationId?: string;
+    logSettings?: LogConfig;
+  }) {
     const { modelConfig, modelConfigs, presentationId, logSettings } = req;
 
     const logSettingsNormalized: LogConfig = {
@@ -3165,7 +3634,8 @@ export class AiService {
     const editingConfig = modelConfigs?.editing || modelConfig!;
     const editingProvider = this.createProvider(editingConfig);
 
-    const effectiveTraceSessionId = presentationId || `edit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const effectiveTraceSessionId =
+      presentationId || `edit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     openTraceSession(effectiveTraceSessionId);
     (editingProvider as TraceableProvider).activeTraceSessionId = effectiveTraceSessionId;
 
@@ -3245,9 +3715,13 @@ export class AiService {
 
     if (ctx.consoleDetailedLocal) {
       console.log(`\n[${timestamp}] [AI:EDIT] ========== editSlide 开始 ==========`);
-      console.log(`[${timestamp}] [AI:EDIT] 用户指令: ${userRequest.length > 200 ? userRequest.substring(0, 200) + '...' : userRequest}`);
+      console.log(
+        `[${timestamp}] [AI:EDIT] 用户指令: ${userRequest.length > 200 ? userRequest.substring(0, 200) + '...' : userRequest}`,
+      );
       console.log(`[${timestamp}] [AI:EDIT] 当前HTML长度: ${currentHtml.length} chars`);
-      console.log(`[${timestamp}] [AI:EDIT] 编辑模型: ${ctx.editingConfig.provider}/${ctx.editingConfig.model}`);
+      console.log(
+        `[${timestamp}] [AI:EDIT] 编辑模型: ${ctx.editingConfig.provider}/${ctx.editingConfig.model}`,
+      );
     }
 
     try {
@@ -3255,7 +3729,9 @@ export class AiService {
       const duration = Date.now() - startTime;
 
       if (ctx.consoleDetailedLocal) {
-        console.log(`[${formatBeijingTime()}] [AI:EDIT] editSlide 完成: ${currentHtml.length} → ${html.length} chars, 耗时=${duration}ms`);
+        console.log(
+          `[${formatBeijingTime()}] [AI:EDIT] editSlide 完成: ${currentHtml.length} → ${html.length} chars, 耗时=${duration}ms`,
+        );
         console.log(`[${formatBeijingTime()}] [AI:EDIT] ========== editSlide 结束 ==========\n`);
       }
 
@@ -3268,7 +3744,11 @@ export class AiService {
             userRequest,
             currentHtmlLength: currentHtml.length,
             primaryColor: primaryColor || '#2563eb',
-            model: { provider: ctx.editingConfig.provider, model: ctx.editingConfig.model, baseUrl: ctx.editingConfig.baseUrl },
+            model: {
+              provider: ctx.editingConfig.provider,
+              model: ctx.editingConfig.model,
+              baseUrl: ctx.editingConfig.baseUrl,
+            },
           },
           response: {
             htmlLength: html.length,
@@ -3300,9 +3780,15 @@ export class AiService {
 
     if (ctx.consoleDetailedLocal) {
       console.log(`\n[${timestamp}] [AI:EDIT] ========== editElement 开始 ==========`);
-      console.log(`[${timestamp}] [AI:EDIT] 用户指令: ${userRequest.length > 200 ? userRequest.substring(0, 200) + '...' : userRequest}`);
-      console.log(`[${timestamp}] [AI:EDIT] 元素类型: <${tagName}>, HTML长度: ${elementHtml.length} chars`);
-      console.log(`[${timestamp}] [AI:EDIT] 编辑模型: ${ctx.editingConfig.provider}/${ctx.editingConfig.model}`);
+      console.log(
+        `[${timestamp}] [AI:EDIT] 用户指令: ${userRequest.length > 200 ? userRequest.substring(0, 200) + '...' : userRequest}`,
+      );
+      console.log(
+        `[${timestamp}] [AI:EDIT] 元素类型: <${tagName}>, HTML长度: ${elementHtml.length} chars`,
+      );
+      console.log(
+        `[${timestamp}] [AI:EDIT] 编辑模型: ${ctx.editingConfig.provider}/${ctx.editingConfig.model}`,
+      );
     }
 
     try {
@@ -3310,7 +3796,9 @@ export class AiService {
       const duration = Date.now() - startTime;
 
       if (ctx.consoleDetailedLocal) {
-        console.log(`[${formatBeijingTime()}] [AI:EDIT] editElement 完成: ${elementHtml.length} → ${html.length} chars, 耗时=${duration}ms`);
+        console.log(
+          `[${formatBeijingTime()}] [AI:EDIT] editElement 完成: ${elementHtml.length} → ${html.length} chars, 耗时=${duration}ms`,
+        );
         console.log(`[${formatBeijingTime()}] [AI:EDIT] ========== editElement 结束 ==========\n`);
       }
 
@@ -3324,7 +3812,11 @@ export class AiService {
             elementTag: tagName,
             elementHtmlLength: elementHtml.length,
             elementHtml,
-            model: { provider: ctx.editingConfig.provider, model: ctx.editingConfig.model, baseUrl: ctx.editingConfig.baseUrl },
+            model: {
+              provider: ctx.editingConfig.provider,
+              model: ctx.editingConfig.model,
+              baseUrl: ctx.editingConfig.baseUrl,
+            },
           },
           response: {
             htmlLength: html.length,
@@ -3355,10 +3847,16 @@ export class AiService {
 
     if (ctx.consoleDetailedLocal) {
       console.log(`\n[${timestamp}] [AI:EDIT] ========== editGlobal 开始 ==========`);
-      console.log(`[${timestamp}] [AI:EDIT] 用户指令: ${userRequest.length > 200 ? userRequest.substring(0, 200) + '...' : userRequest}`);
-      console.log(`[${timestamp}] [AI:EDIT] 演示文稿: "${presentation.title}", 共 ${presentation.slides.length} 页, 总HTML长度: ${totalHtmlLen} chars`);
+      console.log(
+        `[${timestamp}] [AI:EDIT] 用户指令: ${userRequest.length > 200 ? userRequest.substring(0, 200) + '...' : userRequest}`,
+      );
+      console.log(
+        `[${timestamp}] [AI:EDIT] 演示文稿: "${presentation.title}", 共 ${presentation.slides.length} 页, 总HTML长度: ${totalHtmlLen} chars`,
+      );
       console.log(`[${timestamp}] [AI:EDIT] 当前页: 第 ${currentSlideIndex + 1} 页`);
-      console.log(`[${timestamp}] [AI:EDIT] 编辑模型: ${ctx.editingConfig.provider}/${ctx.editingConfig.model}`);
+      console.log(
+        `[${timestamp}] [AI:EDIT] 编辑模型: ${ctx.editingConfig.provider}/${ctx.editingConfig.model}`,
+      );
     }
 
     try {
@@ -3367,9 +3865,13 @@ export class AiService {
       const resultHtmlLen = result.slides.reduce((sum, s) => sum + s.html.length, 0);
 
       if (ctx.consoleDetailedLocal) {
-        console.log(`[${formatBeijingTime()}] [AI:EDIT] editGlobal 完成: 返回 ${result.slides.length} 页, 总HTML长度: ${resultHtmlLen} chars, 耗时=${duration}ms`);
+        console.log(
+          `[${formatBeijingTime()}] [AI:EDIT] editGlobal 完成: 返回 ${result.slides.length} 页, 总HTML长度: ${resultHtmlLen} chars, 耗时=${duration}ms`,
+        );
         if (result.slides.length !== presentation.slides.length) {
-          console.log(`[${formatBeijingTime()}] [AI:EDIT] 页数变化: ${presentation.slides.length} → ${result.slides.length}`);
+          console.log(
+            `[${formatBeijingTime()}] [AI:EDIT] 页数变化: ${presentation.slides.length} → ${result.slides.length}`,
+          );
         }
         console.log(`[${formatBeijingTime()}] [AI:EDIT] ========== editGlobal 结束 ==========\n`);
       }
@@ -3385,7 +3887,11 @@ export class AiService {
             slideCount: presentation.slides.length,
             totalHtmlLength: totalHtmlLen,
             currentSlideIndex,
-            model: { provider: ctx.editingConfig.provider, model: ctx.editingConfig.model, baseUrl: ctx.editingConfig.baseUrl },
+            model: {
+              provider: ctx.editingConfig.provider,
+              model: ctx.editingConfig.model,
+              baseUrl: ctx.editingConfig.baseUrl,
+            },
           },
           response: {
             title: result.title,
@@ -3419,9 +3925,7 @@ export class AiService {
    */
   private slideHasMeaningfulBody(html: string): boolean {
     if (!html) return false;
-    let stripped = html
-      .replace(/^<div\b[^>]*>/i, '')
-      .replace(/<\/div>\s*$/i, '');
+    let stripped = html.replace(/^<div\b[^>]*>/i, '').replace(/<\/div>\s*$/i, '');
     stripped = stripped.replace(/<h[12]\b[^>]*>[\s\S]*?<\/h[12]>/gi, '');
     const textOnly = stripped
       .replace(/<!--[\s\S]*?-->/g, '')
@@ -3439,13 +3943,23 @@ export class AiService {
     const imgRegex = /<img[^>]*src\s*=\s*["']([^"']*)["'][^>]*>/gi;
     let m: RegExpExecArray | null;
     while ((m = imgRegex.exec(html)) !== null) {
-      const src = m[1].trim().replace(/^`|`$/g, '').trim().replace(/^["']|["']$/g, '').trim();
+      const src = m[1]
+        .trim()
+        .replace(/^`|`$/g, '')
+        .trim()
+        .replace(/^["']|["']$/g, '')
+        .trim();
       if (src) imgs.push({ fullMatch: m[0], src });
     }
     const bgImages: Array<{ fullMatch: string; url: string }> = [];
     const bgRegex = /background-image\s*:\s*[^;]*url\(\s*['"]?([^'")]+)['"]?\s*\)[^;]*;?/gi;
     while ((m = bgRegex.exec(html)) !== null) {
-      const url = m[1].trim().replace(/^`|`$/g, '').trim().replace(/^["']|["']$/g, '').trim();
+      const url = m[1]
+        .trim()
+        .replace(/^`|`$/g, '')
+        .trim()
+        .replace(/^["']|["']$/g, '')
+        .trim();
       if (url) bgImages.push({ fullMatch: m[0], url });
     }
     return { imgs, bgImages };
@@ -3456,7 +3970,8 @@ export class AiService {
     if (url.startsWith('data:')) return false;
     if (url.startsWith('#')) return false;
     if (url.startsWith('http://localhost')) return false;
-    if (url.includes('NOPPT_IMAGE_PLACEHOLDER') || url.includes('NOPPT_BG_PLACEHOLDER')) return false;
+    if (url.includes('NOPPT_IMAGE_PLACEHOLDER') || url.includes('NOPPT_BG_PLACEHOLDER'))
+      return false;
     return url.startsWith('/data/');
   }
 
@@ -3501,11 +4016,15 @@ export class AiService {
           const filePath = join(this.storage.getWorkspaceDir(), relative);
           if (existsSync(filePath)) {
             const lowerPath = filePath.toLowerCase();
-            const ext = lowerPath.endsWith('.png') ? 'image/png'
-              : lowerPath.endsWith('.jpg') || lowerPath.endsWith('.jpeg') ? 'image/jpeg'
-              : lowerPath.endsWith('.webp') ? 'image/webp'
-              : lowerPath.endsWith('.gif') ? 'image/gif'
-              : 'image/png';
+            const ext = lowerPath.endsWith('.png')
+              ? 'image/png'
+              : lowerPath.endsWith('.jpg') || lowerPath.endsWith('.jpeg')
+                ? 'image/jpeg'
+                : lowerPath.endsWith('.webp')
+                  ? 'image/webp'
+                  : lowerPath.endsWith('.gif')
+                    ? 'image/gif'
+                    : 'image/png';
             const buf = readFileSync(filePath);
             const dataUri = `data:${ext};base64,${buf.toString('base64')}`;
             return pre + dataUri + post;
@@ -3538,14 +4057,12 @@ export class AiService {
   }
 
   private vlmHasBlockingIssue(vlm: VlmReviewResult): boolean {
-    return vlm.issues.some(
-      i => i.severity === 'error' || i.severity === 'warn',
-    );
+    return vlm.issues.some((i) => i.severity === 'error' || i.severity === 'warn');
   }
 
   private buildVlmFeedback(vlm: VlmReviewResult): string {
     const items = vlm.issues
-      .filter(i => i.severity === 'error' || i.severity === 'warn')
+      .filter((i) => i.severity === 'error' || i.severity === 'warn')
       .map((issue, i) => {
         const cause = issue.metadata?.rootCause ? `【根因:${issue.metadata.rootCause}】` : '';
         return `${i + 1}. [${issue.severity}]${cause} ${issue.message}${issue.fixSuggestion ? ` → 建议: ${issue.fixSuggestion}` : ''}`;
@@ -3565,8 +4082,14 @@ export class AiService {
     referenceCategory?: string;
   }): Promise<string | null> {
     const {
-      imageProvider, imagePrompt, targetSize, presentationId, slideIdx, imageOptions,
-      referenceImageByCategory, referenceCategory,
+      imageProvider,
+      imagePrompt,
+      targetSize,
+      presentationId,
+      slideIdx,
+      imageOptions,
+      referenceImageByCategory,
+      referenceCategory,
     } = params;
     try {
       const images = await imageProvider.generateImage(imagePrompt, {
@@ -3580,11 +4103,17 @@ export class AiService {
       });
       if (images && images.length > 0 && images[0].url) {
         const localUrl = await this.storage.saveImageFromUrl(presentationId, images[0].url);
-        simpleLog('AI:VLM-LOOP', `第 ${slideIdx + 1} 页图片重生成成功`, { size: targetSize, localUrl });
+        simpleLog('AI:VLM-LOOP', `第 ${slideIdx + 1} 页图片重生成成功`, {
+          size: targetSize,
+          localUrl,
+        });
         return localUrl;
       }
     } catch (e) {
-      console.warn(`[AI:VLM-LOOP] 第 ${slideIdx + 1} 页图片重生成失败:`, e instanceof Error ? e.message : e);
+      console.warn(
+        `[AI:VLM-LOOP] 第 ${slideIdx + 1} 页图片重生成失败:`,
+        e instanceof Error ? e.message : e,
+      );
     }
     return null;
   }
@@ -3600,7 +4129,16 @@ export class AiService {
     slideHeight: number;
     startIndex?: number;
   }) {
-    const { agent, topic, options, maxRetries, slideWidth, slideHeight, startIndex = 0, referenceHtmlBrief } = params;
+    const {
+      agent,
+      topic,
+      options,
+      maxRetries,
+      slideWidth,
+      slideHeight,
+      startIndex = 0,
+      referenceHtmlBrief,
+    } = params;
     const htmlOnlyOptions = {
       ...options,
       referenceVisualAttributes: params.referenceVisualAttributes,
@@ -3613,11 +4151,7 @@ export class AiService {
     ): Promise<RenderedSlide[]> => {
       // —— 内联自检开关：总关 / VLM 占位子关 → 直接跳过 HTML 占位审核闭环 ——
       const critiqueCfg = (options as any)?.critique;
-      if (
-        !critiqueCfg ||
-        critiqueCfg.enabled === false ||
-        critiqueCfg.vlmPlaceholder === false
-      ) {
+      if (!critiqueCfg || critiqueCfg.enabled === false || critiqueCfg.vlmPlaceholder === false) {
         simpleLog(
           'AI:HTML-AUDIT',
           `因内联自检开关关闭（enabled=${critiqueCfg?.enabled ?? 'undefined'}，vlmPlaceholder=${critiqueCfg?.vlmPlaceholder ?? 'undefined'}），跳过 HTML 占位审核闭环（共 ${slides.length} 页）`,
@@ -3631,7 +4165,10 @@ export class AiService {
         (vlmProvider as TraceableProvider).activeTraceSessionId = ctx.traceSessionId;
       }
       try {
-        simpleLog('AI:HTML-AUDIT', `开始 HTML 占位符审核闭环（${slides.length} 页，最多重试 ${maxRetries} 次）`);
+        simpleLog(
+          'AI:HTML-AUDIT',
+          `开始 HTML 占位符审核闭环（${slides.length} 页，最多重试 ${maxRetries} 次）`,
+        );
         return await runHtmlPlaceholderAuditLoop({
           slides,
           vlmProvider,
@@ -3645,8 +4182,15 @@ export class AiService {
             // AC-6 / Task6：HTML 占位符审计闭环也需 originalHtml 注入，budget 耗尽保留原 HTML
             const originalHtml = slides[idx]?.html || '';
             return agent.regenerateSingleSlide(
-              topic, ctx.plan, ctx.design, startIndex + idx, htmlOnlyOptions, ctx.traceSessionId, feedback,
-              'placeholder-audit', originalHtml,
+              topic,
+              ctx.plan,
+              ctx.design,
+              startIndex + idx,
+              htmlOnlyOptions,
+              ctx.traceSessionId,
+              feedback,
+              'placeholder-audit',
+              originalHtml,
             );
           },
         });
@@ -3678,14 +4222,26 @@ export class AiService {
     colorTheme?: ColorTheme;
   }): Promise<{ regeneratedCount: number; attempts: number }> {
     const {
-      result, plan, design, agent, imageProvider, imageOptions,
-      traceSessionId, topic, maxRetries, slideWidth, slideHeight, generationOptions,
-      primaryColor, colorTheme,
+      result,
+      plan,
+      design,
+      agent,
+      imageProvider,
+      imageOptions,
+      traceSessionId,
+      topic,
+      maxRetries,
+      slideWidth,
+      slideHeight,
+      generationOptions,
+      primaryColor,
+      colorTheme,
     } = params;
 
     // FR-15：从 generationOptions.referenceVisualAttributes 抽取分类参考图 seed 映射，
     // 供循环内图片重生成按 slide pageType 选取 img2img seed。
-    const referenceSeedMap: Partial<Record<'cover' | 'content' | 'summary' | 'global', string>> | undefined = (() => {
+    const referenceSeedMap:
+      Partial<Record<'cover' | 'content' | 'summary' | 'global', string>> | undefined = (() => {
       const rva = (generationOptions as any)?.referenceVisualAttributes;
       if (!rva || !rva.byCategory) return undefined;
       return {
@@ -3727,7 +4283,10 @@ export class AiService {
       renderer = new SlideRenderer({ width: slideWidth, height: slideHeight });
       await renderer.initialize();
     } catch (e) {
-      console.warn('[AI:VLM-LOOP] 渲染器初始化失败，跳过步骤3闭环:', e instanceof Error ? e.message : e);
+      console.warn(
+        '[AI:VLM-LOOP] 渲染器初始化失败，跳过步骤3闭环:',
+        e instanceof Error ? e.message : e,
+      );
       return { regeneratedCount: 0, attempts: 0 };
     }
 
@@ -3743,7 +4302,10 @@ export class AiService {
     try {
       while (attempt < maxRetries) {
         attempt++;
-        simpleLog('AI:AUDIT', `[RETRY] stage=audit attempt=${attempt}/${maxRetries} loop=vlm-triage`);
+        simpleLog(
+          'AI:AUDIT',
+          `[RETRY] stage=audit attempt=${attempt}/${maxRetries} loop=vlm-triage`,
+        );
         setSessionStage(traceSessionId, 'post-image-vlm-triage');
         simpleLog('AI:VLM-LOOP', `开始第 ${attempt} 轮终局 VLM 分诊评审`);
 
@@ -3781,8 +4343,9 @@ export class AiService {
           const targetSize = this.mapRatioToSize(ratio, imageOptions?.size);
 
           if (triage === 'image') {
-            const originalPrompt = (slidePlan as any)?.imagePrompt
-              || `${topic} - ${slide.title || ''}，商务级专业插画品质，细腻细节，高完成度画面，整体配色与主题协调`;
+            const originalPrompt =
+              (slidePlan as any)?.imagePrompt ||
+              `${topic} - ${slide.title || ''}，商务级专业插画品质，细腻细节，高完成度画面，整体配色与主题协调`;
             const enhancedPrompt = `${originalPrompt}\n\n【视觉评审反馈，请针对性改进图片本身，避免之前的问题】\n${feedback}`;
             const newUrl = await this.generateAndLocalizeImage({
               imageProvider,
@@ -3799,7 +4362,7 @@ export class AiService {
                 slide.html = replaceImagePlaceholderWithRealSrc(slide.html, newUrl, ratio as any);
               } else {
                 const { imgs } = this.collectImageRefs(slide.html);
-                const localImgs = imgs.filter(ref => this.isLocalAssetUrl(ref.src));
+                const localImgs = imgs.filter((ref) => this.isLocalAssetUrl(ref.src));
                 if (localImgs.length > 0) {
                   slide.html = this.replaceImageUrlInHtml(slide.html, localImgs[0].src, newUrl);
                 }
@@ -3816,17 +4379,19 @@ export class AiService {
             //   - triage === 'html' 且 非 fatal → 直接跳过 HTML 重写；
             //   - triage === 'both' 且 非 fatal → 允许图片 regenerate，但跳过 HTML。
             // TODO(#R1-followup): 提供 auditSettings.allowMinorHtmlRegen 扩展位，若后续需要强审核模式可显式打开。
-            const hasVlmFatal = vlm.issues.some(i => i.severity === 'error');
+            const hasVlmFatal = vlm.issues.some((i) => i.severity === 'error');
             const allNonFatal = vlm.issues.length > 0 && !hasVlmFatal;
             if (allNonFatal && triage === 'html') {
               console.info(
                 `[AI:VLM-LOOP] slide ${idx + 1} 全是非 fatal VLM issue（均为 warn/info 级视觉建议），按 P1-B 政策不整页 HTML 重写（避免灾难性劣化）：` +
-                JSON.stringify(vlm.issues.map(i => `${i.severity}:${i.ruleId || i.message}`)),
+                  JSON.stringify(vlm.issues.map((i) => `${i.severity}:${i.ruleId || i.message}`)),
               );
               continue;
             }
             if (!plan || !design) {
-              console.warn(`[AI:VLM-LOOP] 第 ${idx + 1} 页需要 HTML 重生成但缺少 plan/design，跳过`);
+              console.warn(
+                `[AI:VLM-LOOP] 第 ${idx + 1} 页需要 HTML 重生成但缺少 plan/design，跳过`,
+              );
               continue;
             }
             try {
@@ -3842,23 +4407,41 @@ export class AiService {
                 imageOptions: undefined,
                 primaryColor: finalEffectivePrimary,
                 colorTheme: colorTheme ?? (generationOptions?.colorTheme as ColorTheme | undefined),
-                imagePreference: (generationOptions?.imagePreference as ImagePreference | undefined) ?? 'content-only',
-                referenceVisualAttributes: (generationOptions as any)?.referenceVisualAttributes ?? undefined,
+                imagePreference:
+                  (generationOptions?.imagePreference as ImagePreference | undefined) ??
+                  'content-only',
+                referenceVisualAttributes:
+                  (generationOptions as any)?.referenceVisualAttributes ?? undefined,
               };
 
               // P1-B triage==='both' && allNonFatal → 跳过 HTML regenerate，仅尝试图片侧生成（若 imageProvider 存在）
               const skipHtmlRegen = allNonFatal && triage === 'both';
-              let regenerated: Awaited<ReturnType<HTMLPresentationAgent['regenerateSingleSlide']>> = null;
+              let regenerated: Awaited<ReturnType<HTMLPresentationAgent['regenerateSingleSlide']>> =
+                null;
               if (!skipHtmlRegen) {
                 const originalHtmlBeforeRegen: string = slide.html;
                 regenerated = await agent.regenerateSingleSlide(
-                  topic, plan, design, idx, regenOptions, traceSessionId, feedback,
-                  'vlm-triage', originalHtmlBeforeRegen,
+                  topic,
+                  plan,
+                  design,
+                  idx,
+                  regenOptions,
+                  traceSessionId,
+                  feedback,
+                  'vlm-triage',
+                  originalHtmlBeforeRegen,
                 );
                 if (regenerated) {
                   // FR-6: triage==='html' 且 pageType 为带图类，验证占位符未丢（若丢则写 warn，不阻断）
-                  const needImgType = /image/i.test(regenerated.pageType || '') || /cover/i.test(regenerated.pageType || '');
-                  if (triage === 'html' && needImgType && !regenerated.html.includes(IMAGE_PLACEHOLDER) && !/<img\b/i.test(regenerated.html)) {
+                  const needImgType =
+                    /image/i.test(regenerated.pageType || '') ||
+                    /cover/i.test(regenerated.pageType || '');
+                  if (
+                    triage === 'html' &&
+                    needImgType &&
+                    !regenerated.html.includes(IMAGE_PLACEHOLDER) &&
+                    !/<img\b/i.test(regenerated.html)
+                  ) {
                     console.warn(
                       `[AI:VLM-LOOP] 第 ${idx + 1} 页 pageType=${regenerated.pageType} 本应为带图结构，但 regenerated HTML 丢失图片占位符。` +
                         `建议修复 LLM prompt 约束（已保留原始 slide.html 作为备选但本次实际使用 regenerated 版本）。`,
@@ -3882,15 +4465,19 @@ export class AiService {
                 (skipHtmlRegen || (regenerated && regenerated.html.includes(IMAGE_PLACEHOLDER))) &&
                 imageProvider?.generateImage
               ) {
-                const newRatio = (skipHtmlRegen ? ratio : (regenerated?.imageRatio || ratio)) as string;
+                const newRatio = (
+                  skipHtmlRegen ? ratio : regenerated?.imageRatio || ratio
+                ) as string;
                 const newSize = this.mapRatioToSize(newRatio, imageOptions?.size);
                 const regenTitle = regenerated?.title || slide.title || '';
-                const regenImgPrompt = regenerated?.imagePrompt
-                  || (slidePlan as any)?.imagePrompt
-                  || `${topic} - ${regenTitle}，商务级专业插画品质`;
-                const imgPrompt = triage === 'both'
-                  ? `${regenImgPrompt}\n\n【视觉评审反馈，请针对性改进图片本身】\n${feedback}`
-                  : regenImgPrompt;
+                const regenImgPrompt =
+                  regenerated?.imagePrompt ||
+                  (slidePlan as any)?.imagePrompt ||
+                  `${topic} - ${regenTitle}，商务级专业插画品质`;
+                const imgPrompt =
+                  triage === 'both'
+                    ? `${regenImgPrompt}\n\n【视觉评审反馈，请针对性改进图片本身】\n${feedback}`
+                    : regenImgPrompt;
                 const newUrl = await this.generateAndLocalizeImage({
                   imageProvider,
                   imagePrompt: imgPrompt,
@@ -3902,11 +4489,18 @@ export class AiService {
                   referenceCategory: slide.pageType,
                 });
                 if (newUrl) {
-                  slide.html = replaceImagePlaceholderWithRealSrc(slide.html, newUrl, newRatio as any);
+                  slide.html = replaceImagePlaceholderWithRealSrc(
+                    slide.html,
+                    newUrl,
+                    newRatio as any,
+                  );
                 }
               }
             } catch (e) {
-              console.warn(`[AI:VLM-LOOP] 第 ${idx + 1} 页 HTML 重生成失败:`, e instanceof Error ? e.message : e);
+              console.warn(
+                `[AI:VLM-LOOP] 第 ${idx + 1} 页 HTML 重生成失败:`,
+                e instanceof Error ? e.message : e,
+              );
             }
           }
         }
@@ -3928,7 +4522,11 @@ export class AiService {
       (imageProvider as TraceableProvider).activeTraceSessionId = previousProviderSession;
       (vlmProvider as TraceableProvider).activeTraceSessionId = previousVlmSession;
       if (renderer) {
-        try { await renderer.close(); } catch { /* ignore */ }
+        try {
+          await renderer.close();
+        } catch {
+          /* ignore */
+        }
       }
     }
 
@@ -3950,10 +4548,20 @@ export class AiService {
     designContext: { style: string; primaryColor: string; fontFamily: string; iconStyle: string };
     referenceContext?: ReferenceContext;
     referenceVisualAttributes?: ReferenceVisualAttributes;
-    }): Promise<{ regeneratedCount: number; attempts: number }> {
-    const { result, plan, imageProvider, imageConfig, traceSessionId, topic, maxRetries, designContext } = params;
+  }): Promise<{ regeneratedCount: number; attempts: number }> {
+    const {
+      result,
+      plan,
+      imageProvider,
+      imageConfig,
+      traceSessionId,
+      topic,
+      maxRetries,
+      designContext,
+    } = params;
     // FR-15：分类参考图 seed 映射，供循环内图片重生成按 slide pageType 选取 img2img seed。
-    const referenceSeedMap: Partial<Record<'cover' | 'content' | 'summary' | 'global', string>> | undefined = (() => {
+    const referenceSeedMap:
+      Partial<Record<'cover' | 'content' | 'summary' | 'global', string>> | undefined = (() => {
       const rva = params.referenceVisualAttributes;
       if (!rva || !rva.byCategory) return undefined;
       return {
@@ -3976,31 +4584,37 @@ export class AiService {
     try {
       while (attempt < maxRetries) {
         attempt++;
-        simpleLog('AI:AUDIT', `[RETRY] stage=audit attempt=${attempt}/${maxRetries} loop=image-regen`);
+        simpleLog(
+          'AI:AUDIT',
+          `[RETRY] stage=audit attempt=${attempt}/${maxRetries} loop=image-regen`,
+        );
         setSessionStage(traceSessionId, 'audit-image-regen');
 
-        const report = await this.auditService.auditPresentationFromData(
-          result,
-          result.id,
-          { plan, designContext, referenceContext: params.referenceContext },
-        );
+        const report = await this.auditService.auditPresentationFromData(result, result.id, {
+          plan,
+          designContext,
+          referenceContext: params.referenceContext,
+        });
 
-        const visibleSlides = result.slides.filter(s => !(s as any).hidden);
+        const visibleSlides = result.slides.filter((s) => !(s as any).hidden);
         const visibleToReal: number[] = [];
         result.slides.forEach((s, realIdx) => {
           if (!(s as any).hidden) visibleToReal.push(realIdx);
         });
 
-        const imageIssues = report.issues.filter(i =>
-          i.engine === 'visual' &&
-          (i.severity === 'error' || i.severity === 'warn') &&
-          i.metadata?.source === 'vlm' &&
-          i.metadata?.imageRelated === true,
+        const imageIssues = report.issues.filter(
+          (i) =>
+            i.engine === 'visual' &&
+            (i.severity === 'error' || i.severity === 'warn') &&
+            i.metadata?.source === 'vlm' &&
+            i.metadata?.imageRelated === true,
         );
 
         if (imageIssues.length === 0) {
           if (attempt > 1) {
-            simpleLog('AI:AUDIT-IMG', `第 ${attempt} 轮审核无图片问题，闭环结束`, { id: result.id });
+            simpleLog('AI:AUDIT-IMG', `第 ${attempt} 轮审核无图片问题，闭环结束`, {
+              id: result.id,
+            });
           }
           break;
         }
@@ -4026,38 +4640,51 @@ export class AiService {
           queue.push(async () => {
             const slide = result.slides[realIdx];
             const { imgs, bgImages } = this.collectImageRefs(slide.html);
-            const localImgs = imgs.filter(ref => this.isLocalAssetUrl(ref.src));
-            const localBg = bgImages.filter(ref => this.isLocalAssetUrl(ref.url));
+            const localImgs = imgs.filter((ref) => this.isLocalAssetUrl(ref.src));
+            const localBg = bgImages.filter((ref) => this.isLocalAssetUrl(ref.url));
 
             if (localImgs.length === 0 && localBg.length === 0) return;
 
             const slidePlan = plan?.slides?.[realIdx] as any;
-            const originalPrompt = slidePlan?.imagePrompt
-              || `${topic} - ${slide.title || ''}，商务级专业插画品质，细腻细节，高完成度画面，整体配色与主题协调`;
+            const originalPrompt =
+              slidePlan?.imagePrompt ||
+              `${topic} - ${slide.title || ''}，商务级专业插画品质，细腻细节，高完成度画面，整体配色与主题协调`;
             const feedback = suggestions.map((s, i) => `${i + 1}. ${s}`).join('\n');
             const enhancedPrompt = `${originalPrompt}\n\n【视觉评审反馈，请针对性改进，避免之前的问题】\n${feedback}`;
 
-            const tasks: Array<{ oldUrl: string; newUrl: string; kind: 'img' | 'bg'; ratio?: string }> = [];
+            const tasks: Array<{
+              oldUrl: string;
+              newUrl: string;
+              kind: 'img' | 'bg';
+              ratio?: string;
+            }> = [];
 
             for (const ref of localImgs) {
               const ratio = this.extractRatioFromImgTag(ref.fullMatch);
               const size = this.mapRatioToSize(ratio, imageConfig?.size);
               try {
                 const images = await imageProvider.generateImage(enhancedPrompt, {
-                size,
-                n: 1,
-                referenceImageByCategory: referenceSeedMap,
-                referenceCategory: slide.pageType,
-              });
+                  size,
+                  n: 1,
+                  referenceImageByCategory: referenceSeedMap,
+                  referenceCategory: slide.pageType,
+                });
                 if (images && images.length > 0 && images[0].url) {
                   const localPath = await this.storage.saveImageFromUrl(result.id, images[0].url);
                   tasks.push({ oldUrl: ref.src, newUrl: localPath, kind: 'img', ratio });
                   simpleLog('AI:AUDIT-IMG', `第 ${attempt} 轮重生成内容配图`, {
-                    id: result.id, slide: realIdx + 1, oldUrl: ref.src, newUrl: localPath, size,
+                    id: result.id,
+                    slide: realIdx + 1,
+                    oldUrl: ref.src,
+                    newUrl: localPath,
+                    size,
                   });
                 }
               } catch (e) {
-                console.warn(`[${formatBeijingTime()}] [AI:AUDIT-IMG] 第 ${realIdx + 1} 页内容配图重生成失败:`, e instanceof Error ? e.message : e);
+                console.warn(
+                  `[${formatBeijingTime()}] [AI:AUDIT-IMG] 第 ${realIdx + 1} 页内容配图重生成失败:`,
+                  e instanceof Error ? e.message : e,
+                );
               }
             }
 
@@ -4073,11 +4700,17 @@ export class AiService {
                   const localPath = await this.storage.saveImageFromUrl(result.id, images[0].url);
                   tasks.push({ oldUrl: ref.url, newUrl: localPath, kind: 'bg' });
                   simpleLog('AI:AUDIT-IMG', `第 ${attempt} 轮重生成背景图`, {
-                    id: result.id, slide: realIdx + 1, oldUrl: ref.url, newUrl: localPath,
+                    id: result.id,
+                    slide: realIdx + 1,
+                    oldUrl: ref.url,
+                    newUrl: localPath,
                   });
                 }
               } catch (e) {
-                console.warn(`[${formatBeijingTime()}] [AI:AUDIT-IMG] 第 ${realIdx + 1} 页背景图重生成失败:`, e instanceof Error ? e.message : e);
+                console.warn(
+                  `[${formatBeijingTime()}] [AI:AUDIT-IMG] 第 ${realIdx + 1} 页背景图重生成失败:`,
+                  e instanceof Error ? e.message : e,
+                );
               }
             }
 
@@ -4094,7 +4727,9 @@ export class AiService {
           if (queue.length === 0) return;
           const task = queue.shift()!;
           running++;
-          try { await task(); } finally {
+          try {
+            await task();
+          } finally {
             running--;
             if (running < concurrency && queue.length > 0) await runNext();
           }
@@ -4114,7 +4749,8 @@ export class AiService {
             result,
           );
           simpleLog('AI:AUDIT-IMG', `第 ${attempt} 轮完成，重生成 ${slideRegenCount} 张图片`, {
-            id: result.id, slideCount: issuesBySlide.size,
+            id: result.id,
+            slideCount: issuesBySlide.size,
           });
         } else {
           break;
@@ -4160,7 +4796,9 @@ export class AiService {
       'content-cards',
     ]);
     const explicitPt = typeof opts.pageType === 'string' ? opts.pageType.toLowerCase() : undefined;
-    const layoutFromHtml = (html.match(/<\s*(?:div|section|article)\b[^>]*\bdata-layout\s*=\s*["']?([a-z0-9-]+)["']?[^>]*>/i) || [])[1]?.toLowerCase();
+    const layoutFromHtml = (html.match(
+      /<\s*(?:div|section|article)\b[^>]*\bdata-layout\s*=\s*["']?([a-z0-9-]+)["']?[^>]*>/i,
+    ) || [])[1]?.toLowerCase();
     if (
       (explicitPt && PROTECTED_LAYOUT_FOR_INJECT.has(explicitPt)) ||
       (layoutFromHtml && PROTECTED_LAYOUT_FOR_INJECT.has(layoutFromHtml))
@@ -4207,7 +4845,9 @@ export class AiService {
       if (bufferLines.length === 0) return;
       const joined = bufferLines.join(' ').trim();
       if (joined) {
-        parts.push(`<p style="font-size:24px;color:#374151;margin:0;font-weight:600;line-height:1.5;overflow-wrap:break-word;word-break:break-word;">${joined}</p>`);
+        parts.push(
+          `<p style="font-size:24px;color:#374151;margin:0;font-weight:600;line-height:1.5;overflow-wrap:break-word;word-break:break-word;">${joined}</p>`,
+        );
       }
       bufferLines = [];
     };
@@ -4243,26 +4883,34 @@ export class AiService {
    * 被打为 minimal，从而孤儿救援 maxFill 被限制为 2 张、cover/summary 的 BG 注入不触发。
    * 15% 以下才认定为 minimal，更符合"尽量少配图"的语义。
    */
-  private inferImagePreferenceFromPresentation(result: { slides: Array<{ html: string; title?: string; pageType?: string }> }): ImagePreference {
+  private inferImagePreferenceFromPresentation(result: {
+    slides: Array<{ html: string; title?: string; pageType?: string }>;
+  }): ImagePreference {
     const slides = result.slides || [];
     if (slides.length === 0) return 'content-only';
     const hasImg = (h: string) => /<img\b/i.test(h);
-    const isStructureLike = (idx: number, s: { title?: string; pageType?: string; html: string }) => {
+    const isStructureLike = (
+      idx: number,
+      s: { title?: string; pageType?: string; html: string },
+    ) => {
       if (s.pageType === 'cover' || s.pageType === 'toc' || s.pageType === 'summary') return true;
       if (idx === 0) return true; // 第一张按封面看
       if (idx === slides.length - 1) return true; // 最后一张按总结看
-      return /font-size:\s*[7-9]\dpx|font-size:\s*1\d{2,}px|<h1\b|目录|总结|感谢|开启.*纪元|结论/i.test(`${s.title} ${s.html}`);
+      return /font-size:\s*[7-9]\dpx|font-size:\s*1\d{2,}px|<h1\b|目录|总结|感谢|开启.*纪元|结论/i.test(
+        `${s.title} ${s.html}`,
+      );
     };
     const structureIdxs = slides.map((s, i) => isStructureLike(i, s));
-    const contentIdxs = structureIdxs.map(x => !x);
+    const contentIdxs = structureIdxs.map((x) => !x);
     const contentSlides = slides.filter((_, i) => contentIdxs[i]);
     const first = slides[0];
     const last = slides[slides.length - 1];
     const coverHasImage = hasImg(first.html);
     const summaryHasImage = hasImg(last.html);
-    const contentWithImage = contentSlides.filter(s => hasImg(s.html)).length;
-    const contentImageRatio = contentSlides.length > 0 ? contentWithImage / contentSlides.length : 0;
-    const totalWithImage = slides.filter(s => hasImg(s.html)).length;
+    const contentWithImage = contentSlides.filter((s) => hasImg(s.html)).length;
+    const contentImageRatio =
+      contentSlides.length > 0 ? contentWithImage / contentSlides.length : 0;
+    const totalWithImage = slides.filter((s) => hasImg(s.html)).length;
     const totalRatio = totalWithImage / slides.length;
     if (totalRatio === 0) return 'none';
     if (coverHasImage && summaryHasImage && totalRatio >= 0.7) return 'all';
@@ -4302,7 +4950,9 @@ export class AiService {
       'content-cards',
     ]);
     const explicitPt = typeof opts.pageType === 'string' ? opts.pageType.toLowerCase() : undefined;
-    const layoutFromHtml = (html.match(/<\s*(?:div|section|article)\b[^>]*\bdata-layout\s*=\s*["']?([a-z0-9-]+)["']?[^>]*>/i) || [])[1]?.toLowerCase();
+    const layoutFromHtml = (html.match(
+      /<\s*(?:div|section|article)\b[^>]*\bdata-layout\s*=\s*["']?([a-z0-9-]+)["']?[^>]*>/i,
+    ) || [])[1]?.toLowerCase();
     if (
       (explicitPt && PROTECTED_LAYOUT_FOR_INJECT.has(explicitPt)) ||
       (layoutFromHtml && PROTECTED_LAYOUT_FOR_INJECT.has(layoutFromHtml))
@@ -4316,7 +4966,8 @@ export class AiService {
     }
     const openTag = outerOpen[1];
     const closeIdx = html.lastIndexOf('</div>');
-    if (closeIdx < openTag.length) return this.injectOrphanImageIntoSlide(html, localImageUrl, opts);
+    if (closeIdx < openTag.length)
+      return this.injectOrphanImageIntoSlide(html, localImageUrl, opts);
     const inner = html.substring(openTag.length, closeIdx);
 
     // 蒙层强度：封面稍深保证标题白字可读；总结稍浅
@@ -4329,13 +4980,16 @@ export class AiService {
     // 在原内容最外层加 position:relative（如果没有），让 absolute 背景层定位正确
     let newOpenTag = openTag;
     if (!/position\s*:\s*(relative|absolute|fixed)/i.test(openTag)) {
-      newOpenTag = openTag.replace(/^(<div)/i, `<div style="position:relative;"`).replace(/style\s*=\s*"([^"]*)"/i, (m, innerStyle) => {
-        if (innerStyle && /position\s*:/i.test(innerStyle)) return m;
-        return `style="${innerStyle ? innerStyle + ';' : ''}position:relative;"`;
-      });
+      newOpenTag = openTag
+        .replace(/^(<div)/i, `<div style="position:relative;"`)
+        .replace(/style\s*=\s*"([^"]*)"/i, (m, innerStyle) => {
+          if (innerStyle && /position\s*:/i.test(innerStyle)) return m;
+          return `style="${innerStyle ? innerStyle + ';' : ''}position:relative;"`;
+        });
     }
     const rebuilt = `${newOpenTag}${bgLayer}${inner}</div>`;
-    if (!rebuilt.includes(localImageUrl)) return this.injectOrphanImageIntoSlide(html, localImageUrl, opts);
+    if (!rebuilt.includes(localImageUrl))
+      return this.injectOrphanImageIntoSlide(html, localImageUrl, opts);
     return rebuilt;
   }
 
@@ -4347,15 +5001,86 @@ export class AiService {
    */
   private _serverHasBareText(html: string): boolean {
     const TEXT_TAGS = new Set([
-      'h1','h2','h3','h4','h5','h6','p','li','figcaption','td','th','label','button',
-      'pre','code','blockquote','sup','sub','textarea','option','title','style','script','noscript',
-      'span','strong','em','b','i','u','a','br','font','mark','small','del','ins','s','q','abbr','time'
+      'h1',
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
+      'p',
+      'li',
+      'figcaption',
+      'td',
+      'th',
+      'label',
+      'button',
+      'pre',
+      'code',
+      'blockquote',
+      'sup',
+      'sub',
+      'textarea',
+      'option',
+      'title',
+      'style',
+      'script',
+      'noscript',
+      'span',
+      'strong',
+      'em',
+      'b',
+      'i',
+      'u',
+      'a',
+      'br',
+      'font',
+      'mark',
+      'small',
+      'del',
+      'ins',
+      's',
+      'q',
+      'abbr',
+      'time',
     ]);
     const CONTAINER_TAGS = new Set([
-      'div','section','article','aside','nav','main','header','footer','body',
-      'figure','ul','ol','table','thead','tbody','tfoot','tr','form','details','summary','hgroup'
+      'div',
+      'section',
+      'article',
+      'aside',
+      'nav',
+      'main',
+      'header',
+      'footer',
+      'body',
+      'figure',
+      'ul',
+      'ol',
+      'table',
+      'thead',
+      'tbody',
+      'tfoot',
+      'tr',
+      'form',
+      'details',
+      'summary',
+      'hgroup',
     ]);
-    const SELF_CLOSING = new Set(['br','img','hr','input','meta','link','wbr','area','base','col','embed','source','track']);
+    const SELF_CLOSING = new Set([
+      'br',
+      'img',
+      'hr',
+      'input',
+      'meta',
+      'link',
+      'wbr',
+      'area',
+      'base',
+      'col',
+      'embed',
+      'source',
+      'track',
+    ]);
     const n = html.length;
     // 维护"当前帧 inTextCtx"栈：每当 push 一个新容器/文本标签就入栈，弹栈时恢复父上下文
     const ctxStack: boolean[] = [false];
@@ -4384,10 +5109,16 @@ export class AiService {
         continue;
       }
       const tagEnd = html.indexOf('>', i);
-      if (tagEnd === -1) { i++; continue; }
+      if (tagEnd === -1) {
+        i++;
+        continue;
+      }
       const tagFull = html.slice(i, tagEnd + 1);
       const tm = tagFull.match(/^<\/?([a-zA-Z0-9]+)/);
-      if (!tm) { i = tagEnd + 1; continue; }
+      if (!tm) {
+        i = tagEnd + 1;
+        continue;
+      }
       const tn = tm[1].toLowerCase();
       const closing = tagFull[1] === '/';
       const selfCls = tagFull.endsWith('/>') || SELF_CLOSING.has(tn);
@@ -4429,14 +5160,55 @@ export class AiService {
       return html;
     }
 
-    const DEFAULT_P_STYLE = 'font-size:24px;color:#374151;font-weight:600;line-height:2.0;overflow-wrap:break-word;word-break:break-word;';
+    const DEFAULT_P_STYLE =
+      'font-size:24px;color:#374151;font-weight:600;line-height:2.0;overflow-wrap:break-word;word-break:break-word;';
     const TEXT_TAGS = new Set([
-      'h1','h2','h3','h4','h5','h6','p','li','figcaption','td','th','label','button',
-      'pre','code','blockquote','sup','sub','textarea','option','title','style','script','noscript',
+      'h1',
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
+      'p',
+      'li',
+      'figcaption',
+      'td',
+      'th',
+      'label',
+      'button',
+      'pre',
+      'code',
+      'blockquote',
+      'sup',
+      'sub',
+      'textarea',
+      'option',
+      'title',
+      'style',
+      'script',
+      'noscript',
     ]);
     const CONTAINER_TAGS = new Set([
-      'div','section','article','aside','nav','main','header','footer','body',
-      'figure','ul','ol','table','thead','tbody','tfoot','tr','form','details','summary',
+      'div',
+      'section',
+      'article',
+      'aside',
+      'nav',
+      'main',
+      'header',
+      'footer',
+      'body',
+      'figure',
+      'ul',
+      'ol',
+      'table',
+      'thead',
+      'tbody',
+      'tfoot',
+      'tr',
+      'form',
+      'details',
+      'summary',
     ]);
 
     interface StackFrame {
@@ -4448,7 +5220,14 @@ export class AiService {
       innerBuffer: string;
     }
     const stack: StackFrame[] = [
-      { tagName: '__root__', openTagFull: '', inTextContext: false, pendingBare: '', isContainer: false, innerBuffer: '' },
+      {
+        tagName: '__root__',
+        openTagFull: '',
+        inTextContext: false,
+        pendingBare: '',
+        isContainer: false,
+        innerBuffer: '',
+      },
     ];
 
     const flushBare = (frame: StackFrame) => {
@@ -4514,7 +5293,21 @@ export class AiService {
         }
         const tagName = tagMatch[1].toLowerCase();
         const isClosing = tagFull[1] === '/';
-        const selfClosingSingleton = new Set(['br','img','hr','input','meta','link','wbr','area','base','col','embed','source','track']);
+        const selfClosingSingleton = new Set([
+          'br',
+          'img',
+          'hr',
+          'input',
+          'meta',
+          'link',
+          'wbr',
+          'area',
+          'base',
+          'col',
+          'embed',
+          'source',
+          'track',
+        ]);
         const isSelfClosing = tagFull.endsWith('/>') || selfClosingSingleton.has(tagName);
 
         if (isSelfClosing) {
@@ -4530,13 +5323,23 @@ export class AiService {
           if (!top.inTextContext && top.isContainer) flushBare(top);
           const inTextContext = top.inTextContext || TEXT_TAGS.has(tagName);
           const isContainer = !inTextContext && CONTAINER_TAGS.has(tagName);
-          stack.push({ tagName, openTagFull: tagFull, inTextContext, pendingBare: '', isContainer, innerBuffer: '' });
+          stack.push({
+            tagName,
+            openTagFull: tagFull,
+            inTextContext,
+            pendingBare: '',
+            isContainer,
+            innerBuffer: '',
+          });
           i = tagEnd + 1;
           continue;
         } else {
           let popIdx = -1;
           for (let k = stack.length - 1; k >= 1; k--) {
-            if (stack[k].tagName === tagName) { popIdx = k; break; }
+            if (stack[k].tagName === tagName) {
+              popIdx = k;
+              break;
+            }
           }
           if (popIdx === -1) {
             const top = stack[stack.length - 1];
@@ -4568,7 +5371,10 @@ export class AiService {
     while (stack.length > 1) {
       const popped = stack.pop()!;
       if (popped.isContainer) flushBare(popped);
-      const assembled = popped.openTagFull + popped.innerBuffer + (popped.tagName !== '__root__' ? `</${popped.tagName}>` : '');
+      const assembled =
+        popped.openTagFull +
+        popped.innerBuffer +
+        (popped.tagName !== '__root__' ? `</${popped.tagName}>` : '');
       stack[stack.length - 1].innerBuffer += assembled;
     }
     if (stack[0].isContainer) flushBare(stack[0]);

@@ -42,7 +42,9 @@ function getOuterStyle(html: string): string {
 function makeAgent(): HTMLPresentationAgent {
   const dummy: AIModelProvider = {
     name: 'dummy',
-    async chat() { return { role: 'assistant', content: '' }; },
+    async chat() {
+      return { role: 'assistant', content: '' };
+    },
     supportsStreaming: false,
   } as unknown as AIModelProvider;
   return new HTMLPresentationAgent(dummy);
@@ -68,7 +70,8 @@ describe('Bug-3 注入源定位 + 修复验证', () => {
       has(/(?:^|;)\s*overflow\s*:\s*hidden\s*(?:;|$)/i) &&
       has(/(?:^|;)\s*position\s*:\s*relative\s*(?:;|$)/i) &&
       has(/(?:^|;)\s*box-sizing\s*:\s*border-box\s*(?:;|$)/i) &&
-      has(/(?:^|;)\s*padding\s*:/i) && !/(?:^|;)\s*padding\s*:\s*0(?:px)?\s*(?:;|$)/i.test(style) &&
+      has(/(?:^|;)\s*padding\s*:/i) &&
+      !/(?:^|;)\s*padding\s*:\s*0(?:px)?\s*(?:;|$)/i.test(style) &&
       has(/(?:^|;)\s*display\s*:\s*flex\s*(?:;|$)/i) &&
       has(/(?:^|;)\s*flex-direction\s*:\s*(?:column|row)\s*(?:;|$)/i);
     console.log('[0-1] ok8 =', ok8);
@@ -78,8 +81,15 @@ describe('Bug-3 注入源定位 + 修复验证', () => {
   it('0-2 parseStyleDeclarations 解析率（是否 parseFailed）', () => {
     const style = getOuterStyle(SUMMARY_HTML_05);
     const parsed = parseStyleDeclarations(style);
-    console.log('[0-2] parsed.length =', parsed.length, ' keys =', parsed.map(p => p.key));
-    let estimateDeclCount = 1; let inQ: 0 | 1 | 2 = 0; let dep = 0;
+    console.log(
+      '[0-2] parsed.length =',
+      parsed.length,
+      ' keys =',
+      parsed.map((p) => p.key),
+    );
+    let estimateDeclCount = 1;
+    let inQ: 0 | 1 | 2 = 0;
+    let dep = 0;
     for (let k = 0; k < style.length; k++) {
       const c = style[k];
       if (dep === 0) {
@@ -87,14 +97,17 @@ describe('Bug-3 注入源定位 + 修复验证', () => {
         else if (c === '"' && inQ !== 1) inQ = inQ === 2 ? 0 : 2;
       }
       if (inQ === 0) {
-        if (c === '(') dep++; else if (c === ')') dep--;
+        if (c === '(') dep++;
+        else if (c === ')') dep--;
         else if (c === ';' && dep === 0) estimateDeclCount++;
       }
     }
     const threshold = Math.ceil(estimateDeclCount * 0.7);
-    const failed = parsed.length > 0 && (parsed.length < threshold);
-    console.log(`[0-2] estimate=${estimateDeclCount}, threshold=ceil*0.7=${threshold}, parsed=${parsed.length}, parseFailed=${failed}`);
-    const ff = parsed.find(p => p.key === 'font-family');
+    const failed = parsed.length > 0 && parsed.length < threshold;
+    console.log(
+      `[0-2] estimate=${estimateDeclCount}, threshold=ceil*0.7=${threshold}, parsed=${parsed.length}, parseFailed=${failed}`,
+    );
+    const ff = parsed.find((p) => p.key === 'font-family');
     console.log('[0-2] font-family value =', ff ? JSON.stringify(ff.value) : '(missing)');
   });
 
@@ -106,7 +119,8 @@ describe('Bug-3 注入源定位 + 修复验证', () => {
     const hasUl = /<(ul|ol)\b/i.test(inner);
     const hasH1 = /<h1\b/i.test(inner);
     console.log(`[0-3] h2=${hasH2}, h3=${hasH3}, ul/ol=${hasUl}, h1=${hasH1}`);
-    const coverLike = !hasH2 && !hasH3 && !hasUl && !/<img[\s>]/i.test(inner) && !/<table\b/i.test(inner) && hasH1;
+    const coverLike =
+      !hasH2 && !hasH3 && !hasUl && !/<img[\s>]/i.test(inner) && !/<table\b/i.test(inner) && hasH1;
     console.log(`[0-3] isCoverLike 推算 = ${coverLike}`);
     expect(coverLike).toBe(false);
   });
@@ -125,7 +139,14 @@ describe('Bug-3 注入源定位 + 修复验证', () => {
   });
 
   it('2. postProcessLayout(SUMMARY, summary, 1280, 720, #7c3aed) 外层不应含三件套', () => {
-    const out = agent.postProcessLayout.call(agent, SUMMARY_HTML_05, 'summary', 1280, 720, '#7c3aed');
+    const out = agent.postProcessLayout.call(
+      agent,
+      SUMMARY_HTML_05,
+      'summary',
+      1280,
+      720,
+      '#7c3aed',
+    );
     const style = getOuterStyle(out);
     const jc = /justify-content\s*:\s*center/i.test(style);
     const ai = /align-items\s*:\s*center/i.test(style);
@@ -146,7 +167,13 @@ describe('Bug-3 注入源定位 + 修复验证', () => {
   });
 
   it('3. enforceCoverPosterArtStyles(SUMMARY) 不应注入三件套', () => {
-    const out = agent.enforceCoverPosterArtStyles.call(agent, SUMMARY_HTML_05, '#7c3aed', 1280, 720);
+    const out = agent.enforceCoverPosterArtStyles.call(
+      agent,
+      SUMMARY_HTML_05,
+      '#7c3aed',
+      1280,
+      720,
+    );
     const style = getOuterStyle(out);
     const jc = /justify-content\s*:\s*center/i.test(style);
     const ai = /align-items\s*:\s*center/i.test(style);

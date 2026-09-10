@@ -83,19 +83,33 @@ describe('draft-store', () => {
     });
 
     it('未超限时原样保留素材', async () => {
-      const rec = await createDraft({ topic: '短素材', referenceText: '素材内容', slideCount: 8 }, { tenant: 'hermes', user: 'local' });
+      const rec = await createDraft(
+        { topic: '短素材', referenceText: '素材内容', slideCount: 8 },
+        { tenant: 'hermes', user: 'local' },
+      );
       expect(rec.meta.truncated).toBe(false);
       expect(rec.params.referenceText).toBe('素材内容');
     });
 
     it('模式缺省预选 auto，可显式指定 guided', async () => {
-      expect((await createDraft({ topic: 'x' }, { tenant: 'hermes', user: 'local' })).params.mode).toBe('auto');
-      expect((await createDraft({ topic: 'x', mode: 'guided' }, { tenant: 'hermes', user: 'local' })).params.mode).toBe('guided');
+      expect(
+        (await createDraft({ topic: 'x' }, { tenant: 'hermes', user: 'local' })).params.mode,
+      ).toBe('auto');
+      expect(
+        (await createDraft({ topic: 'x', mode: 'guided' }, { tenant: 'hermes', user: 'local' }))
+          .params.mode,
+      ).toBe('guided');
     });
 
     it('页数越界被夹到 1~40', async () => {
-      expect((await createDraft({ topic: 'x', slideCount: 999 }, { tenant: 'hermes', user: 'local' })).params.slideCount).toBe(40);
-      expect((await createDraft({ topic: 'x', slideCount: 0 }, { tenant: 'hermes', user: 'local' })).params.slideCount).toBe(1);
+      expect(
+        (await createDraft({ topic: 'x', slideCount: 999 }, { tenant: 'hermes', user: 'local' }))
+          .params.slideCount,
+      ).toBe(40);
+      expect(
+        (await createDraft({ topic: 'x', slideCount: 0 }, { tenant: 'hermes', user: 'local' }))
+          .params.slideCount,
+      ).toBe(1);
     });
   });
 
@@ -104,10 +118,14 @@ describe('draft-store', () => {
       const rec = await createDraft({ topic: 'x' }, { tenant: 'hermes', user: 'local' });
       const token = signDraftToken(rec.draftId, 'hermes', 'local', rec.expiresAt);
       expect(verifyDraftToken(token, rec.draftId, 'hermes', 'local', rec.expiresAt)).toBe(true);
-      expect(verifyDraftToken(token, 'drf_' + 'f'.repeat(32), 'hermes', 'local', rec.expiresAt)).toBe(false);
+      expect(
+        verifyDraftToken(token, 'drf_' + 'f'.repeat(32), 'hermes', 'local', rec.expiresAt),
+      ).toBe(false);
       expect(verifyDraftToken(token, rec.draftId, 'other', 'local', rec.expiresAt)).toBe(false);
       expect(verifyDraftToken(token, rec.draftId, 'hermes', 'other', rec.expiresAt)).toBe(false);
-      expect(verifyDraftToken(token, rec.draftId, 'hermes', 'local', rec.expiresAt + 1)).toBe(false);
+      expect(verifyDraftToken(token, rec.draftId, 'hermes', 'local', rec.expiresAt + 1)).toBe(
+        false,
+      );
     });
 
     it('空 token / 长度不符不抛异常且判为无效', async () => {
@@ -131,7 +149,10 @@ describe('draft-store', () => {
 
   describe('readDraft', () => {
     it('读回完整草稿', async () => {
-      const rec = await createDraft({ topic: '读回', referenceText: '素材' }, { tenant: 'hermes', user: 'local' });
+      const rec = await createDraft(
+        { topic: '读回', referenceText: '素材' },
+        { tenant: 'hermes', user: 'local' },
+      );
       const got = await readDraft(rec.draftId);
       expect(got?.params.topic).toBe('读回');
       expect(got?.params.referenceText).toBe('素材');
@@ -145,13 +166,17 @@ describe('draft-store', () => {
     });
 
     it('过期草稿视为不存在（读取时顺带删除）', async () => {
-      const rec = expireDraft(await createDraft({ topic: 'x' }, { tenant: 'hermes', user: 'local' }));
+      const rec = expireDraft(
+        await createDraft({ topic: 'x' }, { tenant: 'hermes', user: 'local' }),
+      );
       expect(await readDraft(rec.draftId)).toBeNull();
       expect(existsSync(join(process.cwd(), 'data', 'drafts', `${rec.draftId}.json`))).toBe(false);
     });
 
     it('readDraftIncludingExpired 可判定已过期（用于区分 E5007 / E5008）', async () => {
-      const rec = expireDraft(await createDraft({ topic: 'x' }, { tenant: 'hermes', user: 'local' }));
+      const rec = expireDraft(
+        await createDraft({ topic: 'x' }, { tenant: 'hermes', user: 'local' }),
+      );
       const expired = await readDraftIncludingExpired(rec.draftId);
       expect(expired?.draftId).toBe(rec.draftId);
       expect(expired!.expiresAt).toBeLessThan(Date.now());
@@ -161,7 +186,9 @@ describe('draft-store', () => {
   describe('purgeExpiredDrafts', () => {
     it('只清理过期草稿', async () => {
       const live = await createDraft({ topic: 'live' }, { tenant: 'hermes', user: 'local' });
-      const old = expireDraft(await createDraft({ topic: 'old' }, { tenant: 'hermes', user: 'local' }));
+      const old = expireDraft(
+        await createDraft({ topic: 'old' }, { tenant: 'hermes', user: 'local' }),
+      );
 
       const deleted = await purgeExpiredDrafts();
       expect(deleted).toBe(1);

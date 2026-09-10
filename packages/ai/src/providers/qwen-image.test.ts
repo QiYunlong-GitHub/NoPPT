@@ -10,17 +10,16 @@ describe('QwenImageProvider img2img seed by category (FR-15)', () => {
 
   it('优先使用分类参考图，否则回退 global，再回退旧字段 referenceImage', async () => {
     const calls: any[] = [];
-    vi.stubGlobal(
-      'fetch',
-      async (_url: string, init: any) => {
-        const body = JSON.parse(init.body);
-        calls.push(body);
-        return new Response(
-          JSON.stringify({ output: { choices: [{ message: { content: [{ image: 'data:image/png;base64,AAA' }] } }] } }),
-          { status: 200 },
-        );
-      },
-    );
+    vi.stubGlobal('fetch', async (_url: string, init: any) => {
+      const body = JSON.parse(init.body);
+      calls.push(body);
+      return new Response(
+        JSON.stringify({
+          output: { choices: [{ message: { content: [{ image: 'data:image/png;base64,AAA' }] } }] },
+        }),
+        { status: 200 },
+      );
+    });
 
     // 1) cover slide + 分类 map（含 cover 专属）→ 选 cover.png
     await provider.generateImage('prompt', {

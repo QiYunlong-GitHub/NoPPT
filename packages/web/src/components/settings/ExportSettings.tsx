@@ -10,7 +10,9 @@ export default function ExportSettings() {
     <section className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
       <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
         <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{t('导出设置')}</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t('配置导出文件的默认选项')}</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          {t('配置导出文件的默认选项')}
+        </p>
       </div>
       <div className="p-6 space-y-6">
         {/* 默认格式 */}
@@ -22,9 +24,7 @@ export default function ExportSettings() {
             {exportFormatOptions.map((fmt) => (
               <button
                 key={fmt.value}
-                onClick={() =>
-                  settings.updateExportSettings({ defaultFormat: fmt.value as any })
-                }
+                onClick={() => settings.updateExportSettings({ defaultFormat: fmt.value as any })}
                 className={`p-4 rounded-lg border-2 text-left transition-all ${
                   settings.exportSettings.defaultFormat === fmt.value
                     ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
@@ -47,9 +47,7 @@ export default function ExportSettings() {
             {pdfQualityOptions.map((q) => (
               <button
                 key={q.value}
-                onClick={() =>
-                  settings.updateExportSettings({ pdfQuality: q.value as any })
-                }
+                onClick={() => settings.updateExportSettings({ pdfQuality: q.value as any })}
                 className={`flex-1 p-3 rounded-lg border-2 text-center transition-all ${
                   settings.exportSettings.pdfQuality === q.value
                     ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
@@ -89,8 +87,12 @@ export default function ExportSettings() {
         {/* 备注 */}
         <div className="flex items-center justify-between pt-2">
           <div>
-            <p className="text-sm font-medium text-slate-900 dark:text-white">{t('包含演讲者备注')}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">{t('导出 PDF 时包含每张卡片的备注内容')}</p>
+            <p className="text-sm font-medium text-slate-900 dark:text-white">
+              {t('包含演讲者备注')}
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {t('导出 PDF 时包含每张卡片的备注内容')}
+            </p>
           </div>
           <button
             onClick={() =>
@@ -106,9 +108,7 @@ export default function ExportSettings() {
           >
             <span
               className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                settings.exportSettings.includeSpeakerNotes
-                  ? 'translate-x-6'
-                  : 'translate-x-1'
+                settings.exportSettings.includeSpeakerNotes ? 'translate-x-6' : 'translate-x-1'
               }`}
             />
           </button>

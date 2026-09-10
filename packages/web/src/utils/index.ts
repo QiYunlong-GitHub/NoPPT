@@ -26,7 +26,7 @@ export function formatBeijingTime(date?: Date, includeSeconds: boolean = true): 
 export function formatDuration(ms: number): string {
   const seconds = Math.floor(ms / 1000);
   const minutes = Math.floor(seconds / 60);
-  
+
   if (minutes > 0) {
     return `${minutes}分${seconds % 60}秒`;
   } else if (seconds > 0) {

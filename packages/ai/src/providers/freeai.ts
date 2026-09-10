@@ -1,5 +1,12 @@
 import { BaseProvider, formatMessages, truncate } from './base';
-import type { ChatMessage, ChatOptions, ChatResponse, ModelConfig, ImageGenerationOptions, GeneratedImage } from '../types';
+import type {
+  ChatMessage,
+  ChatOptions,
+  ChatResponse,
+  ModelConfig,
+  ImageGenerationOptions,
+  GeneratedImage,
+} from '../types';
 
 export class FreeAIProvider extends BaseProvider {
   name = 'freeai';
@@ -250,7 +257,11 @@ export class FreeAIProvider extends BaseProvider {
       });
       const duration = Date.now() - startTime;
       const success = response.ok;
-      this.logResponse('validateConfig', { success, status: response.status, durationMs: duration });
+      this.logResponse('validateConfig', {
+        success,
+        status: response.status,
+        durationMs: duration,
+      });
       return success;
     } catch (e) {
       this.logError('validateConfig', e);
@@ -357,10 +368,11 @@ export class FreeAIProvider extends BaseProvider {
       const data = await response.json();
       const duration = Date.now() - startTime;
 
-      const results = data.data?.map((item: any) => ({
-        url: item.url,
-        revisedPrompt: item.revised_prompt,
-      })) || [];
+      const results =
+        data.data?.map((item: any) => ({
+          url: item.url,
+          revisedPrompt: item.revised_prompt,
+        })) || [];
 
       this.logResponse('generateImage', {
         durationMs: duration,

@@ -3,17 +3,21 @@ import type { AuditReport, AuditIssue } from '../types';
 export class FeedbackBuilder {
   static buildPromptFeedback(report: AuditReport): string {
     const lines: string[] = [];
-    const fatalIssues = report.issues.filter(i => i.severity === 'error' && !i.fixable);
-    const fixableErrors = report.issues.filter(i => i.severity === 'error' && i.fixable);
-    const importantIssues = report.issues.filter(i => i.severity === 'warn' && !i.fixable);
-    const quickWins = report.issues.filter(i => i.fixable || i.severity === 'info');
+    const fatalIssues = report.issues.filter((i) => i.severity === 'error' && !i.fixable);
+    const fixableErrors = report.issues.filter((i) => i.severity === 'error' && i.fixable);
+    const importantIssues = report.issues.filter((i) => i.severity === 'warn' && !i.fixable);
+    const quickWins = report.issues.filter((i) => i.fixable || i.severity === 'info');
 
     lines.push('');
     lines.push('═══════════════════════════════════════');
     lines.push('【自动审核反馈：以下问题必须修复】');
     lines.push(
       `综合评分：${report.overallScore}/100（${
-        report.overallResult === 'pass' ? '通过' : report.overallResult === 'warn' ? '警告' : '未通过'
+        report.overallResult === 'pass'
+          ? '通过'
+          : report.overallResult === 'warn'
+            ? '警告'
+            : '未通过'
       }）`,
     );
     lines.push('');
@@ -26,7 +30,9 @@ export class FeedbackBuilder {
           lines.push(`   修复建议：${iss.fixSuggestion}`);
         }
         if (iss.slideIndex >= 0) {
-          lines.push(`   位置：第 ${iss.slideIndex + 1} 页${iss.selector ? ` (${iss.selector})` : ''}`);
+          lines.push(
+            `   位置：第 ${iss.slideIndex + 1} 页${iss.selector ? ` (${iss.selector})` : ''}`,
+          );
         }
       });
       lines.push('');
@@ -34,7 +40,7 @@ export class FeedbackBuilder {
 
     if (fixableErrors.length > 0) {
       lines.push('## 已自动修复的问题');
-      fixableErrors.forEach(iss => {
+      fixableErrors.forEach((iss) => {
         lines.push(`- [${iss.ruleId}] ${iss.message}`);
       });
       lines.push('');
@@ -54,7 +60,7 @@ export class FeedbackBuilder {
     if (quickWins.length > 0) {
       lines.push('## 快速修复清单');
       const seen = new Set<string>();
-      quickWins.forEach(iss => {
+      quickWins.forEach((iss) => {
         if (!seen.has(iss.ruleId)) {
           lines.push(`- [ ] ${iss.message}`);
           seen.add(iss.ruleId);
@@ -75,7 +81,7 @@ export class FeedbackBuilder {
       lines.push('## 各维度具体修复建议');
       for (const [engine, issues] of engineGroups) {
         lines.push(`### ${engine}`);
-        issues.forEach(iss => {
+        issues.forEach((iss) => {
           lines.push(`- ${iss.fixSuggestion}`);
         });
       }
@@ -90,8 +96,8 @@ export class FeedbackBuilder {
 
   static buildOutlineFeedback(report: AuditReport): string {
     const lines: string[] = [];
-    const errors = report.issues.filter(i => i.severity === 'error');
-    const warns = report.issues.filter(i => i.severity === 'warn');
+    const errors = report.issues.filter((i) => i.severity === 'error');
+    const warns = report.issues.filter((i) => i.severity === 'warn');
 
     lines.push('');
     lines.push('═══════════════════════════════════════');

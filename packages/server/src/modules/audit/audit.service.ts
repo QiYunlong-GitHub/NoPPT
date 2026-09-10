@@ -80,10 +80,7 @@ export class AuditService {
 
   private async getEngine(): Promise<AuditEngine> {
     const appConfig = await this.configService.getConfig();
-    const fingerprint = this.computeFingerprint(
-      appConfig.auditSettings,
-      appConfig.modelRouting,
-    );
+    const fingerprint = this.computeFingerprint(appConfig.auditSettings, appConfig.modelRouting);
 
     if (this.engine && this.configFingerprint === fingerprint) {
       return this.engine;
@@ -132,7 +129,9 @@ export class AuditService {
           `审核 LLM 评审已启用：${auditModelConfig.provider}/${auditModelConfig.model}`,
         );
         if (/flash/i.test(String(auditModelConfig?.model || ''))) {
-          this.logger.warn(`[MODEL] 当前审核 LLM 评审模型为 flash 档（${auditModelConfig?.model}），质量建议 ≥ plus 档（不影响流程）。`);
+          this.logger.warn(
+            `[MODEL] 当前审核 LLM 评审模型为 flash 档（${auditModelConfig?.model}），质量建议 ≥ plus 档（不影响流程）。`,
+          );
         }
         this.logger.log(
           `audit 模型路由: modelRouting.audit=${auditModelConfig.model}（可通过全局配置调整）`,
@@ -159,20 +158,26 @@ export class AuditService {
     }
 
     try {
-      this.visualEngine = new VisualAuditEngine(undefined, { workspaceDir: this.storage.getWorkspaceDir() });
+      this.visualEngine = new VisualAuditEngine(undefined, {
+        workspaceDir: this.storage.getWorkspaceDir(),
+      });
       if (vlmProvider) {
         this.visualEngine.setVlmProvider(vlmProvider);
       }
       engine.registerEngine('visual', this.visualEngine);
     } catch (err) {
-      this.logger.warn(`VisualAuditEngine unavailable: ${err instanceof Error ? err.message : err}`);
+      this.logger.warn(
+        `VisualAuditEngine unavailable: ${err instanceof Error ? err.message : err}`,
+      );
     }
 
     try {
       this.fidelityEngine = new FidelityAuditEngine();
       engine.registerEngine('fidelity', this.fidelityEngine);
     } catch (err) {
-      this.logger.warn(`FidelityAuditEngine unavailable: ${err instanceof Error ? err.message : err}`);
+      this.logger.warn(
+        `FidelityAuditEngine unavailable: ${err instanceof Error ? err.message : err}`,
+      );
     }
 
     this.engine = engine;
@@ -196,7 +201,10 @@ export class AuditService {
   }
 
   async auditPresentation(presentationId: string, options?: AuditRunOptions): Promise<AuditReport> {
-    const presentationFile = join(this.storage.getPresentationDir(presentationId), 'presentation.json');
+    const presentationFile = join(
+      this.storage.getPresentationDir(presentationId),
+      'presentation.json',
+    );
     const presentation = this.storage.readJsonFile<Presentation | null>(presentationFile, null);
     if (!presentation) {
       throw new NotFoundException('演示文稿不存在');
@@ -233,7 +241,12 @@ export class AuditService {
         engine.updateConfig({ engines: { ...engine.getConfig().engines, ...options.engines } });
       }
 
-      const report = await engine.auditPresentation(presentation, options?.plan, options?.designContext, options?.referenceContext);
+      const report = await engine.auditPresentation(
+        presentation,
+        options?.plan,
+        options?.designContext,
+        options?.referenceContext,
+      );
 
       report.screenshots = this.collectScreenshots(report);
 
@@ -310,7 +323,7 @@ export class AuditService {
   getScreenshotPath(presentationId: string, slideIndex: number): string | null {
     const report = this.getReport(presentationId);
     if (!report) return null;
-    const screenshot = report.screenshots.find(s => s.slideIndex === slideIndex);
+    const screenshot = report.screenshots.find((s) => s.slideIndex === slideIndex);
     if (!screenshot) return null;
     const persisted = join(this.getScreenshotDir(presentationId), `slide-${slideIndex}.png`);
     if (existsSync(persisted)) return persisted;
@@ -320,7 +333,7 @@ export class AuditService {
 
   private collectScreenshots(report: AuditReport): ScreenshotInfo[] {
     const screenshots: ScreenshotInfo[] = [];
-    const visualResult = report.engineResults.find(r => r.engine === 'visual');
+    const visualResult = report.engineResults.find((r) => r.engine === 'visual');
     const paths: string[] = visualResult?.raw?.screenshots || [];
     for (let i = 0; i < paths.length; i++) {
       screenshots.push({
@@ -342,7 +355,9 @@ export class AuditService {
           copyFileSync(screenshot.path, dest);
           screenshot.path = dest;
         } catch (err) {
-          this.logger.warn(`Failed to persist screenshot: ${err instanceof Error ? err.message : err}`);
+          this.logger.warn(
+            `Failed to persist screenshot: ${err instanceof Error ? err.message : err}`,
+          );
         }
       }
     }
@@ -353,15 +368,27 @@ export class AuditService {
 
   async destroy(): Promise<void> {
     if (this.visualEngine) {
-      try { await this.visualEngine.destroy(); } catch { /* ignore */ }
+      try {
+        await this.visualEngine.destroy();
+      } catch {
+        /* ignore */
+      }
       this.visualEngine = null;
     }
     if (this.fidelityEngine) {
-      try { await this.fidelityEngine.destroy(); } catch { /* ignore */ }
+      try {
+        await this.fidelityEngine.destroy();
+      } catch {
+        /* ignore */
+      }
       this.fidelityEngine = null;
     }
     if (this.engine) {
-      try { await this.engine.destroy(); } catch { /* ignore */ }
+      try {
+        await this.engine.destroy();
+      } catch {
+        /* ignore */
+      }
       this.engine = null;
     }
     this.contentProviderRef = null;

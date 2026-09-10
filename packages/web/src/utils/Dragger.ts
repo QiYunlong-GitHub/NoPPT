@@ -57,7 +57,8 @@ export class Dragger {
     this.lastX = pt.x;
     this.lastY = pt.y;
 
-    this.usePointer = typeof window !== 'undefined' && 'PointerEvent' in window && e instanceof PointerEvent;
+    this.usePointer =
+      typeof window !== 'undefined' && 'PointerEvent' in window && e instanceof PointerEvent;
     this.target = e.target as Element | null;
 
     if (this.usePointer) {

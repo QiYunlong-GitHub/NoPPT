@@ -1,6 +1,7 @@
 export type ID = string;
 
-export type ElementType = 'text' | 'image' | 'shape' | 'chart' | 'table' | 'video' | 'divider' | 'group';
+export type ElementType =
+  'text' | 'image' | 'shape' | 'chart' | 'table' | 'video' | 'divider' | 'group';
 
 export type ShapeType = 'rect' | 'circle' | 'triangle' | 'line' | 'arrow';
 

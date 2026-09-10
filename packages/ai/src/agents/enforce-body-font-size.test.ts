@@ -10,7 +10,9 @@ import { HTMLPresentationAgent } from './html-presentation-agent';
 function makeAgent(): HTMLPresentationAgent {
   const dummy: AIModelProvider = {
     name: 'dummy',
-    async chat() { return { role: 'assistant', content: '' }; },
+    async chat() {
+      return { role: 'assistant', content: '' };
+    },
     supportsStreaming: false,
   } as unknown as AIModelProvider;
   return new HTMLPresentationAgent(dummy);
@@ -18,7 +20,8 @@ function makeAgent(): HTMLPresentationAgent {
 
 // TS private 绕过：用下标调用 enforceBodyFontSize
 function clamp(agent: HTMLPresentationAgent, html: string, round: 1 | 2 = 1): string {
-  const fn = (agent as unknown as Record<string, (h: string, o?: { round?: 1 | 2 }) => string>).enforceBodyFontSize;
+  const fn = (agent as unknown as Record<string, (h: string, o?: { round?: 1 | 2 }) => string>)
+    .enforceBodyFontSize;
   return fn.call(agent, html, { round });
 }
 
@@ -43,8 +46,8 @@ describe('R1 Fix · enforceBodyFontSize：HeadiH1-H6 合法大字豁免', () => 
   it('T2-1. H2 50px 在 div 内部 **不被夹**；同 div 内 p 24px **被夹到 20px**', () => {
     const input =
       '<div style="width:100%;height:100%;padding:48px 64px;display:flex;flex-direction:column;">' +
-        '<h2 style="font-size:50px;font-weight:700;line-height:1.25;">页面大标题</h2>' +
-        '<p style="font-size:24px;color:#374151;">段落正文</p>' +
+      '<h2 style="font-size:50px;font-weight:700;line-height:1.25;">页面大标题</h2>' +
+      '<p style="font-size:24px;color:#374151;">段落正文</p>' +
       '</div>';
     const out = clamp(agent, input);
     expect(extractTagStyle(out, 'h2')).toContain('font-size:50px');
@@ -72,9 +75,9 @@ describe('R1 Fix · enforceBodyFontSize：Metric 大字豁免（content-stats-hi
   it('T2-3. Metric 56px span（fw=900 + lh=1）典型徽章 **不被夹**', () => {
     const input =
       '<div style="padding:24px 20px;display:flex;flex-direction:column;gap:12px;">' +
-        '<span style="font-size:56px;font-weight:900;line-height:1;color:#111827;">+0.5℃</span>' +
-        '<h3 style="font-size:28px;">海表温度距平</h3>' +
-        '<p style="font-size:24px;">正文说明</p>' +
+      '<span style="font-size:56px;font-weight:900;line-height:1;color:#111827;">+0.5℃</span>' +
+      '<h3 style="font-size:28px;">海表温度距平</h3>' +
+      '<p style="font-size:24px;">正文说明</p>' +
       '</div>';
     const out = clamp(agent, input);
     // span 仍 56px
@@ -87,13 +90,15 @@ describe('R1 Fix · enforceBodyFontSize：Metric 大字豁免（content-stats-hi
   });
 
   it('T2-4. Metric 48px span（中性色 + fw=900，无 pointer-events:none）规则(c) 豁免', () => {
-    const input = '<div><span style="font-size:48px;font-weight:900;color:#374151;">+1.2℃</span></div>';
+    const input =
+      '<div><span style="font-size:48px;font-weight:900;color:#374151;">+1.2℃</span></div>';
     const out = clamp(agent, input);
     expect(extractTagStyle(out, 'span')).toContain('font-size:48px');
   });
 
   it('T2-3b. Metric 40px span（pointer-events:none 规则(b)）豁免', () => {
-    const input = '<div><span style="font-size:40px;pointer-events:none;color:#2563eb;">50%</span></div>';
+    const input =
+      '<div><span style="font-size:40px;pointer-events:none;color:#2563eb;">50%</span></div>';
     const out = clamp(agent, input);
     expect(extractTagStyle(out, 'span')).toContain('font-size:40px');
   });
@@ -105,7 +110,8 @@ describe('R1 Fix · enforceBodyFontSize：Metric 大字豁免（content-stats-hi
   });
 
   it('T2-5b. 普通正文 span 32px，无 metric 特征 → 夹到 20px（避免豁免写太宽，R0 回退保证）', () => {
-    const input = '<div><span style="font-size:32px;font-weight:600;color:#374151;">不是大字徽章，不满足 36px 下限或 fw>=800</span></div>';
+    const input =
+      '<div><span style="font-size:32px;font-weight:600;color:#374151;">不是大字徽章，不满足 36px 下限或 fw>=800</span></div>';
     const out = clamp(agent, input);
     expect(extractTagStyle(out, 'span')).toContain('font-size:20px');
   });
@@ -127,7 +133,8 @@ describe('R1 Fix · enforceBodyFontSize：语义 heading 豁免（role=heading /
   const agent = makeAgent();
 
   it('role="heading" 的 div 不被夹（语义豁免）', () => {
-    const input = '<div><div role="heading" aria-level="2" style="font-size:50px;">语义 H2</div></div>';
+    const input =
+      '<div><div role="heading" aria-level="2" style="font-size:50px;">语义 H2</div></div>';
     const out = clamp(agent, input);
     expect(extractTagStyle(out, 'div', 2)).toContain('font-size:50px');
   });
@@ -143,14 +150,16 @@ describe('R1 Fix · enforceBodyFontSize：SVG 子元素 style 不被 clamp（SVG
   const agent = makeAgent();
 
   it('<circle style="font-size:30px;"> 保持 30px 不动（SVG 子元素跳过）', () => {
-    const input = '<div><svg><circle cx="0" cy="0" r="10" style="font-size:30px;overflow-wrap:break-word;"></circle></svg></div>';
+    const input =
+      '<div><svg><circle cx="0" cy="0" r="10" style="font-size:30px;overflow-wrap:break-word;"></circle></svg></div>';
     const out = clamp(agent, input);
     expect(out).toContain('font-size:30px');
     expect(out).not.toContain('font-size:20px');
   });
 
   it('<line style="font-size:40px;"> 保持 40px 不动（SVG 子元素 line 跳过）', () => {
-    const input = '<div><svg><line x1="0" y1="0" x2="10" y2="10" style="font-size:40px;"></line></svg></div>';
+    const input =
+      '<div><svg><line x1="0" y1="0" x2="10" y2="10" style="font-size:40px;"></line></svg></div>';
     const out = clamp(agent, input);
     expect(out).toContain('font-size:40px');
     expect(out).not.toContain('font-size:20px');
@@ -167,10 +176,10 @@ describe('R1 Fix · enforceBodyFontSize：幂等性（round2 不应再修改，T
   it('T2-8. 同一 HTML 连续两次 enforceBodyFontSize：第二次不应修改任何声明（严格 idempotent）', () => {
     const input =
       '<div style="font-size:28px;">' +
-        '<h2 style="font-size:50px;">H2</h2>' +
-        '<p style="font-size:22px;">p</p>' +
-        '<span style="font-size:56px;font-weight:900;line-height:1;color:#111827;">+0.5℃</span>' +
-        '<li style="font-size:12px;">条目</li>' +
+      '<h2 style="font-size:50px;">H2</h2>' +
+      '<p style="font-size:22px;">p</p>' +
+      '<span style="font-size:56px;font-weight:900;line-height:1;color:#111827;">+0.5℃</span>' +
+      '<li style="font-size:12px;">条目</li>' +
       '</div>';
     const r1 = clamp(agent, input, 1);
     // r1 已经把 div 28→20、p 22→20、li 12→16。r2 不应再有修改

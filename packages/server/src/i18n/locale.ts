@@ -40,9 +40,7 @@ export function invalidateLocaleCache(): void {
 
 export function parseAcceptLanguage(header?: string | null): Locale | undefined {
   if (!header) return undefined;
-  const parts = header
-    .split(',')
-    .map((s) => s.split(';')[0].trim().toLowerCase());
+  const parts = header.split(',').map((s) => s.split(';')[0].trim().toLowerCase());
   if (parts.some((p) => p === 'zh' || p === 'zh-cn' || p === 'zh-hans')) return 'zh-CN';
   if (parts.some((p) => p.startsWith('en'))) return 'en';
   return undefined;
@@ -50,10 +48,13 @@ export function parseAcceptLanguage(header?: string | null): Locale | undefined 
 
 export function getRequestLocale(req: { headers?: Record<string, unknown> }): Locale {
   const h = req.headers || {};
-  const custom = typeof h['x-noppt-lang'] === 'string' ? h['x-noppt-lang'].toLowerCase() : undefined;
+  const custom =
+    typeof h['x-noppt-lang'] === 'string' ? h['x-noppt-lang'].toLowerCase() : undefined;
   if (custom === 'en') return 'en';
   if (custom === 'zh-cn' || custom === 'zh') return 'zh-CN';
-  const acc = parseAcceptLanguage(typeof h['accept-language'] === 'string' ? h['accept-language'] : undefined);
+  const acc = parseAcceptLanguage(
+    typeof h['accept-language'] === 'string' ? h['accept-language'] : undefined,
+  );
   if (acc) return acc;
   return getConfigLocale();
 }

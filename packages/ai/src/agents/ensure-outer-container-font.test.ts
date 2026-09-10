@@ -89,8 +89,7 @@ describe('Task 2: ensureOuterContainer fontFamily 参数化与幂等', () => {
     // 同时提供 width、height，确保 existingStyle 非空、parsed.length>0 成立。
     // 为了确保不走 ok8 短路：不写 position:relative（8 大特征缺 1 → ok8=false）。
     // 故意不写 display、也不写 font-family，让 parseFailed 分支里的 ensureHas 把两者都补上。
-    const styleNoDisplay =
-      `width:100%;height:100%;overflow:hidden;box-sizing:border-box;padding:48px 64px;flex-direction:column;background-color:#fff`;
+    const styleNoDisplay = `width:100%;height:100%;overflow:hidden;box-sizing:border-box;padding:48px 64px;flex-direction:column;background-color:#fff`;
     const inputHtml = `<div style="${styleNoDisplay}"><p>content</p></div>`;
 
     const out = (agent as any).ensureOuterContainer(inputHtml, 1280, 720, 'serif') as string;
@@ -105,8 +104,7 @@ describe('Task 2: ensureOuterContainer fontFamily 参数化与幂等', () => {
 
   // ======== Test 3.1：parseFailed + fontFamily=mono 也正确切换（再验证一次非 serif） ========
   it('Test 3.1 (parseFailed 分支, mono): 缺 display 兜底, fontFamily=mono → 补 JetBrains Mono 栈', () => {
-    const styleNoDisplay =
-      `width:100%;height:100%;overflow:hidden;box-sizing:border-box;padding:48px 64px;flex-direction:column;background-color:#fff`;
+    const styleNoDisplay = `width:100%;height:100%;overflow:hidden;box-sizing:border-box;padding:48px 64px;flex-direction:column;background-color:#fff`;
     const inputHtml = `<div style="${styleNoDisplay}"><p>content</p></div>`;
 
     const out = (agent as any).ensureOuterContainer(inputHtml, 1280, 720, 'mono') as string;
@@ -135,7 +133,8 @@ describe('Task 2: ensureOuterContainer fontFamily 参数化与幂等', () => {
   // ======== Test 5（专项）：老默认 sans 精确命中 → 允许被 fontFamily=mono 覆盖升级（T7.7 修复验证） ========
   it('Test 5 (ok8+T7.7): 外层 font-family 精确等于系统默认 sans 占位 + fontFamily=mono → 被正确替换为 JetBrains Mono 栈', () => {
     // 精确使用 getFontStack('sans') 返回的字符串（DEFAULT_HARDCODED_SANS）
-    const EXACT_DEFAULT_SANS = "system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif";
+    const EXACT_DEFAULT_SANS =
+      "system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif";
     // ok8 8 大特征全有，font-family 恰好等于老默认 sans（典型"旧 HTML 遗留"场景）
     const inputHtml =
       `<div style="width:100%;height:100%;overflow:hidden;position:relative;box-sizing:border-box;padding:48px 64px;display:flex;flex-direction:column;background-color:#fff;font-family:${EXACT_DEFAULT_SANS};">` +

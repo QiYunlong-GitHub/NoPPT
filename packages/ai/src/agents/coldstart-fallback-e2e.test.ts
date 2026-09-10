@@ -72,17 +72,29 @@ function runFourAssertions(
   label: string,
   html: string,
   opts: { allowCover?: boolean } = {},
-): { failures: string[]; outerFontFamily: string; headingColorBlack: boolean; hasPurple: boolean; threeCenter: boolean } {
+): {
+  failures: string[];
+  outerFontFamily: string;
+  headingColorBlack: boolean;
+  hasPurple: boolean;
+  threeCenter: boolean;
+} {
   const failures: string[] = [];
   const ff = getOuterFontFamily(html);
   const monoOk = MONO_MARKERS.test(ff);
-  if (!monoOk) failures.push(`${label} [font-family] 期望 mono 栈(JetBrains Mono/Noto Sans Mono CJK SC/ui-monospace)，实际: "${ff}"`);
+  if (!monoOk)
+    failures.push(
+      `${label} [font-family] 期望 mono 栈(JetBrains Mono/Noto Sans Mono CJK SC/ui-monospace)，实际: "${ff}"`,
+    );
 
   const hStyle = getHeadingStyles(html);
   // 黑色故障：h1/h2 style 中出现 color:#111827 或 color:black
   // 注意：不应与 background-clip / -webkit-text-fill-color 等非 color: 属性混淆
   const blackInH = /(?:^|;)\s*color\s*:\s*(?:#111827|black)\b/i.test(';' + hStyle);
-  if (blackInH) failures.push(`${label} [黑字] h1/h2 发现 color:#111827 或 color:black，style 片段: "${hStyle.slice(0, 220)}"`);
+  if (blackInH)
+    failures.push(
+      `${label} [黑字] h1/h2 发现 color:#111827 或 color:black，style 片段: "${hStyle.slice(0, 220)}"`,
+    );
 
   // 紫色主色断言：整个 HTML 出现 7c3aed 或 632ebe
   const hasPurple = PURPLE_MARKERS.test(html);
@@ -112,14 +124,23 @@ function buildMiniPlans(): SlidePlan[] {
     {
       pageType: 'content-no-image',
       title: '探索厄尔尼诺的四个维度',
-      keyPoints: ['现象定义：海洋的异常升温', '成因机制：大气与海洋的共舞', '全球影响：气候与社会的连锁反应', '应对策略：提升气候韧性的行动'],
+      keyPoints: [
+        '现象定义：海洋的异常升温',
+        '成因机制：大气与海洋的共舞',
+        '全球影响：气候与社会的连锁反应',
+        '应对策略：提升气候韧性的行动',
+      ],
       needsImage: false,
     } as SlidePlan,
     // content 2
     {
       pageType: 'content-image-right',
       title: '赤道中东太平洋海表温度异常升高超0.5℃',
-      keyPoints: ['核心定义：赤道中东太平洋海温持续异常偏暖', '判定标准：Niño3.4区海温指数连续5个月≥0.5℃', '发生周期：通常每2至7年发生一次，持续9-12个月'],
+      keyPoints: [
+        '核心定义：赤道中东太平洋海温持续异常偏暖',
+        '判定标准：Niño3.4区海温指数连续5个月≥0.5℃',
+        '发生周期：通常每2至7年发生一次，持续9-12个月',
+      ],
       needsImage: true,
       imagePrompt: '赤道太平洋海温异常图',
       imageRatio: '4:3',
@@ -128,14 +149,23 @@ function buildMiniPlans(): SlidePlan[] {
     {
       pageType: 'content-no-image',
       title: '厄尔尼诺年引发全球极端气候指标显著波动',
-      keyPoints: ['全球均温推高约0.1至0.2℃', '南美西海岸降水量激增超200%', '东南亚与澳洲干旱受灾面积扩大30%', '大西洋飓风生成数量平均减少40%'],
+      keyPoints: [
+        '全球均温推高约0.1至0.2℃',
+        '南美西海岸降水量激增超200%',
+        '东南亚与澳洲干旱受灾面积扩大30%',
+        '大西洋飓风生成数量平均减少40%',
+      ],
       needsImage: false,
     } as SlidePlan,
     // summary (最后一页，对应 slide-08 场景 —— h2 + ul，最易触发 fallback 黑字/居中bug)
     {
       pageType: 'summary',
       title: '认识自然规律，提升全社会的气候韧性',
-      keyPoints: ['厄尔尼诺是地球气候系统的自然脉动', '科学监测与提前干预是降低损失的关键', '携手应对极端天气，共建可持续发展未来'],
+      keyPoints: [
+        '厄尔尼诺是地球气候系统的自然脉动',
+        '科学监测与提前干预是降低损失的关键',
+        '携手应对极端天气，共建可持续发展未来',
+      ],
       needsImage: false,
     } as SlidePlan,
   ];
@@ -203,7 +233,9 @@ describe('T7.6 冷启动等价验证：3 rounds × 5 slides × 4 assertions', ()
         }
       });
       // 打印每轮汇总（vitest 通过时可见于 console）
-      console.log(`[T7.6] Round ${round}: pass=${roundPass}, fail=${roundFail} (5 pages × 4 assertions = 20)`);
+      console.log(
+        `[T7.6] Round ${round}: pass=${roundPass}, fail=${roundFail} (5 pages × 4 assertions = 20)`,
+      );
     }
     console.log(`[T7.6] TOTAL 3 rounds: pass=${pass}, fail=${fail} / expected 60 assertions`);
     if (fail > 0) {
@@ -227,7 +259,15 @@ describe('T7.7 真实 slides re-process：pres_mtghmyor_ntvs95e', () => {
   const agent = makeAgent() as AnyAgent;
   const PRIMARY = '#7c3aed';
   const DARKER = '#632ebe';
-  const SLIDES_DIR = path.join('D:', 'TraeSOLO', 'NoPPT', 'scripts', 'output', 'pres_mtghmyor_ntvs95e', 'slides');
+  const SLIDES_DIR = path.join(
+    'D:',
+    'TraeSOLO',
+    'NoPPT',
+    'scripts',
+    'output',
+    'pres_mtghmyor_ntvs95e',
+    'slides',
+  );
 
   /** 每个 slide 文件是完整 HTML 壳，需剥到 <div class="slide"> 的第一个直接子 div 才是内容 HTML */
   function extractSlideInnerHtml(fullDoc: string): string {
@@ -312,7 +352,9 @@ ${perFile
       // 注意：此处不做 fail —— 因为 spec 说 slide-08 是"修复前预期有大量故障"的例子
     }
     // 至少 slide-08 存在 3 项故障，以证明基线采集有效（这是本项唯一断言）
-    const totalFaultsPerFile = perFile.map((p) => Number(p.sans) + Number(p.black) + Number(p.center));
+    const totalFaultsPerFile = perFile.map(
+      (p) => Number(p.sans) + Number(p.black) + Number(p.center),
+    );
     const maxFaults = Math.max(0, ...totalFaultsPerFile);
     expect(maxFaults).toBeGreaterThanOrEqual(1);
     // 输出基线数据，后续 item B 会依赖这里的故障并修复它们
@@ -350,7 +392,9 @@ ${perFile
       expect(typeof reprocessed).toBe('string');
 
       const label = `[T7.7-B] ${f}`;
-      const { failures, threeCenter } = runFourAssertions(label, reprocessed, { allowCover: cover });
+      const { failures, threeCenter } = runFourAssertions(label, reprocessed, {
+        allowCover: cover,
+      });
 
       totalAsserts += 4;
       if (failures.length === 0) {
@@ -371,13 +415,15 @@ ${perFile
 [T7.7-B] 修复后 re-process 结果（${total} 张 slides）
 ---------------------------------------------
  断言通过: ${passed} / ${totalAsserts}  (每张 4 条)
- 幻灯片通过: ${failuresList.length === 0 ? total : total - new Set(failuresList.map(x => x.file)).size} / ${total}
+ 幻灯片通过: ${failuresList.length === 0 ? total : total - new Set(failuresList.map((x) => x.file)).size} / ${total}
  封面三件套命中 true（合法例外）: ${coverExceptions} 个
 =============================================
 `;
     console.log(report);
     if (coverExceptions > 0) {
-      console.log(`[T7.7-B] 封面命中 true ${coverExceptions} 个，均合法（封面允许 jc+ai+ta=center）。`);
+      console.log(
+        `[T7.7-B] 封面命中 true ${coverExceptions} 个，均合法（封面允许 jc+ai+ta=center）。`,
+      );
     }
     if (failuresList.length > 0) {
       const detail = failuresList

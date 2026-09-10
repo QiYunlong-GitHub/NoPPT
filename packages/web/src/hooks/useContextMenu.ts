@@ -16,7 +16,10 @@ interface UseContextMenuParams {
   contextMenu: ContextMenuState | null;
   setContextMenu: React.Dispatch<React.SetStateAction<ContextMenuState | null>>;
   selectedElementsRef: MutableRefObject<HTMLElement[]>;
-  findSelectableElement: (target: HTMLElement, mode?: 'inner' | 'outer' | 'deep' | 'parent') => HTMLElement | null;
+  findSelectableElement: (
+    target: HTMLElement,
+    mode?: 'inner' | 'outer' | 'deep' | 'parent',
+  ) => HTMLElement | null;
   clearSelection: () => void;
   addToSelection: (element: HTMLElement) => void;
   checkClipboard: () => Promise<ClipboardCheckResult>;
@@ -25,7 +28,12 @@ interface UseContextMenuParams {
   handleCopySlideAsImage: () => Promise<void>;
   handlePasteAtPosition: (clientX: number, clientY: number) => void;
   readElementsFromClipboard: () => Promise<any[] | null>;
-  pasteElementsFromData: (elements: any[], targetX: number, targetY: number, offset: number) => HTMLElement[];
+  pasteElementsFromData: (
+    elements: any[],
+    targetX: number,
+    targetY: number,
+    offset: number,
+  ) => HTMLElement[];
   saveAndRestoreSelectionForNewElements: (
     newElements: HTMLElement[],
     options?: { markUnsaved?: boolean; clearClipboard?: boolean },
@@ -138,7 +146,9 @@ export function useContextMenu({
     const elements = await readElementsFromClipboard();
     if (elements && elements.length > 0 && x !== undefined && y !== undefined) {
       const container = slideContainerRef.current;
-      const innerDiv = container?.querySelector('[data-slide-content="true"]') as HTMLElement | null;
+      const innerDiv = container?.querySelector(
+        '[data-slide-content="true"]',
+      ) as HTMLElement | null;
       if (!container || !innerDiv) return;
 
       const rect = innerDiv.getBoundingClientRect();

@@ -31,8 +31,8 @@ export class LayoutAuditEngine {
       }
     }
 
-    const errorCount = issues.filter(i => i.severity === 'error').length;
-    const warnCount = issues.filter(i => i.severity === 'warn').length;
+    const errorCount = issues.filter((i) => i.severity === 'error').length;
+    const warnCount = issues.filter((i) => i.severity === 'warn').length;
     let score = 100 - errorCount * 20 - warnCount * 5;
     if (score < 0) score = 0;
 
@@ -58,6 +58,6 @@ export class LayoutAuditEngine {
   }
 
   fixAllSlides(slides: Array<{ html: string }>): Array<{ html: string }> {
-    return slides.map(s => ({ ...s, html: this.fix(s.html) }));
+    return slides.map((s) => ({ ...s, html: this.fix(s.html) }));
   }
 }

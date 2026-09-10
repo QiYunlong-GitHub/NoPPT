@@ -50,7 +50,13 @@ export class RateLimitService {
    * 消耗一次配额。
    * @param windowMs 滑动窗口长度
    */
-  consume(bucket: RateLimitBucket, scopeKey: string, limit: number, windowMs: number, now: number = Date.now()): ConsumeResult {
+  consume(
+    bucket: RateLimitBucket,
+    scopeKey: string,
+    limit: number,
+    windowMs: number,
+    now: number = Date.now(),
+  ): ConsumeResult {
     const key = `${bucket}:${scopeKey}`;
     const safeLimit = Math.max(0, Math.floor(limit));
     const safeWindow = Math.max(1, Math.floor(windowMs));
@@ -74,7 +80,12 @@ export class RateLimitService {
 
     // 3) 放行
     timestamps.push(now);
-    return { allowed: true, retryAfterMs: 0, remaining: safeLimit - timestamps.length, limit: safeLimit };
+    return {
+      allowed: true,
+      retryAfterMs: 0,
+      remaining: safeLimit - timestamps.length,
+      limit: safeLimit,
+    };
   }
 
   /** 当前桶内条数（测试/观测用）。 */
@@ -102,12 +113,18 @@ export class RateLimitService {
 /**
  * 配额优先级（规格 2.5.3）：Key 记录 rateLimit.{bucket} > 环境变量 > 内置默认。
  */
-export function resolveRateLimitConfig(bucket: RateLimitBucket, record?: Pick<ApiKeyRecord, 'rateLimit'>): RateLimitConfig {
+export function resolveRateLimitConfig(
+  bucket: RateLimitBucket,
+  record?: Pick<ApiKeyRecord, 'rateLimit'>,
+): RateLimitConfig {
   const fromKey = record?.rateLimit?.[bucket];
   if (fromKey && Number.isFinite(fromKey.limit) && fromKey.limit > 0) {
     return {
       limit: Math.floor(fromKey.limit),
-      windowMs: Number.isFinite(fromKey.windowMs) && fromKey.windowMs > 0 ? Math.floor(fromKey.windowMs) : 60_000,
+      windowMs:
+        Number.isFinite(fromKey.windowMs) && fromKey.windowMs > 0
+          ? Math.floor(fromKey.windowMs)
+          : 60_000,
       source: 'key',
     };
   }

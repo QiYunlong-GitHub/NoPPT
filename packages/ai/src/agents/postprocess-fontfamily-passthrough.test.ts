@@ -61,18 +61,20 @@ describe('Task 3: fontFamily 透传链路验证', () => {
     const out = (agent as any).postProcessSlideHtml(
       html,
       slidePlan,
-      '#7c3aed',      // primaryColor (purple)
-      '#632ebe',      // primaryColorDarker (purple darker)
+      '#7c3aed', // primaryColor (purple)
+      '#632ebe', // primaryColorDarker (purple darker)
       1280,
       720,
-      false,          // backgroundEnabled
-      'mono',         // fontFamily 第 8 个参数
+      false, // backgroundEnabled
+      'mono', // fontFamily 第 8 个参数
     ) as string;
 
     const ff = getOuterFontFamily(out);
     expect(ff).toBeTruthy();
     // 断言 mono 栈标记存在
-    const hasMonoMarker = /JetBrains Mono|Cascadia Code|Noto Sans Mono CJK SC|ui-monospace/i.test(ff);
+    const hasMonoMarker = /JetBrains Mono|Cascadia Code|Noto Sans Mono CJK SC|ui-monospace/i.test(
+      ff,
+    );
     expect(hasMonoMarker).toBe(true);
     // 断言不是默认 sans 栈（system-ui 开头）
     expect(ff).not.toMatch(/^system-ui\s*,\s*-apple-system/i);
@@ -111,7 +113,7 @@ describe('Task 3: fontFamily 透传链路验证', () => {
 
     const out = agent.postProcessHtmlSnapshot(html, {
       fontFamily: 'serif',
-      primaryColor: '#059669',  // 绿色
+      primaryColor: '#059669', // 绿色
     }) as string;
 
     const ff = getOuterFontFamily(out);
@@ -138,12 +140,12 @@ describe('Task 3: fontFamily 透传链路验证', () => {
     const out = (agent as any).postProcessSlideHtml(
       html,
       slidePlan,
-      '#7c3aed',   // primaryColor: purple
-      '#632ebe',   // primaryColorDarker: purple darker（深紫 ≈ darkenColor(#7c3aed, 20%)）
+      '#7c3aed', // primaryColor: purple
+      '#632ebe', // primaryColorDarker: purple darker（深紫 ≈ darkenColor(#7c3aed, 20%)）
       1280,
       720,
       false,
-      'serif',     // fontFamily 放在最后（第 8 位），正确位置
+      'serif', // fontFamily 放在最后（第 8 位），正确位置
     ) as string;
 
     // 断言 1：默认蓝色 #2563eb 不应该出现在输出中（颜色处理链应用的是紫色系）
@@ -182,7 +184,13 @@ describe('Task 3: fontFamily 透传链路验证', () => {
       ],
     };
     // Step A: 走 generateFallbackSlide（5 参显式传入 mono）
-    const fallbackHtml = (agent as any).generateFallbackSlide(slidePlan, '#7c3aed', 1280, 720, 'mono') as string;
+    const fallbackHtml = (agent as any).generateFallbackSlide(
+      slidePlan,
+      '#7c3aed',
+      1280,
+      720,
+      'mono',
+    ) as string;
     expect(fallbackHtml).toBeTruthy();
 
     // Step B: 走 public postProcessHtmlSnapshot 包装（含 postProcessSlideHtml、postProcessLayout、ensureOuterContainer 全链）
@@ -194,7 +202,8 @@ describe('Task 3: fontFamily 透传链路验证', () => {
 
     // 子断言 1：font-family 为 mono 栈（JetBrains Mono 标记 / ui-monospace / Cascadia Code / Noto Sans Mono CJK SC）
     const outerFF = getOuterFontFamily(finalHtml);
-    const hasMonoMarker = /JetBrains\s?Mono|ui-monospace|Cascadia\s?Code|Noto Sans Mono CJK SC/i.test(outerFF);
+    const hasMonoMarker =
+      /JetBrains\s?Mono|ui-monospace|Cascadia\s?Code|Noto Sans Mono CJK SC/i.test(outerFF);
     expect(hasMonoMarker).toBe(true);
 
     // 子断言 2：无黑色硬编码（#111827 或关键字 black(排除 blacklist 等匹配边缘)）

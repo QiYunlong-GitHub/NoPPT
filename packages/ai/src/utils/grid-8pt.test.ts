@@ -1,13 +1,12 @@
 import { describe, it, expect } from 'vitest';
 // T1-TR1 · 等 8pt 网格归一化的纯函数（抽取后将从 html-presentation-agent.ts 导出）
-import {
-  normalizeSpacing8pt,
-  assertSpacing8pt,
-} from '../utils/grid-8pt';
+import { normalizeSpacing8pt, assertSpacing8pt } from '../utils/grid-8pt';
 
 describe('Task1 T1-TR1 · normalizeSpacing8pt 保留 style 分隔符', () => {
   it('T1-TR1a: padding:48px 64px;display:flex 不产生粘连', () => {
-    const out = normalizeSpacing8pt('<div style="width:100%;padding:48px 64px;display:flex;">x</div>');
+    const out = normalizeSpacing8pt(
+      '<div style="width:100%;padding:48px 64px;display:flex;">x</div>',
+    );
     expect(out).not.toMatch(/pxdisplay|pxd[^i;]/i);
     expect(out).toContain('padding:48px 64px;display:flex');
   });
@@ -19,7 +18,9 @@ describe('Task1 T1-TR1 · normalizeSpacing8pt 保留 style 分隔符', () => {
   });
 
   it('T1-TR1c: 值已合规时仍保留分隔符（48px/64px 本已是 8 倍数）', () => {
-    const out = normalizeSpacing8pt('<div style="padding:48px 64px;display:flex;flex-direction:column;">x</div>');
+    const out = normalizeSpacing8pt(
+      '<div style="padding:48px 64px;display:flex;flex-direction:column;">x</div>',
+    );
     expect(out).toContain('padding:48px 64px;display:flex');
     expect(countPxStickySync(out)).toBe(0);
   });

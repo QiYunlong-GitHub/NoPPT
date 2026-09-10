@@ -13,9 +13,21 @@ function makeRva(): ReferenceVisualAttributes {
     byCategory: {
       cover: {
         uploaded: true,
-        visual: { colorTone: 'light', imagery: 'photo', contentImageBBox: { x: 0, y: 0.32, w: 1, h: 0.36 } },
+        visual: {
+          colorTone: 'light',
+          imagery: 'photo',
+          contentImageBBox: { x: 0, y: 0.32, w: 1, h: 0.36 },
+        },
         master: {
-          logo: { position: 'top-left', colorHex: '#e60012', x: 0.03, y: 0.04, w: 0.38, h: 0.12, confidence: 0.98 },
+          logo: {
+            position: 'top-left',
+            colorHex: '#e60012',
+            x: 0.03,
+            y: 0.04,
+            w: 0.38,
+            h: 0.12,
+            confidence: 0.98,
+          },
           header: { elements: [{ type: 'text', colorHex: '#e60012' }] },
         },
       },
@@ -23,11 +35,23 @@ function makeRva(): ReferenceVisualAttributes {
         uploaded: true,
         visual: { colorTone: 'light', imagery: 'none' },
         master: {
-          logo: { position: 'top-right', colorHex: '#e60012', x: 0.81, y: 0.04, w: 0.18, h: 0.07, confidence: 0.9 },
+          logo: {
+            position: 'top-right',
+            colorHex: '#e60012',
+            x: 0.81,
+            y: 0.04,
+            w: 0.18,
+            h: 0.07,
+            confidence: 0.9,
+          },
           footer: { hasPageNumber: true },
         },
       },
-      summary: { uploaded: false, visual: { colorTone: 'light', imagery: 'none' }, master: undefined },
+      summary: {
+        uploaded: false,
+        visual: { colorTone: 'light', imagery: 'none' },
+        master: undefined,
+      },
     },
   } as unknown as ReferenceVisualAttributes;
 }

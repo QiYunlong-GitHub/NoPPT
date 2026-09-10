@@ -1,4 +1,11 @@
-import type { ChatMessage, ChatOptions, ChatResponse, ModelConfig, ImageGenerationOptions, GeneratedImage } from '../types';
+import type {
+  ChatMessage,
+  ChatOptions,
+  ChatResponse,
+  ModelConfig,
+  ImageGenerationOptions,
+  GeneratedImage,
+} from '../types';
 import { isConsoleDetailed, simpleLog } from '../utils/logger';
 import { addTrace, getSessionStage } from '../utils/llm-tracer';
 import type { LLMCallTrace, ImageGenerationTrace, AnyTrace } from '../utils/llm-tracer';
@@ -40,7 +47,7 @@ function truncate(str: string, maxLen: number = 500): string {
 function formatContentForLog(content: string | import('../types').ContentPart[]): string {
   if (typeof content === 'string') return truncate(content, 300);
   return content
-    .map(part => {
+    .map((part) => {
       if (part.type === 'text') return truncate(part.text, 300);
       const url = part.image_url?.url || '';
       return url.startsWith('data:') ? '[image data]' : `[image: ${truncate(url, 120)}]`;
@@ -49,7 +56,7 @@ function formatContentForLog(content: string | import('../types').ContentPart[])
 }
 
 function formatMessages(messages: ChatMessage[]): any[] {
-  return messages.map(m => ({
+  return messages.map((m) => ({
     role: m.role,
     content: formatContentForLog(m.content),
   }));
@@ -80,7 +87,7 @@ export function formatDuration(ms: number): string {
   const seconds = Math.floor(ms / 1000);
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);
-  
+
   if (hours > 0) {
     return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
   } else if (minutes > 0) {
@@ -105,7 +112,11 @@ export abstract class BaseProvider implements AIModelProvider {
     const enriched: AnyTrace =
       (trace as ImageGenerationTrace).type === 'image'
         ? ({ ...(trace as ImageGenerationTrace), stage } as ImageGenerationTrace)
-        : ({ type: 'chat' as const, ...(trace as Omit<LLMCallTrace, 'stage'>), stage } as LLMCallTrace);
+        : ({
+            type: 'chat' as const,
+            ...(trace as Omit<LLMCallTrace, 'stage'>),
+            stage,
+          } as LLMCallTrace);
     addTrace(this.activeTraceSessionId, enriched);
   }
 
@@ -114,13 +125,19 @@ export abstract class BaseProvider implements AIModelProvider {
     if (isConsoleDetailed()) {
       const timestamp = formatBeijingTime();
       console.log(`\n[${timestamp}] [${tag}] ${method}`);
-      console.log(JSON.stringify({
-        provider: this.name,
-        baseUrl: this.config.baseUrl ? truncate(this.config.baseUrl, 100) : '[default]',
-        model: this.config.model,
-        apiKey: maskApiKey(this.config.apiKey),
-        ...details,
-      }, null, 2));
+      console.log(
+        JSON.stringify(
+          {
+            provider: this.name,
+            baseUrl: this.config.baseUrl ? truncate(this.config.baseUrl, 100) : '[default]',
+            model: this.config.model,
+            apiKey: maskApiKey(this.config.apiKey),
+            ...details,
+          },
+          null,
+          2,
+        ),
+      );
     } else {
       // 简单模式：一行状态，不打印 messages 大对象
       const msgCount = Array.isArray(details?.messages) ? details.messages.length : 0;
@@ -171,7 +188,10 @@ export abstract class BaseProvider implements AIModelProvider {
 
   abstract getModels(): Promise<string[]>;
 
-  async generateImage(_prompt: string, _options?: ImageGenerationOptions): Promise<GeneratedImage[]> {
+  async generateImage(
+    _prompt: string,
+    _options?: ImageGenerationOptions,
+  ): Promise<GeneratedImage[]> {
     throw new Error(`Image generation is not supported by ${this.name} provider`);
   }
 

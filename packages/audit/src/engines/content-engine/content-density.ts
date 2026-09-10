@@ -25,7 +25,7 @@ function isCardDiv(style: string): boolean {
 
 function extractDivStyle(openTag: string): string {
   const styleMatch = openTag.match(/style\s*=\s*("([^"]*)"|'([^']*)')/i);
-  return styleMatch ? (styleMatch[2] || styleMatch[3] || '') : '';
+  return styleMatch ? styleMatch[2] || styleMatch[3] || '' : '';
 }
 
 function extractCardBlocks(html: string): string[] {
@@ -33,12 +33,22 @@ function extractCardBlocks(html: string): string[] {
   const openRegex = /<div\b([^>]*)>/gi;
   const closeRegex = /<\/div>/gi;
 
-  interface Token { type: 'open' | 'close'; index: number; style: string; length: number; }
+  interface Token {
+    type: 'open' | 'close';
+    index: number;
+    style: string;
+    length: number;
+  }
   const tokens: Token[] = [];
 
   let m: RegExpExecArray | null;
   while ((m = openRegex.exec(html)) !== null) {
-    tokens.push({ type: 'open', index: m.index, style: extractDivStyle(m[1] || ''), length: m[0].length });
+    tokens.push({
+      type: 'open',
+      index: m.index,
+      style: extractDivStyle(m[1] || ''),
+      length: m[0].length,
+    });
   }
   while ((m = closeRegex.exec(html)) !== null) {
     tokens.push({ type: 'close', index: m.index, style: '', length: m[0].length });
@@ -120,16 +130,20 @@ export function checkContentDensity(
     }
 
     const liCount = countListItems(card);
-    if (liCount > 0 && (liCount < cfg.minBulletPointsPerCard || liCount > cfg.maxBulletPointsPerCard)) {
+    if (
+      liCount > 0 &&
+      (liCount < cfg.minBulletPointsPerCard || liCount > cfg.maxBulletPointsPerCard)
+    ) {
       issues.push({
         ruleId: 'card-bullet-count',
         severity: 'info',
         engine: 'content',
         slideIndex,
         message: `第 ${slideIndex + 1} 页第 ${i + 1} 个卡片包含 ${liCount} 个列表项（建议 ${cfg.minBulletPointsPerCard}-${cfg.maxBulletPointsPerCard} 个）`,
-        fixSuggestion: liCount < cfg.minBulletPointsPerCard
-          ? '补充更多要点，或合并到其他卡片中'
-          : '精简列表项，将多余内容拆分到其他卡片或页面',
+        fixSuggestion:
+          liCount < cfg.minBulletPointsPerCard
+            ? '补充更多要点，或合并到其他卡片中'
+            : '精简列表项，将多余内容拆分到其他卡片或页面',
         fixable: false,
         metadata: { cardIndex: i, bulletCount: liCount },
       });

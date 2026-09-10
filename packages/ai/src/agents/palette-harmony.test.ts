@@ -6,7 +6,10 @@ function buildAgent(): HTMLPresentationAgent {
     name: 'stub',
     config: {},
     supportsStreaming: false,
-    chat: async () => ({ content: '', usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 } }),
+    chat: async () => ({
+      content: '',
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    }),
   } as any;
   return new HTMLPresentationAgent(dummy);
 }
@@ -57,9 +60,9 @@ describe('postProcessHtmlSnapshot 重放幂等（FR-B 兜底）', () => {
     // 真实生产链路：第一遍（agent 内容生成）用参考红；第二遍（server 重放）模拟取色失源回落默认蓝。
     const first = agent.postProcessHtmlSnapshot(COVER_RED, { primaryColor: '#c7000b' });
     const out = agent.postProcessHtmlSnapshot(first, { primaryColor: '#2563eb' });
-    expect(out).toMatch(/#c7000b/i);          // 参考红保持
-    expect(out).not.toMatch(/#1c4ab0/i);       // 无默认蓝模板注入
-    expect(out).not.toMatch(/#f3f4f6/i);       // 无灰化装饰
+    expect(out).toMatch(/#c7000b/i); // 参考红保持
+    expect(out).not.toMatch(/#1c4ab0/i); // 无默认蓝模板注入
+    expect(out).not.toMatch(/#f3f4f6/i); // 无灰化装饰
     // 装饰光晕数量不增加：radial-gradient(circle) 仍只有 1 个
     expect((out.match(/radial-gradient\(\s*circle/gi) || []).length).toBe(1);
     expect((out.match(/clip-path:\s*polygon/gi) || []).length).toBe(1);

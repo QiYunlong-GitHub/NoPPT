@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Param,
-  Res,
-  Body,
-  NotFoundException,
-} from '@nestjs/common';
+import { Controller, Get, Post, Param, Res, Body, NotFoundException } from '@nestjs/common';
 import type { Response } from 'express';
 import { existsSync } from 'fs';
 import type { PresentationPlan } from '@noppt/ai';

@@ -40,7 +40,14 @@ import SelectionBreadcrumb from '@/components/SelectionBreadcrumb';
 import { assetsApi } from '@/utils/api';
 import { sanitizeHtml } from '@/utils';
 import { useI18n } from '@/i18n';
-import { replaceIconsInElements, replaceIconsInElement, addIconsToElements, findAndAddIconsInSlide, findBestIconContainer, type IconStyle } from '@/utils/iconReplacer';
+import {
+  replaceIconsInElements,
+  replaceIconsInElement,
+  addIconsToElements,
+  findAndAddIconsInSlide,
+  findBestIconContainer,
+  type IconStyle,
+} from '@/utils/iconReplacer';
 import html2canvas from 'html2canvas';
 import { BULLET_STYLES, NUMBER_STYLES } from '@/constants/listStyles';
 import { ICON_STYLE_OPTIONS } from '@/constants/iconStyles';
@@ -68,18 +75,14 @@ import {
   createImageElement as _createImageElement,
   createTableElement as _createTableElement,
 } from '@/utils/elementFactories';
-import {
-  getLinePrefixInfo as _getLinePrefixInfo,
-} from '@/utils/listFormatting';
-import {
-  toggleListInRange as _toggleListInRange,
-} from '@/utils/listDom';
+import { getLinePrefixInfo as _getLinePrefixInfo } from '@/utils/listFormatting';
+import { toggleListInRange as _toggleListInRange } from '@/utils/listDom';
 
 interface EditorLayoutProps {
   children?: React.ReactNode;
 }
 
-export default function EditorLayout({ }: EditorLayoutProps) {
+export default function EditorLayout({}: EditorLayoutProps) {
   const navigate = useNavigate();
 
   const presentation = usePresentationStore((s) => s.presentation);
@@ -159,7 +162,8 @@ export default function EditorLayout({ }: EditorLayoutProps) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+        return;
       if (e.key === 'i' || e.key === 'I') keyHeldRef.current.i = true;
       if (e.key === 'o' || e.key === 'O') keyHeldRef.current.o = true;
     };
@@ -247,24 +251,36 @@ export default function EditorLayout({ }: EditorLayoutProps) {
   const currentSlide = presentation?.slides.find((s) => s.id === selectedSlideId);
 
   const wrapTextInVisualContainers = () => {
-    const innerDiv = slideContainerRef.current?.querySelector('[data-slide-content="true"]') as HTMLElement | null;
+    const innerDiv = slideContainerRef.current?.querySelector(
+      '[data-slide-content="true"]',
+    ) as HTMLElement | null;
     _wrapTextInVisualContainers(innerDiv);
   };
 
   const normalizeWhitespaceTextNodes = () => {
-    const innerDiv = slideContainerRef.current?.querySelector('[data-slide-content="true"]') as HTMLElement | null;
+    const innerDiv = slideContainerRef.current?.querySelector(
+      '[data-slide-content="true"]',
+    ) as HTMLElement | null;
     _normalizeWhitespaceTextNodes(innerDiv);
   };
 
   const ensureElementIds = () => {
-    const innerDiv = slideContainerRef.current?.querySelector('[data-slide-content="true"]') as HTMLElement | null;
+    const innerDiv = slideContainerRef.current?.querySelector(
+      '[data-slide-content="true"]',
+    ) as HTMLElement | null;
     _ensureElementIds(innerDiv);
   };
 
   const isTextElement = (element: HTMLElement): boolean => _isTextElement(element);
-  const getSlideAppendTarget = (innerDiv: HTMLElement): HTMLElement => _getSlideAppendTarget(innerDiv);
-  const findSelectableElement = (target: HTMLElement, mode: 'inner' | 'outer' | 'deep' | 'parent' = 'inner'): HTMLElement | null => {
-    const __innerDivForSel = slideContainerRef.current?.querySelector('[data-slide-content="true"]') as HTMLElement | null;
+  const getSlideAppendTarget = (innerDiv: HTMLElement): HTMLElement =>
+    _getSlideAppendTarget(innerDiv);
+  const findSelectableElement = (
+    target: HTMLElement,
+    mode: 'inner' | 'outer' | 'deep' | 'parent' = 'inner',
+  ): HTMLElement | null => {
+    const __innerDivForSel = slideContainerRef.current?.querySelector(
+      '[data-slide-content="true"]',
+    ) as HTMLElement | null;
     return _findSelectableElement(target, __innerDivForSel, mode);
   };
 
@@ -504,14 +520,12 @@ export default function EditorLayout({ }: EditorLayoutProps) {
 
   const handleDeleteElement = () => {
     if (selectedElementsRef.current.length === 0 || !currentSlide) return;
-    
+
     selectedElementsRef.current.forEach((el) => el.remove());
     saveSlideHtml(true);
     updateSelectedElements([]);
     setShowPropertyPanel(false);
   };
-
-
 
   const {
     handleContextMenu,
@@ -542,23 +556,22 @@ export default function EditorLayout({ }: EditorLayoutProps) {
     showToast,
   });
 
-
-  const createTableElement = (x: number, y: number, rows: number = 3, cols: number = 3): HTMLElement => _createTableElement(x, y, rows, cols);
-
-
-
+  const createTableElement = (
+    x: number,
+    y: number,
+    rows: number = 3,
+    cols: number = 3,
+  ): HTMLElement => _createTableElement(x, y, rows, cols);
 
   const handleDeleteElementRef = useRef(handleDeleteElement);
   handleDeleteElementRef.current = handleDeleteElement;
 
-
   const handleSaveRef = useRef(handleSave);
   handleSaveRef.current = handleSave;
 
-
   const handleInsertTable = () => {
     if (!currentSlide) return;
-    
+
     const container = slideContainerRef.current;
     const innerDiv = container?.querySelector('[data-slide-content="true"]') as HTMLElement | null;
     if (!container || !innerDiv) return;
@@ -587,14 +600,16 @@ export default function EditorLayout({ }: EditorLayoutProps) {
   const handleImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !currentSlide || !presentation) return;
-    
+
     try {
       showToast(t('正在上传图片...'), 'info');
-      
+
       const asset = await assetsApi.upload(presentation.id, 'image', file);
-      
+
       const container = slideContainerRef.current;
-      const innerDiv = container?.querySelector('[data-slide-content="true"]') as HTMLElement | null;
+      const innerDiv = container?.querySelector(
+        '[data-slide-content="true"]',
+      ) as HTMLElement | null;
       if (!container || !innerDiv) return;
 
       const rect = innerDiv.getBoundingClientRect();
@@ -617,7 +632,7 @@ export default function EditorLayout({ }: EditorLayoutProps) {
         let height = imgEl.naturalHeight;
         const maxWidth = 400;
         const maxHeight = 300;
-        
+
         if (width > maxWidth) {
           height = (maxWidth / width) * height;
           width = maxWidth;
@@ -628,7 +643,7 @@ export default function EditorLayout({ }: EditorLayoutProps) {
         }
         imgEl.style.width = `${width}px`;
         imgEl.style.height = `${height}px`;
-        
+
         saveSlideHtml(true);
         updateResizeBox();
       };
@@ -643,7 +658,7 @@ export default function EditorLayout({ }: EditorLayoutProps) {
       console.error('Failed to upload image:', err);
       showToast(t('图片上传失败，请重试'), 'error');
     }
-    
+
     e.target.value = '';
   };
 
@@ -654,14 +669,16 @@ export default function EditorLayout({ }: EditorLayoutProps) {
   const handleVideoFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !currentSlide || !presentation) return;
-    
+
     try {
       showToast(t('正在上传视频...'), 'info');
-      
+
       const asset = await assetsApi.upload(presentation.id, 'video', file);
-      
+
       const container = slideContainerRef.current;
-      const innerDiv = container?.querySelector('[data-slide-content="true"]') as HTMLElement | null;
+      const innerDiv = container?.querySelector(
+        '[data-slide-content="true"]',
+      ) as HTMLElement | null;
       if (!container || !innerDiv) return;
 
       const rect = innerDiv.getBoundingClientRect();
@@ -680,13 +697,13 @@ export default function EditorLayout({ }: EditorLayoutProps) {
         background: #000;
       `;
       video.setAttribute('data-noppt-video', 'true');
-      
+
       video.onloadedmetadata = () => {
         let width = video.videoWidth;
         let height = video.videoHeight;
         const maxWidth = 480;
         const maxHeight = 360;
-        
+
         if (width > maxWidth) {
           height = (maxWidth / width) * height;
           width = maxWidth;
@@ -695,11 +712,11 @@ export default function EditorLayout({ }: EditorLayoutProps) {
           width = (maxHeight / height) * width;
           height = maxHeight;
         }
-        
+
         video.style.width = `${width}px`;
         video.style.height = `${height}px`;
       };
-      
+
       getSlideAppendTarget(innerDiv).appendChild(video);
 
       saveSlideHtml(true);
@@ -713,38 +730,44 @@ export default function EditorLayout({ }: EditorLayoutProps) {
       console.error('Failed to upload video:', err);
       showToast(t('视频上传失败，请重试'), 'error');
     }
-    
+
     e.target.value = '';
   };
 
   const handleFormatBrushCopy = () => {
     if (selectedElementsRef.current.length !== 1) return;
-    
+
     const element = selectedElementsRef.current[0];
     const computedStyle = window.getComputedStyle(element);
-    
+
     const styleProps = [
-      'fontSize', 'fontWeight', 'fontStyle', 'textDecoration',
-      'color', 'backgroundColor', 'textAlign',
-      'lineHeight', 'letterSpacing',
+      'fontSize',
+      'fontWeight',
+      'fontStyle',
+      'textDecoration',
+      'color',
+      'backgroundColor',
+      'textAlign',
+      'lineHeight',
+      'letterSpacing',
     ];
-    
+
     const data: Record<string, string> = {};
     styleProps.forEach((prop) => {
       data[prop] = (computedStyle as any)[prop];
     });
-    
+
     setFormatBrushData(data);
     setIsFormatBrushMode(true);
   };
 
   const handleFormatBrushApply = (element: HTMLElement) => {
     if (!formatBrushData) return;
-    
+
     Object.entries(formatBrushData).forEach(([prop, value]) => {
       (element.style as any)[prop] = value;
     });
-    
+
     markUnsaved();
     saveAndRestoreSelection();
   };
@@ -752,7 +775,7 @@ export default function EditorLayout({ }: EditorLayoutProps) {
 
   const handleDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
-    
+
     if (target.tagName === 'TD' || target.tagName === 'TH') {
       e.preventDefault();
       e.stopPropagation();
@@ -760,16 +783,15 @@ export default function EditorLayout({ }: EditorLayoutProps) {
       startTableCellEditing(target);
       return;
     }
-    
+
     const element = findSelectableElement(target, 'inner');
-    
+
     if (element && isTextElement(element)) {
       e.preventDefault();
       clearSelection();
       startTextEditing(element, e.clientX, e.clientY);
     }
   };
-
 
   const saveSlideHtml = (addToHistory: boolean = false, slideId?: string) => {
     const innerDiv = contentRef.current;
@@ -862,9 +884,7 @@ export default function EditorLayout({ }: EditorLayoutProps) {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       const isEditing =
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable;
+        target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
 
       if (contextMenu && e.key === 'Escape') {
         e.preventDefault();
@@ -911,12 +931,22 @@ export default function EditorLayout({ }: EditorLayoutProps) {
         handleSaveRef.current();
       }
 
-      if ((e.ctrlKey || e.metaKey) && e.key === 'c' && selectedElementsRef.current.length > 0 && !isEditing) {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        e.key === 'c' &&
+        selectedElementsRef.current.length > 0 &&
+        !isEditing
+      ) {
         e.preventDefault();
         handleCopyElementsRef.current();
       }
 
-      if ((e.ctrlKey || e.metaKey) && e.key === 'x' && selectedElementsRef.current.length > 0 && !isEditing) {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        e.key === 'x' &&
+        selectedElementsRef.current.length > 0 &&
+        !isEditing
+      ) {
         e.preventDefault();
         handleCopyElementsRef.current();
         handleDeleteElementRef.current();
@@ -929,40 +959,77 @@ export default function EditorLayout({ }: EditorLayoutProps) {
         }
       }
 
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedElementsRef.current.length > 0 && !isEditing) {
+      if (
+        (e.key === 'Delete' || e.key === 'Backspace') &&
+        selectedElementsRef.current.length > 0 &&
+        !isEditing
+      ) {
         e.preventDefault();
         handleDeleteElementRef.current();
       }
 
-      if ((e.ctrlKey || e.metaKey) && e.key === ']' && selectedElementsRef.current.length > 0 && !isEditing) {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        e.key === ']' &&
+        selectedElementsRef.current.length > 0 &&
+        !isEditing
+      ) {
         e.preventDefault();
         bringForwardRef.current();
       }
 
-      if ((e.ctrlKey || e.metaKey) && e.key === '[' && selectedElementsRef.current.length > 0 && !isEditing) {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        e.key === '[' &&
+        selectedElementsRef.current.length > 0 &&
+        !isEditing
+      ) {
         e.preventDefault();
         sendBackwardRef.current();
       }
 
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === ']' && selectedElementsRef.current.length > 0 && !isEditing) {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        e.shiftKey &&
+        e.key === ']' &&
+        selectedElementsRef.current.length > 0 &&
+        !isEditing
+      ) {
         e.preventDefault();
         bringToFrontRef.current();
       }
 
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === '[' && selectedElementsRef.current.length > 0 && !isEditing) {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        e.shiftKey &&
+        e.key === '[' &&
+        selectedElementsRef.current.length > 0 &&
+        !isEditing
+      ) {
         e.preventDefault();
         sendToBackRef.current();
       }
 
-      if (e.key === 'Tab' && selectedElementsRef.current.length > 0 && !isEditing && !isTextEditing) {
+      if (
+        e.key === 'Tab' &&
+        selectedElementsRef.current.length > 0 &&
+        !isEditing &&
+        !isTextEditing
+      ) {
         e.preventDefault();
         const current = selectedElementsRef.current[0];
-        const innerDiv = slideContainerRef.current?.querySelector('[data-slide-content="true"]') as HTMLElement | null;
+        const innerDiv = slideContainerRef.current?.querySelector(
+          '[data-slide-content="true"]',
+        ) as HTMLElement | null;
         if (!innerDiv) return;
 
         const allSelectable: HTMLElement[] = [];
         const walk = (el: Element) => {
-          if (el instanceof HTMLElement && (isTextContent(el) || isVisualContainer(el, innerDiv) || isLayoutContainer(el)) && el !== innerDiv) {
+          if (
+            el instanceof HTMLElement &&
+            (isTextContent(el) || isVisualContainer(el, innerDiv) || isLayoutContainer(el)) &&
+            el !== innerDiv
+          ) {
             allSelectable.push(el);
           }
           Array.from(el.children).forEach(walk);
@@ -985,9 +1052,7 @@ export default function EditorLayout({ }: EditorLayoutProps) {
     const handlePaste = (e: ClipboardEvent) => {
       const target = e.target as HTMLElement;
       const isInputFocused =
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable;
+        target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
 
       if (isTextEditing) {
         return;
@@ -1007,7 +1072,7 @@ export default function EditorLayout({ }: EditorLayoutProps) {
 
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('paste', handlePaste, true);
-    
+
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'noppt_clipboard_timestamp' && e.newValue) {
         const parts = e.newValue.split('_');
@@ -1028,15 +1093,24 @@ export default function EditorLayout({ }: EditorLayoutProps) {
         }
       }
     };
-    
+
     window.addEventListener('storage', handleStorageChange);
-    
+
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('paste', handlePaste, true);
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, [undo, redo, isTextEditing, isPasteMode, isFormatBrushMode, clipboardElements, clipboardSourceSlideId, contextMenu]);
+  }, [
+    undo,
+    redo,
+    isTextEditing,
+    isPasteMode,
+    isFormatBrushMode,
+    clipboardElements,
+    clipboardSourceSlideId,
+    contextMenu,
+  ]);
 
   useEffect(() => {
     if (!isTextEditing) return;
@@ -1044,7 +1118,7 @@ export default function EditorLayout({ }: EditorLayoutProps) {
     const handleSelectionChange = () => {
       updateSelectionStyles();
     };
-    
+
     const handleEditorFocus = () => {
       hideFakeSelection();
       if (savedSelectionRangeRef.current) {
@@ -1055,7 +1129,7 @@ export default function EditorLayout({ }: EditorLayoutProps) {
         }
       }
     };
-    
+
     const handleEditorBlur = () => {
       const sel = window.getSelection();
       if (sel && sel.rangeCount > 0 && !sel.isCollapsed && editingElementRef.current) {
@@ -1066,16 +1140,16 @@ export default function EditorLayout({ }: EditorLayoutProps) {
         }
       }
     };
-    
+
     const handleClickOutside = (e: PointerEvent) => {
       const target = e.target as HTMLElement;
       if (!editingElementRef.current) return;
-      
+
       if (editingElementRef.current.contains(target)) {
         savedSelectionRangeRef.current = null;
         return;
       }
-      
+
       if (target.closest('[data-property-panel="true"]')) {
         const sel = window.getSelection();
         if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
@@ -1083,7 +1157,7 @@ export default function EditorLayout({ }: EditorLayoutProps) {
         }
         return;
       }
-      
+
       stopTextEditing();
     };
 
@@ -1135,7 +1209,9 @@ export default function EditorLayout({ }: EditorLayoutProps) {
     saveHistory();
 
     const bestElements = rawElements.map((el) => findBestIconContainer(el));
-    const uniqueElements = Array.from(new Set(bestElements.filter((el) => el && el.isConnected))) as HTMLElement[];
+    const uniqueElements = Array.from(
+      new Set(bestElements.filter((el) => el && el.isConnected)),
+    ) as HTMLElement[];
     const elementPaths = uniqueElements.map((el) => getElementPath(el));
 
     let count = replaceIconsInElements(uniqueElements, style);
@@ -1171,7 +1247,9 @@ export default function EditorLayout({ }: EditorLayoutProps) {
     setContextMenu(null);
     if (!slideContainerRef.current || !currentSlide) return;
 
-    const innerDiv = slideContainerRef.current.querySelector('[data-slide-content="true"]') as HTMLElement;
+    const innerDiv = slideContainerRef.current.querySelector(
+      '[data-slide-content="true"]',
+    ) as HTMLElement;
     if (!innerDiv) return;
 
     saveHistory();
@@ -1269,20 +1347,29 @@ export default function EditorLayout({ }: EditorLayoutProps) {
                       >
                         <IconComp className="w-4 h-4 text-slate-500 dark:text-slate-400 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{t(opt.name)}</p>
-                          <p className="text-xs text-slate-400 dark:text-slate-500">{t(opt.desc)}</p>
+                          <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                            {t(opt.name)}
+                          </p>
+                          <p className="text-xs text-slate-400 dark:text-slate-500">
+                            {t(opt.desc)}
+                          </p>
                         </div>
                       </button>
                     );
                   })}
                   <div className="h-px bg-slate-200 dark:bg-slate-700 my-1" />
                   <button
-                    onClick={() => { setIconStyleMenuOpen(false); handleApplyIconStyleToCurrentSlide('auto'); }}
+                    onClick={() => {
+                      setIconStyleMenuOpen(false);
+                      handleApplyIconStyleToCurrentSlide('auto');
+                    }}
                     className="w-full px-3 py-2 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left"
                   >
                     <Sparkles className="w-4 h-4 text-slate-500 dark:text-slate-400 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{t('仅当前页智能匹配')}</p>
+                      <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                        {t('仅当前页智能匹配')}
+                      </p>
                     </div>
                   </button>
                 </div>
@@ -1312,7 +1399,10 @@ export default function EditorLayout({ }: EditorLayoutProps) {
               </button>
               <button
                 onClick={handleUnbindElements}
-                disabled={selectedElements.length === 0 || !selectedElements.some(el => el.getAttribute('data-element-type') === 'group')}
+                disabled={
+                  selectedElements.length === 0 ||
+                  !selectedElements.some((el) => el.getAttribute('data-element-type') === 'group')
+                }
                 className="p-2 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-30"
                 title={t('解绑 (Ctrl+Shift+G)')}
               >
@@ -1359,7 +1449,10 @@ export default function EditorLayout({ }: EditorLayoutProps) {
               </button>
               <div className="w-px h-6 bg-slate-200 mx-1" />
               <button
-                onClick={() => { userZoomOverrideRef.current = true; setZoom(zoom - 0.1); }}
+                onClick={() => {
+                  userZoomOverrideRef.current = true;
+                  setZoom(zoom - 0.1);
+                }}
                 className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
                 title={t('缩小')}
               >
@@ -1371,12 +1464,20 @@ export default function EditorLayout({ }: EditorLayoutProps) {
                 max="2"
                 step="0.05"
                 value={zoom}
-                onChange={(e) => { userZoomOverrideRef.current = true; setZoom(parseFloat(e.target.value)); }}
-                onPointerDown={() => { userZoomOverrideRef.current = true; }}
+                onChange={(e) => {
+                  userZoomOverrideRef.current = true;
+                  setZoom(parseFloat(e.target.value));
+                }}
+                onPointerDown={() => {
+                  userZoomOverrideRef.current = true;
+                }}
                 className="w-28 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
               />
               <button
-                onClick={() => { userZoomOverrideRef.current = true; setZoom(zoom + 0.1); }}
+                onClick={() => {
+                  userZoomOverrideRef.current = true;
+                  setZoom(zoom + 0.1);
+                }}
                 className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
                 title={t('放大')}
               >
@@ -1389,25 +1490,28 @@ export default function EditorLayout({ }: EditorLayoutProps) {
           </div>
 
           {/* Slide Preview */}
-          <div ref={editorAreaRef} className="flex-1 overflow-auto flex items-center justify-center p-8 bg-slate-200">
+          <div
+            ref={editorAreaRef}
+            className="flex-1 overflow-auto flex items-center justify-center p-8 bg-slate-200"
+          >
             <div
-                ref={slideContainerRef}
-                className="bg-white shadow-2xl rounded-lg overflow-hidden shrink-0 cursor-pointer relative select-none"
-                style={{
-                  width: `${presentation?.width || 1280}px`,
-                  height: `${presentation?.height || 720}px`,
-                  transform: `scale(${zoom})`,
-                  transformOrigin: 'center',
-                  touchAction: 'none',
-                }}
-                data-slide-zoom={zoom}
-                onPointerDown={handleSlidePointerDown}
-                onPointerMove={handleSlidePointerMove}
-                onPointerUp={handleSlidePointerUp}
-                onPointerLeave={handleSlidePointerUp}
-                onDoubleClick={handleDoubleClick}
-                onContextMenu={handleContextMenu}
-              >
+              ref={slideContainerRef}
+              className="bg-white shadow-2xl rounded-lg overflow-hidden shrink-0 cursor-pointer relative select-none"
+              style={{
+                width: `${presentation?.width || 1280}px`,
+                height: `${presentation?.height || 720}px`,
+                transform: `scale(${zoom})`,
+                transformOrigin: 'center',
+                touchAction: 'none',
+              }}
+              data-slide-zoom={zoom}
+              onPointerDown={handleSlidePointerDown}
+              onPointerMove={handleSlidePointerMove}
+              onPointerUp={handleSlidePointerUp}
+              onPointerLeave={handleSlidePointerUp}
+              onDoubleClick={handleDoubleClick}
+              onContextMenu={handleContextMenu}
+            >
               {currentSlide && (
                 <div
                   ref={contentRef}
@@ -1441,7 +1545,10 @@ export default function EditorLayout({ }: EditorLayoutProps) {
         </main>
 
         {/* Right Sidebar */}
-        <aside ref={propertyPanelRef} className="w-[360px] shrink-0 flex flex-col h-full bg-white border-l border-slate-200">
+        <aside
+          ref={propertyPanelRef}
+          className="w-[360px] shrink-0 flex flex-col h-full bg-white border-l border-slate-200"
+        >
           {/* Tab Header */}
           <div className="flex border-b border-slate-200">
             <button
@@ -1454,8 +1561,8 @@ export default function EditorLayout({ }: EditorLayoutProps) {
                 rightPanelTab === 'property'
                   ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50'
                   : selectedElements.length > 0 || isTextEditing
-                  ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                  : 'text-slate-300 cursor-not-allowed'
+                    ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                    : 'text-slate-300 cursor-not-allowed'
               }`}
               disabled={selectedElements.length === 0 && !isTextEditing}
             >
@@ -1491,7 +1598,8 @@ export default function EditorLayout({ }: EditorLayoutProps) {
 
           {/* Tab Content */}
           <div className="flex-1 overflow-hidden">
-            {rightPanelTab === 'property' && ((showPropertyPanel && selectedElements.length > 0) || isTextEditing) ? (
+            {rightPanelTab === 'property' &&
+            ((showPropertyPanel && selectedElements.length > 0) || isTextEditing) ? (
               <PropertyPanel
                 selectedElements={selectedElements}
                 onClose={isTextEditing ? stopTextEditing : clearSelection}
@@ -1555,24 +1663,32 @@ export default function EditorLayout({ }: EditorLayoutProps) {
             <h3 className="text-base font-semibold text-slate-800 mb-4">{t('插入表格')}</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-600 mb-1.5">{t('行数')}</label>
+                <label className="block text-sm font-medium text-slate-600 mb-1.5">
+                  {t('行数')}
+                </label>
                 <input
                   type="number"
                   min="1"
                   max="20"
                   value={tableRows}
-                  onChange={(e) => setTableRows(Math.max(1, Math.min(20, parseInt(e.target.value) || 1)))}
+                  onChange={(e) =>
+                    setTableRows(Math.max(1, Math.min(20, parseInt(e.target.value) || 1)))
+                  }
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-600 mb-1.5">{t('列数')}</label>
+                <label className="block text-sm font-medium text-slate-600 mb-1.5">
+                  {t('列数')}
+                </label>
                 <input
                   type="number"
                   min="1"
                   max="10"
                   value={tableCols}
-                  onChange={(e) => setTableCols(Math.max(1, Math.min(10, parseInt(e.target.value) || 1)))}
+                  onChange={(e) =>
+                    setTableCols(Math.max(1, Math.min(10, parseInt(e.target.value) || 1)))
+                  }
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -1615,9 +1731,7 @@ export default function EditorLayout({ }: EditorLayoutProps) {
             </div>
             <div className="flex-1 overflow-y-auto p-3">
               {presentations.length === 0 ? (
-                <div className="text-center py-8 text-slate-400 text-sm">
-                  {t('暂无演示文稿')}
-                </div>
+                <div className="text-center py-8 text-slate-400 text-sm">{t('暂无演示文稿')}</div>
               ) : (
                 <div className="space-y-2">
                   {presentations.map((item) => (
@@ -1636,11 +1750,14 @@ export default function EditorLayout({ }: EditorLayoutProps) {
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-slate-800 truncate">{item.title}</div>
                         <div className="text-xs text-slate-400 mt-0.5">
-                          {item.slideCount} {t('页')} · {new Date(item.updatedAt).toLocaleDateString()}
+                          {item.slideCount} {t('页')} ·{' '}
+                          {new Date(item.updatedAt).toLocaleDateString()}
                         </div>
                       </div>
                       {item.id === presentation?.id && (
-                        <span className="text-xs text-blue-600 font-medium shrink-0">{t('当前')}</span>
+                        <span className="text-xs text-blue-600 font-medium shrink-0">
+                          {t('当前')}
+                        </span>
                       )}
                     </button>
                   ))}
@@ -1704,33 +1821,39 @@ export default function EditorLayout({ }: EditorLayoutProps) {
                   {t('粘贴幻灯片为绑定对象')}
                 </button>
               )}
-              {contextMenu.hasTextClipboard && !contextMenu.hasElementClipboard && !contextMenu.hasSlideClipboard && (
-                <button
-                  onClick={() => handlePasteText(contextMenu.x, contextMenu.y)}
-                  className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
-                >
-                  <Type className="w-4 h-4" />
-                  {t('粘贴为文本')}
-                </button>
-              )}
-              {contextMenu.hasHtmlClipboard && !contextMenu.hasElementClipboard && !contextMenu.hasSlideClipboard && (
-                <button
-                  onClick={() => handlePasteHtml(contextMenu.x, contextMenu.y)}
-                  className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
-                >
-                  <Table2 className="w-4 h-4" />
-                  {t('粘贴为表格')}
-                </button>
-              )}
-              {contextMenu.hasImageClipboard && !contextMenu.hasElementClipboard && !contextMenu.hasSlideClipboard && (
-                <button
-                  onClick={() => handlePasteImage(contextMenu.x, contextMenu.y)}
-                  className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
-                >
-                  <ImageIcon className="w-4 h-4" />
-                  {t('粘贴图片')}
-                </button>
-              )}
+              {contextMenu.hasTextClipboard &&
+                !contextMenu.hasElementClipboard &&
+                !contextMenu.hasSlideClipboard && (
+                  <button
+                    onClick={() => handlePasteText(contextMenu.x, contextMenu.y)}
+                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                  >
+                    <Type className="w-4 h-4" />
+                    {t('粘贴为文本')}
+                  </button>
+                )}
+              {contextMenu.hasHtmlClipboard &&
+                !contextMenu.hasElementClipboard &&
+                !contextMenu.hasSlideClipboard && (
+                  <button
+                    onClick={() => handlePasteHtml(contextMenu.x, contextMenu.y)}
+                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                  >
+                    <Table2 className="w-4 h-4" />
+                    {t('粘贴为表格')}
+                  </button>
+                )}
+              {contextMenu.hasImageClipboard &&
+                !contextMenu.hasElementClipboard &&
+                !contextMenu.hasSlideClipboard && (
+                  <button
+                    onClick={() => handlePasteImage(contextMenu.x, contextMenu.y)}
+                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                  >
+                    <ImageIcon className="w-4 h-4" />
+                    {t('粘贴图片')}
+                  </button>
+                )}
               <div className="h-px bg-slate-200 my-1" />
               <button
                 onClick={handleDeleteElementFromMenu}
@@ -1770,36 +1893,44 @@ export default function EditorLayout({ }: EditorLayoutProps) {
                   {t('粘贴幻灯片为绑定对象')}
                 </button>
               )}
-              {contextMenu.hasTextClipboard && !contextMenu.hasElementClipboard && !contextMenu.hasSlideClipboard && (
-                <button
-                  onClick={() => handlePasteText(contextMenu.x, contextMenu.y)}
-                  className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
-                >
-                  <Type className="w-4 h-4" />
-                  {t('粘贴为文本')}
-                </button>
-              )}
-              {contextMenu.hasHtmlClipboard && !contextMenu.hasElementClipboard && !contextMenu.hasSlideClipboard && (
-                <button
-                  onClick={() => handlePasteHtml(contextMenu.x, contextMenu.y)}
-                  className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
-                >
-                  <Table2 className="w-4 h-4" />
-                  {t('粘贴为表格')}
-                </button>
-              )}
-              {contextMenu.hasImageClipboard && !contextMenu.hasElementClipboard && !contextMenu.hasSlideClipboard && (
-                <button
-                  onClick={() => handlePasteImage(contextMenu.x, contextMenu.y)}
-                  className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
-                >
-                  <ImageIcon className="w-4 h-4" />
-                  {t('粘贴图片')}
-                </button>
-              )}
+              {contextMenu.hasTextClipboard &&
+                !contextMenu.hasElementClipboard &&
+                !contextMenu.hasSlideClipboard && (
+                  <button
+                    onClick={() => handlePasteText(contextMenu.x, contextMenu.y)}
+                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                  >
+                    <Type className="w-4 h-4" />
+                    {t('粘贴为文本')}
+                  </button>
+                )}
+              {contextMenu.hasHtmlClipboard &&
+                !contextMenu.hasElementClipboard &&
+                !contextMenu.hasSlideClipboard && (
+                  <button
+                    onClick={() => handlePasteHtml(contextMenu.x, contextMenu.y)}
+                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                  >
+                    <Table2 className="w-4 h-4" />
+                    {t('粘贴为表格')}
+                  </button>
+                )}
+              {contextMenu.hasImageClipboard &&
+                !contextMenu.hasElementClipboard &&
+                !contextMenu.hasSlideClipboard && (
+                  <button
+                    onClick={() => handlePasteImage(contextMenu.x, contextMenu.y)}
+                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                  >
+                    <ImageIcon className="w-4 h-4" />
+                    {t('粘贴图片')}
+                  </button>
+                )}
               <div className="h-px bg-slate-200 my-1" />
               <div className="px-2 py-1">
-                <p className="px-2 py-1 text-xs font-medium text-slate-400 uppercase tracking-wider">{t('图标风格（当前页）')}</p>
+                <p className="px-2 py-1 text-xs font-medium text-slate-400 uppercase tracking-wider">
+                  {t('图标风格（当前页）')}
+                </p>
                 {iconStyleOptions.map((opt) => {
                   const IconComp = opt.icon;
                   return (
@@ -1815,14 +1946,20 @@ export default function EditorLayout({ }: EditorLayoutProps) {
                   );
                 })}
               </div>
-              {!contextMenu.hasElementClipboard && !contextMenu.hasSlideClipboard && !contextMenu.hasTextClipboard && !contextMenu.hasHtmlClipboard && !contextMenu.hasImageClipboard && (
-                <div className="h-px bg-slate-200 my-1" />
-              )}
-              {!contextMenu.hasElementClipboard && !contextMenu.hasSlideClipboard && !contextMenu.hasTextClipboard && !contextMenu.hasHtmlClipboard && !contextMenu.hasImageClipboard && (
-                <div className="px-4 py-2 text-sm text-slate-400 text-center">
-                  {t('剪贴板为空')}
-                </div>
-              )}
+              {!contextMenu.hasElementClipboard &&
+                !contextMenu.hasSlideClipboard &&
+                !contextMenu.hasTextClipboard &&
+                !contextMenu.hasHtmlClipboard &&
+                !contextMenu.hasImageClipboard && <div className="h-px bg-slate-200 my-1" />}
+              {!contextMenu.hasElementClipboard &&
+                !contextMenu.hasSlideClipboard &&
+                !contextMenu.hasTextClipboard &&
+                !contextMenu.hasHtmlClipboard &&
+                !contextMenu.hasImageClipboard && (
+                  <div className="px-4 py-2 text-sm text-slate-400 text-center">
+                    {t('剪贴板为空')}
+                  </div>
+                )}
             </>
           )}
         </div>

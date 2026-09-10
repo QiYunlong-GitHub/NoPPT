@@ -58,7 +58,8 @@ export function resolveUserKey(headers: Record<string, unknown>, recordUserKey?:
   const headerName = readMcpEnv().identityHeader;
   const raw = headers?.[headerName] ?? headers?.[headerName.toLowerCase()];
   const value = Array.isArray(raw) ? raw[0] : raw;
-  const candidate = typeof value === 'string' && value.trim() ? value.trim() : recordUserKey || 'default';
+  const candidate =
+    typeof value === 'string' && value.trim() ? value.trim() : recordUserKey || 'default';
   return sanitizeScopeSegment(candidate, 'userKey');
 }
 

@@ -7,7 +7,11 @@ export { VisualAuditEngine } from './engines/visual-engine';
 export type { PerSlideVisualMetrics } from './engines/visual-engine';
 export { SlideRenderer } from './engines/visual-engine/slide-renderer';
 export { runVlmCritique } from './engines/visual-engine/vlm-critique';
-export type { VlmReviewResult, VlmRootCause, VlmCritiqueMode } from './engines/visual-engine/vlm-critique';
+export type {
+  VlmReviewResult,
+  VlmRootCause,
+  VlmCritiqueMode,
+} from './engines/visual-engine/vlm-critique';
 export * from './engines/visual-engine/metrics';
 export { ContentAuditEngine } from './engines/content-engine';
 export * from './engines/content-engine/types';

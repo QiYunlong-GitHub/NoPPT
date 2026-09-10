@@ -34,7 +34,12 @@ export default function EditorPage() {
   }, [id, loadPresentation, loadSettings, presentation]);
 
   useEffect(() => {
-    if (searchParams.get('ai') === '1' && presentation && !showAIGenerateModal && !hasOpenedAIGenerateRef.current) {
+    if (
+      searchParams.get('ai') === '1' &&
+      presentation &&
+      !showAIGenerateModal &&
+      !hasOpenedAIGenerateRef.current
+    ) {
       hasOpenedAIGenerateRef.current = true;
       setAIGenerateModal(true);
     }

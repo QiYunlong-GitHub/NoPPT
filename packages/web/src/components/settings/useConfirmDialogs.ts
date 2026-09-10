@@ -7,7 +7,7 @@ export function useConfirmDialogs() {
   const showToast = useUIStore((s) => s.showToast);
   const presentations = usePresentationStore();
   const navigate = useNavigate();
-  
+
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 

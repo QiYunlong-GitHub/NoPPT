@@ -18,7 +18,9 @@ function isPage(obj: unknown): obj is Page {
 }
 
 function hasRenderSlide(obj: unknown): obj is SlideRenderer {
-  return !!obj && typeof obj === 'object' && typeof (obj as SlideRenderer).renderSlide === 'function';
+  return (
+    !!obj && typeof obj === 'object' && typeof (obj as SlideRenderer).renderSlide === 'function'
+  );
 }
 
 function classifyOverflow(overflowX: number, overflowY: number): 'error' | 'warn' {
@@ -44,7 +46,11 @@ export class FidelityAuditEngine {
       useRenderSlide = true;
     } else if (isPage(renderer)) {
       sharedPage = renderer;
-    } else if (renderer && typeof renderer === 'object' && isPage((renderer as { page?: unknown }).page)) {
+    } else if (
+      renderer &&
+      typeof renderer === 'object' &&
+      isPage((renderer as { page?: unknown }).page)
+    ) {
       sharedPage = (renderer as { page: Page }).page;
     }
 
@@ -111,7 +117,8 @@ export class FidelityAuditEngine {
             slideIndex: i,
             selector: rec.selector,
             message: `Element <${rec.tagName}> content overflows its box (x: ${rec.overflowX}px, y: ${rec.overflowY}px)`,
-            fixSuggestion: 'Add overflow:hidden/auto, increase container size, or reduce content size',
+            fixSuggestion:
+              'Add overflow:hidden/auto, increase container size, or reduce content size',
             fixable: true,
             metadata: rec,
           });
@@ -159,7 +166,8 @@ export class FidelityAuditEngine {
             slideIndex: i,
             selector: rec.selector,
             message: `Image failed to load: ${rec.src || '(no src)'}`,
-            fixSuggestion: 'Check image URL, ensure resource is accessible, or replace with a valid image',
+            fixSuggestion:
+              'Check image URL, ensure resource is accessible, or replace with a valid image',
             fixable: false,
             metadata: rec,
           });

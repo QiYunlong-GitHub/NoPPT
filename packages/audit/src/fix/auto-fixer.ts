@@ -16,7 +16,7 @@ export class AutoFixer {
 
   fixSlide(html: string, issues: AuditIssue[]): FixResult {
     const fixable = issues
-      .filter(i => i.fixable && i.severity !== 'off')
+      .filter((i) => i.fixable && i.severity !== 'off')
       .sort((a, b) => {
         const sevOrder: Record<string, number> = { error: 0, warn: 1, info: 2 };
         const sa = sevOrder[a.severity] ?? 3;
@@ -51,9 +51,17 @@ export class AutoFixer {
     return { html: currentHtml, fixedIssues, failedIssues };
   }
 
-  fixAll(slides: Array<{ html: string }>, allIssues: AuditIssue[]): {
+  fixAll(
+    slides: Array<{ html: string }>,
+    allIssues: AuditIssue[],
+  ): {
     slides: Array<{ html: string }>;
-    summary: { fixedCount: number; failedCount: number; fixedRuleIds: string[]; failedRuleIds: string[] };
+    summary: {
+      fixedCount: number;
+      failedCount: number;
+      fixedRuleIds: string[];
+      failedRuleIds: string[];
+    };
   } {
     const fixedRuleIdsSet = new Set<string>();
     const failedRuleIdsSet = new Set<string>();
@@ -61,12 +69,12 @@ export class AutoFixer {
     let totalFailed = 0;
 
     const fixedSlides = slides.map((slide, slideIndex) => {
-      const slideIssues = allIssues.filter(i => i.slideIndex === slideIndex);
+      const slideIssues = allIssues.filter((i) => i.slideIndex === slideIndex);
       const result = this.fixSlide(slide.html, slideIssues);
       totalFixed += result.fixedIssues.length;
       totalFailed += result.failedIssues.length;
-      result.fixedIssues.forEach(i => fixedRuleIdsSet.add(i.ruleId));
-      result.failedIssues.forEach(i => failedRuleIdsSet.add(i.ruleId));
+      result.fixedIssues.forEach((i) => fixedRuleIdsSet.add(i.ruleId));
+      result.failedIssues.forEach((i) => failedRuleIdsSet.add(i.ruleId));
       return { ...slide, html: result.html };
     });
 

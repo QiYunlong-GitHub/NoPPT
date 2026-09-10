@@ -13,8 +13,16 @@ export interface HtmlAuditLoopParams {
   slideHeight?: number;
   maxRetries: number;
   traceSessionId?: string;
-  onProgress?: (payload: { slideIndex: number; attempt: number; maxAttempts: number; message: string }) => void;
-  regenerateSlideFn: (slideIndex: number, feedback: string) => Promise<RenderedSlide | null | undefined>;
+  onProgress?: (payload: {
+    slideIndex: number;
+    attempt: number;
+    maxAttempts: number;
+    message: string;
+  }) => void;
+  regenerateSlideFn: (
+    slideIndex: number,
+    feedback: string,
+  ) => Promise<RenderedSlide | null | undefined>;
   /** 频控：仅当该页 LLM critique 已通过时才执行占位 VLM 评审（默认关闭，开启后低于阈值/未通过的页整页跳过） */
   onlyAfterLlmPass?: boolean;
 }
@@ -29,19 +37,20 @@ interface SlideSnapshot {
 function buildVlmFeedback(vlm: VlmReviewResult): string {
   if (!vlm.issues.length) return '';
   const lines = vlm.issues.map((issue, i) => {
-    const sev = issue.severity === 'error' ? '[严重]' : issue.severity === 'warn' ? '[重要]' : '[轻微]';
+    const sev =
+      issue.severity === 'error' ? '[严重]' : issue.severity === 'warn' ? '[重要]' : '[轻微]';
     return `${i + 1}. ${sev} ${issue.message}${issue.fixSuggestion ? `\n   建议：${issue.fixSuggestion}` : ''}`;
   });
   return `【视觉评审（VLM）反馈 —— 图片为占位块，仅针对排版/布局】\n${lines.join('\n')}`;
 }
 
 function mergeIssues(vlm: VlmReviewResult): string[] {
-  return vlm.issues.map(i => i.message);
+  return vlm.issues.map((i) => i.message);
 }
 
 function hasBlockingIssue(vlm: VlmReviewResult): boolean {
   // r5 阈值收紧：占位 VLM 渲染灰块占位，error(≈fatal)/warn 噪音多，仅最高档(≈fatal) 才阻塞重生成，warn 不再阻塞。
-  return vlm.issues.some(i => i.severity === 'error');
+  return vlm.issues.some((i) => i.severity === 'error');
 }
 
 /**
@@ -71,7 +80,11 @@ async function captureScreenshot(
     return null;
   } finally {
     if (page) {
-      try { await page.close(); } catch { /* ignore */ }
+      try {
+        await page.close();
+      } catch {
+        /* ignore */
+      }
     }
   }
 }
@@ -88,7 +101,7 @@ export async function runHtmlPlaceholderAuditLoop(
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'noppt-html-audit-'));
   const renderer = new SlideRenderer({ width: slideWidth || 1280, height: slideHeight || 720 });
 
-  const slidesWorking: RenderedSlide[] = slides.map(s => ({ ...s }));
+  const slidesWorking: RenderedSlide[] = slides.map((s) => ({ ...s }));
   const bestByIndex = new Map<number, SlideSnapshot>();
 
   const rememberBest = (idx: number, slide: RenderedSlide, score: number, issues: string[]) => {
@@ -107,7 +120,10 @@ export async function runHtmlPlaceholderAuditLoop(
     try {
       await renderer.initialize();
     } catch (e) {
-      console.warn(`[HTML-AUDIT] 渲染器初始化失败，跳过占位 HTML 视觉评审:`, e instanceof Error ? e.message : e);
+      console.warn(
+        `[HTML-AUDIT] 渲染器初始化失败，跳过占位 HTML 视觉评审:`,
+        e instanceof Error ? e.message : e,
+      );
       return slides;
     }
 
@@ -117,7 +133,10 @@ export async function runHtmlPlaceholderAuditLoop(
       let blocking = false;
 
       // —— 频控：仅当该页 LLM critique 已通过时才执行占位 VLM 评审（未通过则整页跳过，节省 VLM 配额）——
-      if (params.onlyAfterLlmPass && !(slidesWorking[idx].critique && slidesWorking[idx].critique.passed)) {
+      if (
+        params.onlyAfterLlmPass &&
+        !(slidesWorking[idx].critique && slidesWorking[idx].critique.passed)
+      ) {
         console.warn(`[HTML-AUDIT] 第 ${idx + 1} 页 LLM critique 未通过，跳过占位 VLM（频控）`);
         continue;
       }
@@ -127,12 +146,25 @@ export async function runHtmlPlaceholderAuditLoop(
         const shot = await captureScreenshot(renderer, htmlForShot, idx, tmpDir);
         if (shot) {
           try {
-            vlm = await runVlmCritique(vlmProvider, shot, idx, slidesWorking[idx].title, 'placeholder');
+            vlm = await runVlmCritique(
+              vlmProvider,
+              shot,
+              idx,
+              slidesWorking[idx].title,
+              'placeholder',
+            );
           } catch (e) {
-            console.warn(`[HTML-AUDIT] 第 ${idx + 1} 页 VLM 评审异常:`, e instanceof Error ? e.message : e);
+            console.warn(
+              `[HTML-AUDIT] 第 ${idx + 1} 页 VLM 评审异常:`,
+              e instanceof Error ? e.message : e,
+            );
             vlm = { issues: [], score: 0 };
           }
-          try { fs.unlinkSync(shot); } catch { /* ignore */ }
+          try {
+            fs.unlinkSync(shot);
+          } catch {
+            /* ignore */
+          }
         }
 
         const combinedScore = computeCombinedScore(slidesWorking[idx], vlm);
@@ -141,7 +173,9 @@ export async function runHtmlPlaceholderAuditLoop(
         blocking = hasBlockingIssue(vlm);
         if (!blocking || attempt >= maxRetries) {
           if (blocking) {
-            console.warn(`[HTML-AUDIT] 第 ${idx + 1} 页达到最大重试次数 ${maxRetries}，保留历史最优版本`);
+            console.warn(
+              `[HTML-AUDIT] 第 ${idx + 1} 页达到最大重试次数 ${maxRetries}，保留历史最优版本`,
+            );
           }
           break;
         }
@@ -163,7 +197,9 @@ export async function runHtmlPlaceholderAuditLoop(
       const best = bestByIndex.get(idx);
       if (best) {
         slidesWorking[idx].html = best.html;
-        const allIssues = Array.from(new Set([...(slidesWorking[idx].critique?.issues ?? []), ...best.issues]));
+        const allIssues = Array.from(
+          new Set([...(slidesWorking[idx].critique?.issues ?? []), ...best.issues]),
+        );
         slidesWorking[idx].critique = {
           score: Math.round(best.score) / 10,
           passed: !blocking,
@@ -175,7 +211,15 @@ export async function runHtmlPlaceholderAuditLoop(
 
     return slidesWorking;
   } finally {
-    try { await renderer.close(); } catch { /* ignore */ }
-    try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch { /* ignore */ }
+    try {
+      await renderer.close();
+    } catch {
+      /* ignore */
+    }
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch {
+      /* ignore */
+    }
   }
 }

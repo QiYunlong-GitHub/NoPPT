@@ -51,8 +51,7 @@ export function normalizeSpacing8ptStyleBody(styleBody: string): string {
 }
 
 // 归一化扫描：只处理这些标签的 style 属性。
-const TAGS_RE_TOKENS =
-  '(?:div|p|li|h[1-6]|ul|ol|span|img|section|article|table|td|th|button)';
+const TAGS_RE_TOKENS = '(?:div|p|li|h[1-6]|ul|ol|span|img|section|article|table|td|th|button)';
 
 /** 跳过谓词：返回 true 时该处 style 跳过 8pt 归一化（保持原值，且 assertSpacing8pt 不计入 violations）。
  * 业务无关的 grid 工具只认「标签名 + style 串 + 在原文中的偏移」，由调用方按自身语义判定是否豁免。 */
@@ -88,22 +87,31 @@ export function assertSpacing8pt(
 ): { html: string; violations: string[] } {
   const allViolations: string[] = [];
   const re = new RegExp(`(<${TAGS_RE_TOKENS}[^>]*style=")([^"]*?)(")`, 'gi');
-  const out = html.replace(re, (full: string, pre: string, styleBody: string, quote: string, offset: number) => {
-    if (shouldSkip && shouldSkip({ tag: spacingMatchTag(pre), styleBody, offset })) return full;
-    let next: string = styleBody;
-    let changed = false;
-    next = next.replace(SP_PROP_RE, (_m: string, prop: string, valsRaw: string, sep: string) => {
-      const normed = normGridTokens(valsRaw);
-      if (normed !== valsRaw.trim()) { allViolations.push(`${prop}:${valsRaw.trim()}`); changed = true; }
-      return `${prop}:${normed}${sep}`;
-    });
-    next = next.replace(SP_GAP_RE, (_m: string, valsRaw: string, sep: string) => {
-      const normed = normGridTokens(valsRaw);
-      if (normed !== valsRaw.trim()) { allViolations.push(`gap:${valsRaw.trim()}`); changed = true; }
-      return `gap:${normed}${sep}`;
-    });
-    if (!changed) return full;
-    return `${pre}${next}${quote}`;
-  });
+  const out = html.replace(
+    re,
+    (full: string, pre: string, styleBody: string, quote: string, offset: number) => {
+      if (shouldSkip && shouldSkip({ tag: spacingMatchTag(pre), styleBody, offset })) return full;
+      let next: string = styleBody;
+      let changed = false;
+      next = next.replace(SP_PROP_RE, (_m: string, prop: string, valsRaw: string, sep: string) => {
+        const normed = normGridTokens(valsRaw);
+        if (normed !== valsRaw.trim()) {
+          allViolations.push(`${prop}:${valsRaw.trim()}`);
+          changed = true;
+        }
+        return `${prop}:${normed}${sep}`;
+      });
+      next = next.replace(SP_GAP_RE, (_m: string, valsRaw: string, sep: string) => {
+        const normed = normGridTokens(valsRaw);
+        if (normed !== valsRaw.trim()) {
+          allViolations.push(`gap:${valsRaw.trim()}`);
+          changed = true;
+        }
+        return `gap:${normed}${sep}`;
+      });
+      if (!changed) return full;
+      return `${pre}${next}${quote}`;
+    },
+  );
   return { html: out, violations: allViolations };
 }

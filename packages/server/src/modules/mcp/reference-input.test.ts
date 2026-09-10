@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { assertReferenceSizes, dataUrlBytes, truncateReferenceText, MAX_REFERENCE_HTML_BYTES } from './reference-input';
+import {
+  assertReferenceSizes,
+  dataUrlBytes,
+  truncateReferenceText,
+  MAX_REFERENCE_HTML_BYTES,
+} from './reference-input';
 import { McpError } from '../../common/mcp-errors';
 import { readMcpEnv } from '../../common/env';
 
@@ -47,7 +52,9 @@ describe('M8 素材入参', () => {
     const env = readMcpEnv();
 
     it('referenceHtml 超 2MB → E3003', () => {
-      expect(() => assertReferenceSizes({ referenceHtml: 'x'.repeat(MAX_REFERENCE_HTML_BYTES + 1) }, env)).toThrow(McpError);
+      expect(() =>
+        assertReferenceSizes({ referenceHtml: 'x'.repeat(MAX_REFERENCE_HTML_BYTES + 1) }, env),
+      ).toThrow(McpError);
       try {
         assertReferenceSizes({ referenceHtml: 'x'.repeat(MAX_REFERENCE_HTML_BYTES + 1) }, env);
       } catch (e) {
@@ -60,13 +67,16 @@ describe('M8 素材入参', () => {
     });
 
     it('referenceImage data URL 超限 → E3004', () => {
-      const big = 'data:image/png;base64,' + 'A'.repeat(Math.ceil((env.maxRefImageBytes / 3) * 4) + 100);
+      const big =
+        'data:image/png;base64,' + 'A'.repeat(Math.ceil((env.maxRefImageBytes / 3) * 4) + 100);
       expect(dataUrlBytes(big)).toBeGreaterThan(env.maxRefImageBytes);
       expect(() => assertReferenceSizes({ referenceImage: big }, env)).toThrow(McpError);
     });
 
     it('远程 http(s) 图片不做体积预检（交由落盘环节处理）', () => {
-      expect(() => assertReferenceSizes({ referenceImage: 'https://example.com/a.png' }, env)).not.toThrow();
+      expect(() =>
+        assertReferenceSizes({ referenceImage: 'https://example.com/a.png' }, env),
+      ).not.toThrow();
     });
   });
 

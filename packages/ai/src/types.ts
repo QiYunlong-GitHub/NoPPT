@@ -1,4 +1,5 @@
-export type ModelProvider = 'openai' | 'anthropic' | 'ollama' | 'custom' | 'freeai' | 'v0' | 'company-gateway';
+export type ModelProvider =
+  'openai' | 'anthropic' | 'ollama' | 'custom' | 'freeai' | 'v0' | 'company-gateway';
 
 export type ModelRole = 'system' | 'user' | 'assistant';
 
@@ -74,31 +75,31 @@ export type SlidePageType =
   | 'content-table'
   | 'summary'
   // ===== L1 高级版式（布局组合创造力新增）=====
-  | 'comparison-deep-dive'      // 双栏深度对比报告（左栏普通/右栏优势+进度条+徽章）
-  | 'content-zigzag'             // Z 字形图文交错布局（图左文右 → 文左图右 → 图左文右）
-  | 'content-value-showcase'     // 核心数值大卡展示（大号 Value 块 + 副标题 + 趋势徽章）
-  | 'content-stats-highlight'    // 多数据指标并列（3~4 个指标卡片横向排列）
-  | 'content-image-background'   // 大图做背景 + 半透明卡片文字叠在图上
+  | 'comparison-deep-dive' // 双栏深度对比报告（左栏普通/右栏优势+进度条+徽章）
+  | 'content-zigzag' // Z 字形图文交错布局（图左文右 → 文左图右 → 图左文右）
+  | 'content-value-showcase' // 核心数值大卡展示（大号 Value 块 + 副标题 + 趋势徽章）
+  | 'content-stats-highlight' // 多数据指标并列（3~4 个指标卡片横向排列）
+  | 'content-image-background' // 大图做背景 + 半透明卡片文字叠在图上
   // ===== FR-18 §18.1 扩展（承接参考常见版式，新增 10 种）=====
-  | 'content-flowchart'          // 流程节点 + 箭头连线（横向/纵向可选）
-  | 'content-org-chart'          // 层级节点 + 连线（组织树）
-  | 'content-pyramid'            // 三角分层递进（3~5 层）
-  | 'content-matrix'             // 2×2 四象限矩阵（轴 + 区块/散点）
-  | 'content-quote'              // 全屏大号引述 + 出处署名
-  | 'content-three-section'      // 上/中/下（或左/中/右）均分三区块
-  | 'content-process-steps'      // 编号步骤卡横向排列（区别于 flowchart 箭头连线）
-  | 'content-icon-grid'          // 图标 + 标题 + 短描述网格（区别于 card-grid 内容卡）
-  | 'content-section-divider'    // 大号章节标题 + 序号，过渡页
-  | 'content-testimonial'        // 头像 + 引述 + 姓名/职位
+  | 'content-flowchart' // 流程节点 + 箭头连线（横向/纵向可选）
+  | 'content-org-chart' // 层级节点 + 连线（组织树）
+  | 'content-pyramid' // 三角分层递进（3~5 层）
+  | 'content-matrix' // 2×2 四象限矩阵（轴 + 区块/散点）
+  | 'content-quote' // 全屏大号引述 + 出处署名
+  | 'content-three-section' // 上/中/下（或左/中/右）均分三区块
+  | 'content-process-steps' // 编号步骤卡横向排列（区别于 flowchart 箭头连线）
+  | 'content-icon-grid' // 图标 + 标题 + 短描述网格（区别于 card-grid 内容卡）
+  | 'content-section-divider' // 大号章节标题 + 序号，过渡页
+  | 'content-testimonial' // 头像 + 引述 + 姓名/职位
   // ===== FR-18 §18.5 扩展（50 种版式手册驱动，含图表/架构类，新增 7 种）=====
-  | 'content-chart-bar'          // 柱状图（PostProcess 注入受控 SVG）
-  | 'content-chart-line'         // 折线图（PostProcess 注入受控 SVG）
-  | 'content-chart-pie'          // 饼图（PostProcess 注入受控 SVG）
-  | 'content-chart-donut'        // 环形图（PostProcess 注入受控 SVG）
-  | 'content-cycle'              // 循环图（环形节点 + 单向箭头）
-  | 'content-dashboard'          // 数据看板（多指标 + 迷你图组合）
-  | 'content-architecture';      // 系统架构图（复用分层渲染，PostProcess 注入受控 SVG）
-  // 注：content-image-bottom 采用 content-image-top + LayoutParams.imageAnchor='bottom' 参数化，不新增枚举（Q14 已决策）
+  | 'content-chart-bar' // 柱状图（PostProcess 注入受控 SVG）
+  | 'content-chart-line' // 折线图（PostProcess 注入受控 SVG）
+  | 'content-chart-pie' // 饼图（PostProcess 注入受控 SVG）
+  | 'content-chart-donut' // 环形图（PostProcess 注入受控 SVG）
+  | 'content-cycle' // 循环图（环形节点 + 单向箭头）
+  | 'content-dashboard' // 数据看板（多指标 + 迷你图组合）
+  | 'content-architecture'; // 系统架构图（复用分层渲染，PostProcess 注入受控 SVG）
+// 注：content-image-bottom 采用 content-image-top + LayoutParams.imageAnchor='bottom' 参数化，不新增枚举（Q14 已决策）
 
 export type ImageRatio = '1:1' | '4:3' | '3:4' | '16:9' | '9:16' | '3:2' | '2:3' | '21:9';
 
@@ -108,7 +109,8 @@ export type ImagePreference = 'all' | 'content-only' | 'minimal' | 'none';
 
 export type ColorTheme = 'blue' | 'purple' | 'green' | 'orange' | 'teal' | 'gray';
 
-export type IconStyle = 'auto' | 'line' | 'filled' | 'numbered' | 'bullet' | 'lettered' | 'emoji' | 'none';
+export type IconStyle =
+  'auto' | 'line' | 'filled' | 'numbered' | 'bullet' | 'lettered' | 'emoji' | 'none';
 
 // ===== L1：6 维布局参数（parameterized layout，不突破 6 基本块只调排列）=====
 export interface LayoutParams {
@@ -128,13 +130,13 @@ export interface LayoutParams {
 
 // ===== L1.5：样式主题枚举（视觉增强，可控范围内释放创造力）=====
 export type StyleTheme =
-  | 'none'              // 无特殊样式（默认传统卡片）
-  | 'glass'             // 玻璃拟态卡片（backdrop-filter: blur + 半透明白）
-  | 'gradient'          // 渐变背景 + 渐变文字（大胆配色）
-  | 'progress-bars'     // 含进度条 / 完成度条（适合对比页、指标页）
-  | 'badges'            // 徽章化数值（胶囊 Badge + 大数字 Value 块）
-  | 'colored-cards'     // 多彩语义卡片（每张卡不同柔和色系）
-  | 'mixed';            // 混合模式（AI 根据内容自由组合以上样式）
+  | 'none' // 无特殊样式（默认传统卡片）
+  | 'glass' // 玻璃拟态卡片（backdrop-filter: blur + 半透明白）
+  | 'gradient' // 渐变背景 + 渐变文字（大胆配色）
+  | 'progress-bars' // 含进度条 / 完成度条（适合对比页、指标页）
+  | 'badges' // 徽章化数值（胶囊 Badge + 大数字 Value 块）
+  | 'colored-cards' // 多彩语义卡片（每张卡不同柔和色系）
+  | 'mixed'; // 混合模式（AI 根据内容自由组合以上样式）
 
 export type ContentCategory =
   | 'data-point'
@@ -436,7 +438,8 @@ export type LayoutSkeletonType =
   | 'image-left-text-right'
   | 'fullscreen-quote';
 
-export type ReferenceStyle = 'academic' | 'creative' | 'business' | 'simple' | 'tech' | (string & {});
+export type ReferenceStyle =
+  'academic' | 'creative' | 'business' | 'simple' | 'tech' | (string & {});
 
 export interface ReferencePageHints {
   disableCover?: boolean;
@@ -502,7 +505,14 @@ export interface ReferenceMaster {
   sideDecorations?: MasterSideDecoration[];
   watermark?: { text?: string; htmlSnippet?: string };
   /** FR-0：参考含图时，把参考原图作为整页背景（CSS 开窗裁切），置于内容之下。 */
-  heroImage?: { src: string; x?: number; y?: number; w?: number; h?: number; fit?: 'cover' | 'contain' | 'window' };
+  heroImage?: {
+    src: string;
+    x?: number;
+    y?: number;
+    w?: number;
+    h?: number;
+    fit?: 'cover' | 'contain' | 'window';
+  };
 }
 
 export interface ReferenceLayout {
@@ -587,12 +597,7 @@ export interface ReferenceVisualFeatures {
   /** 标题字号层级：海报级 / 大号 / 常规 */
   titleScale?: 'poster' | 'large' | 'normal';
   /** 装饰风格 */
-  decoration?:
-    | 'gradient-glow'
-    | 'geometric-shapes'
-    | 'thin-lines'
-    | 'solid-blocks'
-    | 'minimal';
+  decoration?: 'gradient-glow' | 'geometric-shapes' | 'thin-lines' | 'solid-blocks' | 'minimal';
   /** 背景调性：浅 / 深 / 彩色 */
   backgroundTone?: 'light' | 'dark' | 'colored';
   /** 卡片圆角：无 / 小 / 大 */
@@ -626,7 +631,13 @@ export type PageCategory = 'cover' | 'content' | 'summary';
 
 export function pageTypeToCategory(pageType: string): PageCategory {
   if (pageType === 'cover' || pageType === 'page-cover') return 'cover';
-  if (pageType === 'summary' || pageType === 'conclusion' || pageType === 'ending' || pageType === 'end') return 'summary';
+  if (
+    pageType === 'summary' ||
+    pageType === 'conclusion' ||
+    pageType === 'ending' ||
+    pageType === 'end'
+  )
+    return 'summary';
   return 'content';
 }
 

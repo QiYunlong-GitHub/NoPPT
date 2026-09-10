@@ -11,7 +11,7 @@ export const DEFAULT_AUDIT_CONFIG: AuditConfig = {
   weights: {
     layout: 0.25,
     visual: 0.25,
-    content: 0.30,
+    content: 0.3,
     fidelity: 0.15,
     sanitization: 0.05,
   },
@@ -44,13 +44,14 @@ export const RELAXED_CONFIG_PRESET: Partial<AuditConfig> = {
 };
 
 export function mergeConfig(base: AuditConfig, override?: Partial<AuditConfig>): AuditConfig {
-  if (!override) return {
-    ...base,
-    engines: { ...base.engines },
-    weights: { ...base.weights },
-    thresholds: { ...base.thresholds },
-    viewport: { ...base.viewport },
-  };
+  if (!override)
+    return {
+      ...base,
+      engines: { ...base.engines },
+      weights: { ...base.weights },
+      thresholds: { ...base.thresholds },
+      viewport: { ...base.viewport },
+    };
   return {
     ...base,
     ...override,

@@ -44,8 +44,11 @@ export function useTextEditing({
   const [selectionListStyleType, setSelectionListStyleType] = useState<string>('');
   const fakeSelectionOverlayRef = useRef<HTMLDivElement | null>(null);
 
-  const getSlideAppendTarget = (innerDiv: HTMLElement): HTMLElement => _getSlideAppendTarget(innerDiv);
-  const getLinePrefixInfo = (line: string): { type: 'ul' | 'ol' | null; style: string; content: string } => _getLinePrefixInfo(line);
+  const getSlideAppendTarget = (innerDiv: HTMLElement): HTMLElement =>
+    _getSlideAppendTarget(innerDiv);
+  const getLinePrefixInfo = (
+    line: string,
+  ): { type: 'ul' | 'ol' | null; style: string; content: string } => _getLinePrefixInfo(line);
 
   const hideFakeSelection = () => {
     if (fakeSelectionOverlayRef.current && fakeSelectionOverlayRef.current.parentNode) {
@@ -56,18 +59,14 @@ export function useTextEditing({
 
   const updateStylesFromRange = (range: Range) => {
     let textNode: Text | null = null;
-    const walker = document.createTreeWalker(
-      range.commonAncestorContainer,
-      NodeFilter.SHOW_TEXT,
-      {
-        acceptNode: (node) => {
-          if (range.intersectsNode(node)) {
-            return NodeFilter.FILTER_ACCEPT;
-          }
-          return NodeFilter.FILTER_REJECT;
-        },
-      }
-    );
+    const walker = document.createTreeWalker(range.commonAncestorContainer, NodeFilter.SHOW_TEXT, {
+      acceptNode: (node) => {
+        if (range.intersectsNode(node)) {
+          return NodeFilter.FILTER_ACCEPT;
+        }
+        return NodeFilter.FILTER_REJECT;
+      },
+    });
 
     textNode = walker.nextNode() as Text | null;
 
@@ -112,7 +111,7 @@ export function useTextEditing({
       if (selectedText) {
         const lines = selectedText.split('\n');
         const firstLineInfo = getLinePrefixInfo(lines[0]);
-        const allSameType = lines.every(line => {
+        const allSameType = lines.every((line) => {
           const info = getLinePrefixInfo(line);
           return info.type === firstLineInfo.type;
         });
@@ -138,7 +137,8 @@ export function useTextEditing({
     }
 
     const currentRange = sel.getRangeAt(0);
-    const isInEditor = editingElementRef.current && editingElementRef.current.contains(currentRange.startContainer);
+    const isInEditor =
+      editingElementRef.current && editingElementRef.current.contains(currentRange.startContainer);
 
     if (!isInEditor) {
       return;
@@ -234,9 +234,10 @@ export function useTextEditing({
     if (!selectedText.trim()) return;
 
     const rangeRect = range.getBoundingClientRect();
-    const parentEl = range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
-      ? range.commonAncestorContainer as HTMLElement
-      : (range.commonAncestorContainer as Text).parentElement;
+    const parentEl =
+      range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
+        ? (range.commonAncestorContainer as HTMLElement)
+        : (range.commonAncestorContainer as Text).parentElement;
 
     if (!parentEl) return;
 
@@ -298,7 +299,8 @@ export function useTextEditing({
   };
 
   const showFakeSelection = () => {
-    if (!savedSelectionRangeRef.current || !editingElementRef.current || !slideContainerRef.current) return;
+    if (!savedSelectionRangeRef.current || !editingElementRef.current || !slideContainerRef.current)
+      return;
 
     hideFakeSelection();
 
@@ -340,7 +342,10 @@ export function useTextEditing({
     const sel = window.getSelection();
     if (sel && sel.rangeCount > 0) {
       const currentRange = sel.getRangeAt(0);
-      if (editingElementRef.current && editingElementRef.current.contains(currentRange.startContainer)) {
+      if (
+        editingElementRef.current &&
+        editingElementRef.current.contains(currentRange.startContainer)
+      ) {
         return currentRange;
       }
     }
@@ -350,7 +355,11 @@ export function useTextEditing({
     return null;
   };
 
-  const applyListToSelection = (listType: 'ul' | 'ol', styleOverride?: string, toggle: boolean = false) => {
+  const applyListToSelection = (
+    listType: 'ul' | 'ol',
+    styleOverride?: string,
+    toggle: boolean = false,
+  ) => {
     if (!editingElementRef.current) return;
     const range = resolveListRange();
     if (!range) return;
@@ -422,7 +431,10 @@ export function useTextEditing({
 
     if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
       const currentRange = sel.getRangeAt(0);
-      if (editingElementRef.current && editingElementRef.current.contains(currentRange.startContainer)) {
+      if (
+        editingElementRef.current &&
+        editingElementRef.current.contains(currentRange.startContainer)
+      ) {
         range = currentRange;
       }
     }
@@ -454,7 +466,7 @@ export function useTextEditing({
       sel.addRange(range);
       updateSelectionStyles();
     } else {
-      setSelectionStyles((prev) => prev ? { ...prev, fontSize: `${size}px` } : prev);
+      setSelectionStyles((prev) => (prev ? { ...prev, fontSize: `${size}px` } : prev));
       showFakeSelection();
     }
 
@@ -467,7 +479,10 @@ export function useTextEditing({
 
     if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
       const currentRange = sel.getRangeAt(0);
-      if (editingElementRef.current && editingElementRef.current.contains(currentRange.startContainer)) {
+      if (
+        editingElementRef.current &&
+        editingElementRef.current.contains(currentRange.startContainer)
+      ) {
         range = currentRange;
       }
     }
@@ -499,7 +514,7 @@ export function useTextEditing({
       sel.addRange(range);
       updateSelectionStyles();
     } else {
-      setSelectionStyles((prev) => prev ? { ...prev, fontFamily } : prev);
+      setSelectionStyles((prev) => (prev ? { ...prev, fontFamily } : prev));
       showFakeSelection();
     }
 

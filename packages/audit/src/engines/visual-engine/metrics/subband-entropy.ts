@@ -128,10 +128,7 @@ export function computeSubbandEntropy(
 
   const target = 3.5;
   const tolerance = 2.0;
-  const score = Math.max(
-    0,
-    Math.min(1, 1 - Math.abs(entropy - target) / tolerance),
-  );
+  const score = Math.max(0, Math.min(1, 1 - Math.abs(entropy - target) / tolerance));
 
   return {
     entropy,

@@ -36,7 +36,9 @@ describe('M2 authenticateRequest', () => {
   });
 
   it('缺少 Authorization → E1001', async () => {
-    await expect(authenticateRequest({ headers: {} }, service)).rejects.toMatchObject({ code: 'E1001' });
+    await expect(authenticateRequest({ headers: {} }, service)).rejects.toMatchObject({
+      code: 'E1001',
+    });
   });
 
   it('无效 Key → E1002', async () => {
@@ -48,14 +50,19 @@ describe('M2 authenticateRequest', () => {
   it('已吊销 Key → E1003', async () => {
     const { key, record } = await service.createKey({ name: 'k1' });
     await service.revokeKey(record.id);
-    await expect(authenticateRequest({ headers: { authorization: `Bearer ${key}` } }, service)).rejects.toMatchObject({
+    await expect(
+      authenticateRequest({ headers: { authorization: `Bearer ${key}` } }, service),
+    ).rejects.toMatchObject({
       code: 'E1003',
     });
   });
 
   it('有效 Key → 返回 keyId/tenantId/userKey', async () => {
     const { key } = await service.createKey({ name: 'k1', tenantId: 'acme', userKey: 'bob' });
-    const auth = await authenticateRequest({ headers: { authorization: `Bearer ${key}` } }, service);
+    const auth = await authenticateRequest(
+      { headers: { authorization: `Bearer ${key}` } },
+      service,
+    );
     expect(auth.tenantId).toBe('acme');
     expect(auth.userKey).toBe('bob');
     expect(auth.keyId).toMatch(/^k_/);

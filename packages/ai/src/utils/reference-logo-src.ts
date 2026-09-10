@@ -19,7 +19,9 @@ export type ReferenceOriginalUrls = {
 };
 
 /** 归一化为 {url,width?,height?}，兼容旧调用方直接传字符串 URL 的场景。 */
-function toInfo(orig: ReferenceOriginalInfo | string | undefined): ReferenceOriginalInfo | undefined {
+function toInfo(
+  orig: ReferenceOriginalInfo | string | undefined,
+): ReferenceOriginalInfo | undefined {
   if (!orig) return undefined;
   return typeof orig === 'string' ? { url: orig } : orig;
 }

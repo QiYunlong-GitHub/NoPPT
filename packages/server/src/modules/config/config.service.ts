@@ -5,7 +5,8 @@ import { existsSync } from 'fs';
 import type { ModelConfig } from '@noppt/ai';
 
 export type ModelProvider = 'openai' | 'anthropic' | 'ollama' | 'freeai' | 'v0' | 'company-gateway';
-export type ImageProvider = 'openai' | 'qwen' | 'seedream' | 'freeai' | 'ollama' | 'company-gateway';
+export type ImageProvider =
+  'openai' | 'qwen' | 'seedream' | 'freeai' | 'ollama' | 'company-gateway';
 export type ImageGatewayVendor = 'openai' | 'qwen' | 'seedream';
 
 export interface ImageSize {
@@ -170,9 +171,7 @@ const defaultImageProviders: Record<ImageProvider, ImageProviderConfig> = {
       },
       {
         modelName: 'wanx2.1-t2i-turbo',
-        sizes: [
-          { width: 1024, height: 1024, label: '1024×1024' },
-        ],
+        sizes: [{ width: 1024, height: 1024, label: '1024×1024' }],
       },
     ],
   },
@@ -205,9 +204,7 @@ const defaultImageProviders: Record<ImageProvider, ImageProviderConfig> = {
     models: [
       {
         modelName: 'flux-dev',
-        sizes: [
-          { width: 1024, height: 1024, label: '1024×1024' },
-        ],
+        sizes: [{ width: 1024, height: 1024, label: '1024×1024' }],
       },
     ],
   },
@@ -217,9 +214,7 @@ const defaultImageProviders: Record<ImageProvider, ImageProviderConfig> = {
     models: [
       {
         modelName: 'flux-dev',
-        sizes: [
-          { width: 1024, height: 1024, label: '1024×1024' },
-        ],
+        sizes: [{ width: 1024, height: 1024, label: '1024×1024' }],
       },
     ],
   },
@@ -371,10 +366,17 @@ export class ConfigService {
         migrated.imageGeneration.activeProvider = oldImg.provider;
       }
 
-      if (oldImg.provider && (oldImg.model || oldImg.size || oldImg.baseUrl || oldImg.apiKey || oldImg.gatewayVendor) && !providers[oldImg.provider]?.models?.length) {
-        const existingProvider = providers[oldImg.provider] || defaultImageProviders[oldImg.provider];
+      if (
+        oldImg.provider &&
+        (oldImg.model || oldImg.size || oldImg.baseUrl || oldImg.apiKey || oldImg.gatewayVendor) &&
+        !providers[oldImg.provider]?.models?.length
+      ) {
+        const existingProvider =
+          providers[oldImg.provider] || defaultImageProviders[oldImg.provider];
         const modelName = oldImg.model || '';
-        let sizes: ImageSize[] = existingProvider?.models?.[0]?.sizes || [{ width: 1024, height: 1024 }];
+        let sizes: ImageSize[] = existingProvider?.models?.[0]?.sizes || [
+          { width: 1024, height: 1024 },
+        ];
 
         if (oldImg.size) {
           const parts = oldImg.size.split('x');
@@ -392,9 +394,7 @@ export class ConfigService {
           apiKey: oldImg.apiKey || existingProvider?.apiKey || '',
           baseUrl: oldImg.baseUrl || existingProvider?.baseUrl || '',
           gatewayVendor: oldImg.gatewayVendor || existingProvider?.gatewayVendor,
-          models: modelName
-            ? [{ modelName, sizes }]
-            : existingProvider?.models || [],
+          models: modelName ? [{ modelName, sizes }] : existingProvider?.models || [],
         };
       }
 
@@ -417,10 +417,14 @@ export class ConfigService {
       };
     } else {
       if (!migrated.modelRouting.audit) {
-        migrated.modelRouting.audit = { ...(migrated.modelRouting.content || { provider: 'openai', modelIndex: 0 }) };
+        migrated.modelRouting.audit = {
+          ...(migrated.modelRouting.content || { provider: 'openai', modelIndex: 0 }),
+        };
       }
       if (!migrated.modelRouting.auditVlm) {
-        migrated.modelRouting.auditVlm = { ...(migrated.modelRouting.content || { provider: 'openai', modelIndex: 0 }) };
+        migrated.modelRouting.auditVlm = {
+          ...(migrated.modelRouting.content || { provider: 'openai', modelIndex: 0 }),
+        };
       }
     }
 
@@ -439,7 +443,13 @@ export class ConfigService {
       if (migrated.auditSettings.llmReview === undefined) migrated.auditSettings.llmReview = true;
       if (migrated.auditSettings.vlmReview === undefined) migrated.auditSettings.vlmReview = false;
       if (!migrated.auditSettings.engines) {
-        migrated.auditSettings.engines = { layout: true, visual: true, content: true, fidelity: true, sanitization: true };
+        migrated.auditSettings.engines = {
+          layout: true,
+          visual: true,
+          content: true,
+          fidelity: true,
+          sanitization: true,
+        };
       } else if ((migrated.auditSettings.engines as any).sanitization === undefined) {
         (migrated.auditSettings.engines as any).sanitization = true;
       }
@@ -461,13 +471,13 @@ export class ConfigService {
   async getConfig(): Promise<AppConfig> {
     const defaultConfig = this.getDefaultConfig();
     let config = this.storage.readJsonFile<AppConfig>(this.configPath, defaultConfig);
-    
+
     config = this.migrateOldConfig(config);
 
     if (!existsSync(this.configPath)) {
       await this.storage.writeJsonFile(this.configPath, defaultConfig);
     }
-    
+
     return this.mergeWithDefaults(config, defaultConfig);
   }
 
@@ -478,10 +488,7 @@ export class ConfigService {
     const provider = (ref.provider || config.defaultModelProvider) as ModelProvider;
     const providerConfig = config.apiConfig?.[provider];
     if (!providerConfig) return null;
-    const model =
-      providerConfig.models?.[ref.modelIndex] ||
-      providerConfig.models?.[0] ||
-      '';
+    const model = providerConfig.models?.[ref.modelIndex] || providerConfig.models?.[0] || '';
     if (!model) return null;
     return {
       provider,

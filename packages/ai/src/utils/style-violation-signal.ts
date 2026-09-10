@@ -54,10 +54,29 @@ export function hueDeltaDeg(a: number, b: number): number {
 
 /** neutral 白名单 hex（文本、边框、灰底、语义红/绿/橙/蓝） */
 export const NEUTRAL_HEX_WHITELIST: string[] = [
-  '#0f172a', '#111827', '#1f2937', '#374151', '#4b5563', '#6b7280', '#9ca3af',
-  '#d1d5db', '#e5e7eb', '#f3f4f6', '#f9fafb', '#ffffff', '#000000', '#1e293b',
-  '#334155', '#cbd5e1', '#e2e8f0', '#f1f5f9', '#f8fafc', '#ef4444', '#22c55e',
-  '#f59e0b', '#3b82f6',
+  '#0f172a',
+  '#111827',
+  '#1f2937',
+  '#374151',
+  '#4b5563',
+  '#6b7280',
+  '#9ca3af',
+  '#d1d5db',
+  '#e5e7eb',
+  '#f3f4f6',
+  '#f9fafb',
+  '#ffffff',
+  '#000000',
+  '#1e293b',
+  '#334155',
+  '#cbd5e1',
+  '#e2e8f0',
+  '#f1f5f9',
+  '#f8fafc',
+  '#ef4444',
+  '#22c55e',
+  '#f59e0b',
+  '#3b82f6',
 ];
 
 /**

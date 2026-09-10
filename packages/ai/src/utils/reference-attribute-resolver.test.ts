@@ -159,7 +159,12 @@ describe('formatReferenceOverrideForPage · 视觉特征注入', () => {
       uploaded: true,
       style: { primaryColor: '#c7000b' },
       referenceHtml: '<div class="cover-ref"></div>',
-      visual: { composition: 'centered', columns: 2, decoration: 'gradient-glow', backgroundTone: 'light' },
+      visual: {
+        composition: 'centered',
+        columns: 2,
+        decoration: 'gradient-glow',
+        backgroundTone: 'light',
+      },
     };
     const out = formatReferenceOverrideForPage(rva, 'cover');
     expect(out).toContain('视觉风格特征');
@@ -193,7 +198,10 @@ describe('resolveTitleColor / resolveBodyColor · 三级链 ref>user>default', (
 describe('formatReferenceOverrideForPage · 文字色注入', () => {
   it('含 titleColor/bodyColor 时输出文字色指引行', () => {
     const rva = makeRva();
-    rva.byCategory.cover = { uploaded: true, style: { titleColor: '#111827', bodyColor: '#333333' } };
+    rva.byCategory.cover = {
+      uploaded: true,
+      style: { titleColor: '#111827', bodyColor: '#333333' },
+    };
     const out = formatReferenceOverrideForPage(rva, 'cover');
     expect(out).toContain('标题文字色(titleColor)');
     expect(out).toContain('正文文字色(bodyColor)');
@@ -254,7 +262,11 @@ describe('resolveHeroImageForPage · bbox 降级语义（Q3 固化 + 纵深防�
 describe('resolveLayoutForPage · 单分类作用域放宽（封面/总结不再被整体丢弃）', () => {
   it('content 分类 single 布局 → 内容页第 0 页应用，映射为内置 pageType', () => {
     const rva = makeRva();
-    rva.byCategory.content = { uploaded: true, style: {}, layout: { type: 'single', single: 'card-grid' } };
+    rva.byCategory.content = {
+      uploaded: true,
+      style: {},
+      layout: { type: 'single', single: 'card-grid' },
+    };
     expect(resolveLayoutForPage(rva, 'content', 0, 'content-no-image')).toBe('content-cards');
     // 分类内非第 0 页不应用
     expect(resolveLayoutForPage(rva, 'content', 1, 'content-no-image')).toBeUndefined();
@@ -262,7 +274,11 @@ describe('resolveLayoutForPage · 单分类作用域放宽（封面/总结不再
 
   it('cover 分类 single 布局 → 封面页不再被作用域丢弃（仅 toc 仍排除），且不破坏封面结构页型', () => {
     const rva = makeRva();
-    rva.byCategory.cover = { uploaded: true, style: {}, layout: { type: 'single', single: 'fullscreen-quote' } };
+    rva.byCategory.cover = {
+      uploaded: true,
+      style: {},
+      layout: { type: 'single', single: 'fullscreen-quote' },
+    };
     // 放宽：封面页（第 0 页）会尝试应用；但结构保护避免把 cover 覆盖为 content-quote，故返回 undefined
     expect(resolveLayoutForPage(rva, 'cover', 0, 'cover')).toBeUndefined();
     // toc 仍被排除
@@ -272,20 +288,34 @@ describe('resolveLayoutForPage · 单分类作用域放宽（封面/总结不再
   it('cover 分类 single 布局映射到与封面同类页型时仍允许覆盖（结构保护不误伤）', () => {
     const rva = makeRva();
     // 用 content 页型验证：若某封面骨架恰好映射为 cover 等价（此处以 content 路径代表），不拦截
-    rva.byCategory.cover = { uploaded: true, style: {}, layout: { type: 'single', single: 'card-grid' } };
+    rva.byCategory.cover = {
+      uploaded: true,
+      style: {},
+      layout: { type: 'single', single: 'card-grid' },
+    };
     // 封面页仍以内容型映射结果被结构保护拦截
     expect(resolveLayoutForPage(rva, 'cover', 0, 'cover')).toBeUndefined();
   });
 
   it('summary 分类 single 布局 → 总结页放宽作用域但不破坏 summary 结构页型', () => {
     const rva = makeRva();
-    rva.byCategory.summary = { uploaded: true, style: {}, layout: { type: 'single', single: 'three-section' } };
+    rva.byCategory.summary = {
+      uploaded: true,
+      style: {},
+      layout: { type: 'single', single: 'three-section' },
+    };
     // summary 页结构保护：content-three-section !== 'summary' → 不覆盖，返回 undefined
     expect(resolveLayoutForPage(rva, 'summary', 0, 'summary')).toBeUndefined();
     // 但若 summary 骨架作为内容页参考（content 分类）则正常映射
     const rva2 = makeRva();
-    rva2.byCategory.content = { uploaded: true, style: {}, layout: { type: 'single', single: 'three-section' } };
-    expect(resolveLayoutForPage(rva2, 'content', 0, 'content-no-image')).toBe('content-three-section');
+    rva2.byCategory.content = {
+      uploaded: true,
+      style: {},
+      layout: { type: 'single', single: 'three-section' },
+    };
+    expect(resolveLayoutForPage(rva2, 'content', 0, 'content-no-image')).toBe(
+      'content-three-section',
+    );
   });
 
   it('无上传分类 / 无布局 → undefined', () => {
@@ -293,4 +323,3 @@ describe('resolveLayoutForPage · 单分类作用域放宽（封面/总结不再
     expect(resolveLayoutForPage(rva, 'content', 0, 'content-no-image')).toBeUndefined();
   });
 });
-

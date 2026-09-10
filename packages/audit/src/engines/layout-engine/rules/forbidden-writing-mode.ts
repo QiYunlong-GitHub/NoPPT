@@ -36,16 +36,19 @@ export const forbiddenWritingMode: LayoutRule = {
   },
 
   fix(html: string): string {
-    return html.replace(/<([a-zA-Z][a-zA-Z0-9]*)\b([^>]*)>/g, (match: string, tag: string, attrs: string) => {
-      if (/\/\s*$/.test(attrs)) return match;
-      const styleMatch = attrs.match(/style="([^"]*)"/i);
-      if (!styleMatch) return match;
-      if (!/writing-mode\s*:\s*vertical-(?:rl|lr)/i.test(styleMatch[1])) return match;
-      const styleMap = getStyleMap(styleMatch[1]);
-      delete styleMap['writing-mode'];
-      const newStyle = stringifyStyleMap(styleMap);
-      const newAttrs = attrs.replace(/style="[^"]*"/i, `style="${newStyle}"`);
-      return `<${tag}${newAttrs}>`;
-    });
+    return html.replace(
+      /<([a-zA-Z][a-zA-Z0-9]*)\b([^>]*)>/g,
+      (match: string, tag: string, attrs: string) => {
+        if (/\/\s*$/.test(attrs)) return match;
+        const styleMatch = attrs.match(/style="([^"]*)"/i);
+        if (!styleMatch) return match;
+        if (!/writing-mode\s*:\s*vertical-(?:rl|lr)/i.test(styleMatch[1])) return match;
+        const styleMap = getStyleMap(styleMatch[1]);
+        delete styleMap['writing-mode'];
+        const newStyle = stringifyStyleMap(styleMap);
+        const newAttrs = attrs.replace(/style="[^"]*"/i, `style="${newStyle}"`);
+        return `<${tag}${newAttrs}>`;
+      },
+    );
   },
 };

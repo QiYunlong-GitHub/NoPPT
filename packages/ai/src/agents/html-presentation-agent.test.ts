@@ -7,14 +7,20 @@ import { HTMLPresentationAgent } from './html-presentation-agent';
 // ESM 安全获取当前文件目录（vitest 以 ESM 方式加载 .test.ts）
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // 仓库根 tests/fixtures 下的真实深红渐变封面样例（后处理前大模型原始输出裁剪）
-const COVER_FIXTURE = resolve(__dirname, '../../../../tests/fixtures/cover-dark-gradient-sample.html');
+const COVER_FIXTURE = resolve(
+  __dirname,
+  '../../../../tests/fixtures/cover-dark-gradient-sample.html',
+);
 
 function buildAgent(): HTMLPresentationAgent {
   const dummy = {
     name: 'stub',
     config: {},
     supportsStreaming: false,
-    chat: async () => ({ content: '', usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 } }),
+    chat: async () => ({
+      content: '',
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    }),
   } as any;
   return new HTMLPresentationAgent(dummy);
 }
@@ -42,7 +48,8 @@ describe('enforceCoverPosterArtStyles 幂等（装饰不重复注入）', () => 
     // 幂等：第二次调用原样返回
     expect(second).toBe(first);
     // 装饰/Badge 节点数量在两次调用间不增加
-    const countDeco = (s: string) => (s.match(/data-noppt-coverart|gradient|border-radius:9999px|9999px/gi) || []).length;
+    const countDeco = (s: string) =>
+      (s.match(/data-noppt-coverart|gradient|border-radius:9999px|9999px/gi) || []).length;
     expect(countDeco(second)).toBe(countDeco(first));
     // 仍仅一个幂等标记
     expect((second.match(/data-noppt-coverart/gi) || []).length).toBe(1);
@@ -138,26 +145,41 @@ describe('[TXT] enforceHeadingColorOnLightBg 尊重参考标题色', () => {
   it('无参考标题色：浅底中性 h2 升级为主色（原行为保持）', () => {
     const agent = buildAgent();
     const slide = `<div style="background:#ffffff;"><h2 style="font-size:50px;">章节标题</h2></div>`;
-    const out = (agent as any).enforceHeadingColorOnLightBg(slide, { primaryColor: '#2563eb', primaryColorDarker: '#1e40af' });
+    const out = (agent as any).enforceHeadingColorOnLightBg(slide, {
+      primaryColor: '#2563eb',
+      primaryColorDarker: '#1e40af',
+    });
     expect(out).toContain('color:#2563eb');
   });
   it('有参考标题色：浅底 h2 使用参考标题色而非主色', () => {
     const agent = buildAgent();
     const slide = `<div style="background:#ffffff;"><h2 style="font-size:50px;">章节标题</h2></div>`;
-    const out = (agent as any).enforceHeadingColorOnLightBg(slide, { primaryColor: '#2563eb', primaryColorDarker: '#1e40af', titleColor: '#111827' });
+    const out = (agent as any).enforceHeadingColorOnLightBg(slide, {
+      primaryColor: '#2563eb',
+      primaryColorDarker: '#1e40af',
+      titleColor: '#111827',
+    });
     expect(out).toContain('color:#111827');
     expect(out).not.toContain('color:#2563eb');
   });
   it('深底（主色背景）区块：无论参考标题色，强制白字', () => {
     const agent = buildAgent();
     const dark = `<div style="background:#1e40af;"><h2 style="font-size:50px;color:#111827;">章节标题</h2></div>`;
-    const out = (agent as any).enforceHeadingColorOnLightBg(dark, { primaryColor: '#2563eb', primaryColorDarker: '#1e40af', titleColor: '#111827' });
+    const out = (agent as any).enforceHeadingColorOnLightBg(dark, {
+      primaryColor: '#2563eb',
+      primaryColorDarker: '#1e40af',
+      titleColor: '#111827',
+    });
     expect(out).toContain('color:#ffffff');
   });
   it('参考标题色已显式写在浅底 h2：不覆盖（保持参考色）', () => {
     const agent = buildAgent();
     const slide = `<div style="background:#ffffff;"><h2 style="font-size:50px;color:#1a1a1a;">章节标题</h2></div>`;
-    const out = (agent as any).enforceHeadingColorOnLightBg(slide, { primaryColor: '#2563eb', primaryColorDarker: '#1e40af', titleColor: '#1a1a1a' });
+    const out = (agent as any).enforceHeadingColorOnLightBg(slide, {
+      primaryColor: '#2563eb',
+      primaryColorDarker: '#1e40af',
+      titleColor: '#1a1a1a',
+    });
     expect(out).toContain('color:#1a1a1a');
     expect(out).not.toContain('color:#2563eb');
   });
@@ -172,12 +194,18 @@ describe('postProcessHtmlSnapshot 透传参考标题色到后处理（FR：终�
       global: { uploaded: false as const, style: {} as Record<string, string> },
       byCategory: {
         cover: { uploaded: false as const, style: {} as Record<string, string> },
-        content: { uploaded: true as const, style: { titleColor: '#a855f7' } as Record<string, string> },
+        content: {
+          uploaded: true as const,
+          style: { titleColor: '#a855f7' } as Record<string, string>,
+        },
         summary: { uploaded: false as const, style: {} as Record<string, string> },
       },
     };
     const slide = `<div style="background:#ffffff;width:1280px;height:720px;"><h2 style="font-size:50px;color:#111827;">章节标题</h2></div>`;
-    const out = agent.postProcessHtmlSnapshot(slide, { primaryColor: '#2563eb', referenceVisualAttributes: ref as any });
+    const out = agent.postProcessHtmlSnapshot(slide, {
+      primaryColor: '#2563eb',
+      referenceVisualAttributes: ref as any,
+    });
     // 关键接线断言：参考标题色被透传并最终落到浅底 heading 上，且未被主色 #2563eb 取代。
     expect(out).toContain('color:#a855f7');
     expect(out).not.toContain('color:#111827');
@@ -221,7 +249,15 @@ describe('封面艺术字按背景深浅分叉 (F1)', () => {
 
   it('深红渐变封面：H1/副标题保持白色，不套渐变裁剪红字（修复红底红字）', () => {
     const agent = buildAgent();
-    const out = (agent as any).postProcessLayout(DARK_COVER, 'cover', 1280, 720, '#e61818', 'sans', '#ffffff');
+    const out = (agent as any).postProcessLayout(
+      DARK_COVER,
+      'cover',
+      1280,
+      720,
+      '#e61818',
+      'sans',
+      '#ffffff',
+    );
     const h1 = out.match(/<h1[^>]*>/i)?.[0] ?? '';
     expect(h1).toContain('color:#FFFFFF');
     expect(h1).not.toContain('-webkit-text-fill-color:transparent');
@@ -238,7 +274,15 @@ describe('封面艺术字按背景深浅分叉 (F1)', () => {
   });
   it('浅底封面（有参考标题色 #22223b）：收敛为纯色标题，不套渐变裁剪（防黑块 / 与【标题色收敛】规则一致）', () => {
     const agent = buildAgent();
-    const out = (agent as any).postProcessLayout(COVER_HTML, 'cover', 1280, 720, '#e61818', 'sans', '#22223b');
+    const out = (agent as any).postProcessLayout(
+      COVER_HTML,
+      'cover',
+      1280,
+      720,
+      '#e61818',
+      'sans',
+      '#22223b',
+    );
     expect(out).not.toContain('-webkit-text-fill-color:transparent');
     expect(out).not.toContain('-webkit-background-clip:text');
     expect(out).toContain('color:#22223b');
@@ -274,7 +318,15 @@ describe('真实深红封面样例回归基准 (F1)', () => {
     expect(fixture.trimStart().startsWith('<div')).toBe(true);
     expect(fixture).not.toMatch(/^\s*<!--/);
 
-    const out = (agent as any).postProcessLayout(fixture, 'cover', 1280, 720, '#e61818', 'sans', '#ffffff');
+    const out = (agent as any).postProcessLayout(
+      fixture,
+      'cover',
+      1280,
+      720,
+      '#e61818',
+      'sans',
+      '#ffffff',
+    );
     const h1 = out.match(/<h1[^>]*>/i)?.[0] ?? '';
     // ① H1 仍为白色
     expect(h1).toContain('color:#FFFFFF');
@@ -295,8 +347,14 @@ describe('真实深红封面样例回归基准 (F1)', () => {
 // ============================================================================
 const LIGHT_COVER = resolve(__dirname, '../../../../tests/fixtures/light-bg-cover-sample.html');
 const LIGHT_CONTENT = resolve(__dirname, '../../../../tests/fixtures/light-bg-content-sample.html');
-const LIGHT_CONTENT2 = resolve(__dirname, '../../../../tests/fixtures/light-bg-content-sample2.html');
-const LIGHT_CONTENT_OK = resolve(__dirname, '../../../../tests/fixtures/light-bg-content-ok-sample.html');
+const LIGHT_CONTENT2 = resolve(
+  __dirname,
+  '../../../../tests/fixtures/light-bg-content-sample2.html',
+);
+const LIGHT_CONTENT_OK = resolve(
+  __dirname,
+  '../../../../tests/fixtures/light-bg-content-ok-sample.html',
+);
 
 describe('统一 tone 权威：resolveBgTone / needsContrastFix 单元', () => {
   const agent = buildAgent();
@@ -304,7 +362,13 @@ describe('统一 tone 权威：resolveBgTone / needsContrastFix 单元', () => {
     expect((agent as any).resolveBgTone('background-color:#d81e0620', '#d81e06')).toBe('light');
   });
   it('装饰层（position:absolute+pointer-events:none）整体豁免 → 未知，不误判深', () => {
-    expect((agent as any).resolveBgTone('position:absolute;right:-120px;background:radial-gradient(circle,#e6001235 0%,#e6001210 45%,transparent 75%);pointer-events:none', '#e60012', { isDecorative: true })).toBe('unknown');
+    expect(
+      (agent as any).resolveBgTone(
+        'position:absolute;right:-120px;background:radial-gradient(circle,#e6001235 0%,#e6001210 45%,transparent 75%);pointer-events:none',
+        '#e60012',
+        { isDecorative: true },
+      ),
+    ).toBe('unknown');
   });
   it('纯白底判浅', () => {
     expect((agent as any).resolveBgTone('background-color:#fff', '#d81e06')).toBe('light');
@@ -313,7 +377,9 @@ describe('统一 tone 权威：resolveBgTone / needsContrastFix 单元', () => {
     expect((agent as any).resolveBgTone('background-color:#1F2937', '#d81e06')).toBe('dark');
   });
   it('不透明主色深红渐变判深', () => {
-    expect((agent as any).resolveBgTone('background:linear-gradient(135deg,#e60012,#b8000e)', '#e60012')).toBe('dark');
+    expect(
+      (agent as any).resolveBgTone('background:linear-gradient(135deg,#e60012,#b8000e)', '#e60012'),
+    ).toBe('dark');
   });
   it('needsContrastFix：深灰 #1F2937 在白底达标（不改写）', () => {
     expect((agent as any).needsContrastFix('#1F2937', [255, 255, 255], 24, 600)).toBe(false);
@@ -326,12 +392,20 @@ describe('统一 tone 权威：resolveBgTone / needsContrastFix 单元', () => {
 describe('浅底白字回归：真实产物 1-3 页经后处理链不得出现浅底白字', () => {
   const agent = buildAgent();
   const run = (file: string, pageType: string) =>
-    (agent as any).postProcessLayout(readFileSync(file, 'utf-8'), pageType, 1280, 720, '#d81e06', 'sans', '#ffffff');
+    (agent as any).postProcessLayout(
+      readFileSync(file, 'utf-8'),
+      pageType,
+      1280,
+      720,
+      '#d81e06',
+      'sans',
+      '#ffffff',
+    );
 
   it('slide-01 浅底封面：无 #F3F4F6 近白字、渐变艺术字保留、页面仍浅底', () => {
     const out = run(LIGHT_COVER, 'cover');
     expect(out).toMatch(/background(?:-color)?:\s*#fff/i); // 浅底判定未失真
-    expect(out).not.toContain('color:#F3F4F6');            // 缺陷特征：副标题被刷成近白
+    expect(out).not.toContain('color:#F3F4F6'); // 缺陷特征：副标题被刷成近白
     expect(out).toContain('-webkit-text-fill-color:transparent'); // 渐变艺术字保留
     expect(out).toContain('background-clip:text');
   });
@@ -339,7 +413,7 @@ describe('浅底白字回归：真实产物 1-3 页经后处理链不得出现�
   it('slide-02 浅底卡片页（8 位主色卡 #d81e0608）：黑色正文不被刷白', () => {
     const out = run(LIGHT_CONTENT, 'content');
     expect(out).toContain('color:#000000'); // 大数字/标题保持深字（缺陷下会被刷成 #FFFFFF）
-    expect(out).toContain('color:#d81e06');  // 主色标题/徽章保持
+    expect(out).toContain('color:#d81e06'); // 主色标题/徽章保持
   });
 
   it('slide-03 浅底对比页（8 位主色渐变右栏 #d81e0606）：深灰正文不被刷白', () => {
@@ -357,6 +431,6 @@ describe('浅底白字回归：真实产物 1-3 页经后处理链不得出现�
   it('保守性：24px/#1F2937 副标题不被改写为 28px/#F3F4F6', () => {
     const out = run(LIGHT_COVER, 'cover');
     expect(out).not.toContain('font-size:28px'); // 不再无条件压成 28px
-    expect(out).not.toContain('color:#F3F4F6');  // 不再刷成近白
+    expect(out).not.toContain('color:#F3F4F6'); // 不再刷成近白
   });
 });

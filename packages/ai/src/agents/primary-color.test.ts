@@ -51,11 +51,7 @@ describe('FR-9.4 resolveEffectivePrimaryColor — 5 级优先级', () => {
 
   // U-16b — 只有 design.primaryColor 时，使用该值（FR-9.4 第 4 级）
   it('U-16b 仅 design.primaryColor=#4b5563，返回它', () => {
-    const result = resolveEffectivePrimaryColor(
-      {},
-      { primaryColor: '#4b5563' },
-      '#2563eb',
-    );
+    const result = resolveEffectivePrimaryColor({}, { primaryColor: '#4b5563' }, '#2563eb');
     expect(result).toBe('#4b5563');
   });
 });
@@ -64,9 +60,15 @@ describe('resolveProposalPrimaryColor — 设计提案阶段参考优先单源�
   // 构造最小 ReferenceVisualAttributes：按分类 uploaded + style.primaryColor
   const makeRva = (colors?: Partial<Record<'cover' | 'content' | 'summary', string>>): any => ({
     byCategory: {
-      cover: colors?.cover ? { uploaded: true, style: { primaryColor: colors.cover } } : { uploaded: false },
-      content: colors?.content ? { uploaded: true, style: { primaryColor: colors.content } } : { uploaded: false },
-      summary: colors?.summary ? { uploaded: true, style: { primaryColor: colors.summary } } : { uploaded: false },
+      cover: colors?.cover
+        ? { uploaded: true, style: { primaryColor: colors.cover } }
+        : { uploaded: false },
+      content: colors?.content
+        ? { uploaded: true, style: { primaryColor: colors.content } }
+        : { uploaded: false },
+      summary: colors?.summary
+        ? { uploaded: true, style: { primaryColor: colors.summary } }
+        : { uploaded: false },
     },
     global: { uploaded: false },
   });
@@ -94,7 +96,11 @@ describe('resolveProposalPrimaryColor — 设计提案阶段参考优先单源�
   // P-3 — deck 级代表取 content（content > cover > summary）
   it('P-3 deck 级代表取 content，优先于 cover/summary', () => {
     const result = resolveProposalPrimaryColor({
-      referenceVisualAttributes: makeRva({ cover: '#e60012', content: '#d80000', summary: '#c70000' }),
+      referenceVisualAttributes: makeRva({
+        cover: '#e60012',
+        content: '#d80000',
+        summary: '#c70000',
+      }),
       userColorTheme: 'blue',
     });
     expect(result).toBe('#d80000');
@@ -162,41 +168,25 @@ describe('FR-8 L-1 assertHueClose — 色相一致性断言 + darker 重算', ()
 
 describe('U-17-L 规划阶段主色一致化（system prompt == user prompt == U-17 强制值）', () => {
   it('U-17-L1：colorTheme=orange → 主色必须为 #ea580c（忽略 primaryColor=#2563eb 输入）', () => {
-    const eff = computeU17EffectivePrimaryColor(
-      'business',
-      'orange',
-      '#2563eb',
-    );
+    const eff = computeU17EffectivePrimaryColor('business', 'orange', '#2563eb');
     expect(eff).toBe('#ea580c');
     expect(eff).toBe(COLOR_THEMES.orange);
   });
 
   it('U-17-L2：无 colorTheme 但有 style=business → 主色必须为 #2563eb（即便 primaryColor=#ff0000 传错，U-17 会用 style fallback 优先；若 primaryColor 有合法值 style=orange 等也应匹配）', () => {
-    const eff = computeU17EffectivePrimaryColor(
-      'business',
-      undefined,
-      '#ff0000',
-    );
+    const eff = computeU17EffectivePrimaryColor('business', undefined, '#ff0000');
     // U-17: colorTheme 无 → COLOR_THEMES[style] || primaryColor || fallback
     // COLOR_THEMES['business'] = '#2563eb'，所以期望 #2563eb
     expect(eff).toBe('#2563eb');
   });
 
   it('U-17-L3：style=orange（本身是 COLOR_THEMES key）、无 colorTheme，primaryColor 不合法 → 使用 COLOR_THEMES.orange = #ea580c', () => {
-    const eff = computeU17EffectivePrimaryColor(
-      'orange',
-      undefined,
-      'not-a-hex',
-    );
+    const eff = computeU17EffectivePrimaryColor('orange', undefined, 'not-a-hex');
     expect(eff).toBe('#ea580c');
   });
 
   it('U-17-L4：style 无匹配、colorTheme 未传，primaryColor=#aabbcc → 返回该 primaryColor（U-17 第三分支 || primaryColor）', () => {
-    const eff = computeU17EffectivePrimaryColor(
-      'unknown-style',
-      undefined,
-      '#aabbcc',
-    );
+    const eff = computeU17EffectivePrimaryColor('unknown-style', undefined, '#aabbcc');
     expect(eff).toBe('#aabbcc');
   });
 
@@ -211,7 +201,12 @@ describe('U-17-L 规划阶段主色一致化（system prompt == user prompt == U
       imagePreference: 'content-only',
       primaryColor: '#2563eb',
       backgroundEnabled: false,
-      pageHints: { contentOnly: false, disableCover: false, disableToc: false, disableConclusion: false },
+      pageHints: {
+        contentOnly: false,
+        disableCover: false,
+        disableToc: false,
+        disableConclusion: false,
+      },
       iconStyle: 'auto',
       fontFamily: 'sans',
       colorTheme: 'orange',
@@ -255,7 +250,12 @@ describe('U-17-L 规划阶段主色一致化（system prompt == user prompt == U
       imagePreference: 'content-only',
       primaryColor: '#111111',
       backgroundEnabled: false,
-      pageHints: { contentOnly: false, disableCover: false, disableToc: false, disableConclusion: false },
+      pageHints: {
+        contentOnly: false,
+        disableCover: false,
+        disableToc: false,
+        disableConclusion: false,
+      },
       iconStyle: 'auto',
       fontFamily: 'sans',
       colorTheme: undefined,

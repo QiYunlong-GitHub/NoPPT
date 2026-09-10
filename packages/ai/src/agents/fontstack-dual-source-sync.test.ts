@@ -27,23 +27,14 @@ function makeAgent(): HTMLPresentationAgent {
 
 /** normalize：去所有空白 + 把 " 统一为 ' + 转 toLowerCase */
 function normalize(str: string): string {
-  return str
-    .replace(/\s+/g, '')
-    .replace(/"/g, "'")
-    .toLowerCase();
+  return str.replace(/\s+/g, '').replace(/"/g, "'").toLowerCase();
 }
 
 // ================================================================
 // 从 templates 文件中抽取 getFontStackLocal 的三个 case return 值
 // ================================================================
-const TEMPLATES_PATH = path.resolve(
-  __dirname,
-  '../templates/generate-html-presentation.ts'
-);
-const AGENT_PATH = path.resolve(
-  __dirname,
-  './html-presentation-agent.ts'
-);
+const TEMPLATES_PATH = path.resolve(__dirname, '../templates/generate-html-presentation.ts');
+const AGENT_PATH = path.resolve(__dirname, './html-presentation-agent.ts');
 const templatesSrc = fs.readFileSync(TEMPLATES_PATH, 'utf-8');
 const agentSrc = fs.readFileSync(AGENT_PATH, 'utf-8');
 
@@ -67,7 +58,7 @@ function extractTemplateCaseReturn(src: string, caseKey: 'mono' | 'serif' | 'san
   }
   pattern = new RegExp(
     `case\\s*['"]${caseKey}['"]\\s*:\\s*return\\s*(['"])((?:\\\\.|(?!\\1).)*)\\1\\s*;?`,
-    'i'
+    'i',
   );
   const m = src.match(pattern);
   return m ? m[2] : '';
@@ -158,8 +149,7 @@ describe('Task 3: fontstack 双副本同步（漂移回归守卫）', () => {
   // ---- T3.5 漂移守卫注释存在性断言 ----
   it('T3.5 两个源文件均存在 fontstack-dual-source-sync.test.ts 或 漂移回归守卫 注释标记', () => {
     const hasGuard = (src: string): boolean =>
-      src.includes('fontstack-dual-source-sync.test.ts') ||
-      src.includes('漂移回归守卫');
+      src.includes('fontstack-dual-source-sync.test.ts') || src.includes('漂移回归守卫');
     expect(hasGuard(agentSrc)).toBe(true);
     expect(hasGuard(templatesSrc)).toBe(true);
   });

@@ -126,7 +126,7 @@ describe('Case A: 真实 pres_mtgmr5up_x67l77j 8 slides ensureOuterContainer(mon
 
   // 尝试读取真实 presentation.json
   const PRES_PATH = path.resolve(
-    'D:/TraeSOLO/NoPPT/packages/server/data/workspace/presentations/pres_mtgmr5up_x67l77j/presentation.json'
+    'D:/TraeSOLO/NoPPT/packages/server/data/workspace/presentations/pres_mtgmr5up_x67l77j/presentation.json',
   );
 
   // 从最外层 <div style=...> 中移除 font-family 声明（保留 style 其余部分）
@@ -137,7 +137,7 @@ describe('Case A: 真实 pres_mtgmr5up_x67l77j 8 slides ensureOuterContainer(mon
       (_m, prefix: string, style: string, suffix: string) => {
         const cleaned = style.replace(/font-family\s*:[^;]+(;)?/gi, '');
         return `${prefix}${cleaned}${suffix}`;
-      }
+      },
     );
   }
 
@@ -146,9 +146,7 @@ describe('Case A: 真实 pres_mtgmr5up_x67l77j 8 slides ensureOuterContainer(mon
     if (fs.existsSync(PRES_PATH)) {
       const raw = fs.readFileSync(PRES_PATH, 'utf-8');
       const data = JSON.parse(raw) as any;
-      const slidesArr =
-        data.slides ??
-        (data.meta && data.meta.slides ? data.meta.slides : null);
+      const slidesArr = data.slides ?? (data.meta && data.meta.slides ? data.meta.slides : null);
       if (Array.isArray(slidesArr) && slidesArr.length > 0) {
         slideHtmls = slidesArr
           .map((s: any) => (typeof s === 'string' ? s : s && s.html ? s.html : null))

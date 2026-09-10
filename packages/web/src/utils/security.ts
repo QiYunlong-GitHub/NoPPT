@@ -18,7 +18,11 @@ function parseStyleString(styleStr: string): Array<{ key: string; value: string;
   const len = styleStr.length;
 
   while (i < len) {
-    while (i < len && (styleStr[i] === ';' || styleStr[i] === ' ' || styleStr[i] === '\n' || styleStr[i] === '\t')) i++;
+    while (
+      i < len &&
+      (styleStr[i] === ';' || styleStr[i] === ' ' || styleStr[i] === '\n' || styleStr[i] === '\t')
+    )
+      i++;
     if (i >= len) break;
 
     let colonIdx = -1;
@@ -34,7 +38,10 @@ function parseStyleString(styleStr: string): Array<{ key: string; value: string;
       if (inQuote === 0) {
         if (ch === '(') depth++;
         else if (ch === ')') depth--;
-        else if (ch === ':' && depth === 0) { colonIdx = j; break; }
+        else if (ch === ':' && depth === 0) {
+          colonIdx = j;
+          break;
+        }
       }
     }
     if (colonIdx === -1) break;
@@ -52,11 +59,15 @@ function parseStyleString(styleStr: string): Array<{ key: string; value: string;
       if (inQuote2 === 0) {
         if (ch === '(') depth2++;
         else if (ch === ')') depth2--;
-        else if (ch === ';' && depth2 === 0) { semiIdx = j; break; }
+        else if (ch === ';' && depth2 === 0) {
+          semiIdx = j;
+          break;
+        }
       }
     }
 
-    const raw = semiIdx === -1 ? styleStr.substring(colonIdx + 1) : styleStr.substring(colonIdx + 1, semiIdx);
+    const raw =
+      semiIdx === -1 ? styleStr.substring(colonIdx + 1) : styleStr.substring(colonIdx + 1, semiIdx);
     const value = raw.trim();
 
     if (key && value) {
@@ -119,8 +130,8 @@ function sanitizeStyleString(styleStr: string): string {
 function computeDefaultPadding(): { padX: number; padY: number } {
   const slideWidth = (globalThis as any).__NOPPT_SLIDE_WIDTH__ || 1280;
   const slideHeight = (globalThis as any).__NOPPT_SLIDE_HEIGHT__ || 720;
-  const padX = Math.max(32, Math.round((60 * slideWidth / 1280) / 8) * 8);
-  const padY = Math.max(24, Math.round((48 * slideHeight / 720) / 8) * 8);
+  const padX = Math.max(32, Math.round((60 * slideWidth) / 1280 / 8) * 8);
+  const padY = Math.max(24, Math.round((48 * slideHeight) / 720 / 8) * 8);
   return { padX, padY };
 }
 
@@ -182,7 +193,9 @@ function ensureRootContainerStyles(html: string): string {
   if (!styles['padding']) required['padding'] = defaultPadding;
   if (!styles['display']) required['display'] = 'flex';
   if (!styles['flex-direction']) required['flex-direction'] = 'column';
-  if (!styles['font-family']) required['font-family'] = "system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif";
+  if (!styles['font-family'])
+    required['font-family'] =
+      "system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif";
 
   for (const [k, v] of Object.entries(required)) {
     if (!styles[k]) styles[k] = v;
@@ -194,7 +207,9 @@ function ensureRootContainerStyles(html: string): string {
   // 只要根容器有 position:relative（上面 required 保证了），内部 absolute 元素就能按根容器定位。
   void hasAbsoluteInner;
 
-  const newStyle = Object.entries(styles).map(([k, v]) => `${k}: ${v}`).join('; ');
+  const newStyle = Object.entries(styles)
+    .map(([k, v]) => `${k}: ${v}`)
+    .join('; ');
   let newAttrs: string;
   if (styleMatch) {
     newAttrs = attrs.replace(/style="[^"]*"/i, `style="${newStyle}"`);
@@ -278,10 +293,10 @@ export function sanitizeHtml(html: string): string {
         child = next;
       }
 
-      const eventAttributes = Array.from(element.attributes).filter(a =>
-        a.name.toLowerCase().startsWith('on')
+      const eventAttributes = Array.from(element.attributes).filter((a) =>
+        a.name.toLowerCase().startsWith('on'),
       );
-      eventAttributes.forEach(a => element.removeAttribute(a.name));
+      eventAttributes.forEach((a) => element.removeAttribute(a.name));
     }
   };
 
@@ -315,7 +330,7 @@ export function sanitizeElement(element: HTMLElement): HTMLElement {
   wrapper.innerHTML = element.outerHTML;
   const sanitizedHtml = sanitizeHtml(wrapper.innerHTML);
   wrapper.innerHTML = sanitizedHtml;
-  return wrapper.firstElementChild as HTMLElement || element;
+  return (wrapper.firstElementChild as HTMLElement) || element;
 }
 
 export function safeSetInnerHTML(element: HTMLElement, html: string): void {
@@ -325,6 +340,6 @@ export function safeSetInnerHTML(element: HTMLElement, html: string): void {
 
 export function safeHtml(html: string): { __html: string } {
   return {
-    __html: sanitizeHtml(html)
+    __html: sanitizeHtml(html),
   };
 }

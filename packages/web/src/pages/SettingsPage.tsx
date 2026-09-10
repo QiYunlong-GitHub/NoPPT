@@ -19,11 +19,7 @@ export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState<SectionId>('ai-model');
   const { t } = useI18n();
   const { hasUnsavedChanges, handleSave } = useSettings();
-  const {
-    testing,
-    testResult,
-    testConnection,
-  } = useTestConnection();
+  const { testing, testResult, testConnection } = useTestConnection();
   const {
     showResetConfirm,
     setShowResetConfirm,
@@ -39,10 +35,7 @@ export default function SettingsPage() {
 
       <div className="max-w-6xl mx-auto px-6 py-8">
         <div className="flex gap-8">
-          <SettingsSidebar
-            activeSection={activeSection}
-            onSectionChange={setActiveSection}
-          />
+          <SettingsSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
 
           <main className="flex-1 min-w-0 space-y-6">
             {activeSection === 'ai-model' && (

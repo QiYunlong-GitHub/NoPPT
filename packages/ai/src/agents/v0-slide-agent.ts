@@ -50,15 +50,20 @@ export class V0SlideAgent {
       onProgress?.(i + 1, total, `正在生成第 ${i + 1} 张幻灯片：${slide.title}`);
 
       try {
-        const html = await this.generateSingleSlide(slide.title, slide.content, slide.type || 'content', {
-          style,
-          language,
-          slideWidth,
-          slideHeight,
-          presentationTitle: outline.title,
-          slideIndex: i,
-          totalSlides: total,
-        });
+        const html = await this.generateSingleSlide(
+          slide.title,
+          slide.content,
+          slide.type || 'content',
+          {
+            style,
+            language,
+            slideWidth,
+            slideHeight,
+            presentationTitle: outline.title,
+            slideIndex: i,
+            totalSlides: total,
+          },
+        );
         results.push({
           index: i,
           title: slide.title,
@@ -114,7 +119,11 @@ ${content ? `幻灯片内容要点：\n${content}` : ''}
 请直接输出完整的 HTML 代码，包含 <!DOCTYPE html> 和完整的页面结构。`;
 
     const response = await this.provider.chat([
-      { role: 'system', content: '你是一个专业的 UI 设计师，擅长创建美观的演示文稿幻灯片。只输出 HTML 代码，不要有任何解释说明。' },
+      {
+        role: 'system',
+        content:
+          '你是一个专业的 UI 设计师，擅长创建美观的演示文稿幻灯片。只输出 HTML 代码，不要有任何解释说明。',
+      },
       { role: 'user', content: prompt },
     ]);
 
@@ -122,8 +131,8 @@ ${content ? `幻灯片内容要点：\n${content}` : ''}
   }
 
   private extractHTML(content: string): string {
-    const htmlMatch = content.match(/<!DOCTYPE html>[\s\S]*<\/html>/i) ||
-                      content.match(/<html[\s\S]*<\/html>/i);
+    const htmlMatch =
+      content.match(/<!DOCTYPE html>[\s\S]*<\/html>/i) || content.match(/<html[\s\S]*<\/html>/i);
     if (htmlMatch) {
       return htmlMatch[0];
     }
@@ -139,8 +148,8 @@ ${bodyMatch[0]}
 </html>`;
     }
 
-    const divMatch = content.match(/```html\s*([\s\S]*?)\s*```/) ||
-                     content.match(/```\s*([\s\S]*?)\s*```/);
+    const divMatch =
+      content.match(/```html\s*([\s\S]*?)\s*```/) || content.match(/```\s*([\s\S]*?)\s*```/);
     if (divMatch) {
       return `<!DOCTYPE html>
 <html>
@@ -156,11 +165,17 @@ ${divMatch[1]}
     return content;
   }
 
-  private generateFallbackHTML(title: string, content: string, width: number, height: number): string {
+  private generateFallbackHTML(
+    title: string,
+    content: string,
+    width: number,
+    height: number,
+  ): string {
     const lines = content.split('\n').filter((l) => l.trim());
-    const listItems = lines.length > 1
-      ? lines.map((l) => `<li class="mb-3 text-lg">${l.replace(/^[-•*]\s*/, '')}</li>`).join('')
-      : `<p class="text-lg">${content}</p>`;
+    const listItems =
+      lines.length > 1
+        ? lines.map((l) => `<li class="mb-3 text-lg">${l.replace(/^[-•*]\s*/, '')}</li>`).join('')
+        : `<p class="text-lg">${content}</p>`;
 
     return `<!DOCTYPE html>
 <html>

@@ -22,10 +22,21 @@ const DEFAULTS: Required<SkeletonOptions> = {
 };
 
 // 这些标签对版式理解无贡献，直接跳过
-const SKIP_TAGS = new Set(['script', 'style', 'meta', 'link', 'title', 'head', 'br', 'hr', 'noscript']);
+const SKIP_TAGS = new Set([
+  'script',
+  'style',
+  'meta',
+  'link',
+  'title',
+  'head',
+  'br',
+  'hr',
+  'noscript',
+]);
 
 // 仅保留与版式相关的 style 片段，避免把整段渐变/动画塞进骨架
-const KEEP_STYLE = /(position|display|flex|grid|gap|align|justify|background|border|border-radius|clip-path|width|height|margin|padding|text-align|color|font-size|transform|aspect-ratio|overflow)/i;
+const KEEP_STYLE =
+  /(position|display|flex|grid|gap|align|justify|background|border|border-radius|clip-path|width|height|margin|padding|text-align|color|font-size|transform|aspect-ratio|overflow)/i;
 
 function pickStyle(styleAttr: string): string {
   if (!styleAttr) return '';
@@ -90,7 +101,8 @@ export function buildSkeletonSnippet(canvas: Element, opts?: SkeletonOptions): s
   const canvasTag = canvas.tagName.toLowerCase();
   const canvasCls = (canvas.getAttribute('class') || '').trim().slice(0, 60);
   const canvasStyle = pickStyle(canvas.getAttribute('style') || '');
-  const canvasAttrs = (canvasCls ? ` class="${canvasCls}"` : '') + (canvasStyle ? ` style="${canvasStyle}"` : '');
+  const canvasAttrs =
+    (canvasCls ? ` class="${canvasCls}"` : '') + (canvasStyle ? ` style="${canvasStyle}"` : '');
   out.push(`<${canvasTag}${canvasAttrs}>`);
   walk(canvas, 1);
   out.push(`</${canvasTag}>`);

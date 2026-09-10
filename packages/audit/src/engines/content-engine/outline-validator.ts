@@ -113,7 +113,8 @@ export function validateOutline(plan: PresentationPlan): AuditIssue[] {
           engine: 'content',
           slideIndex: i,
           message: `叙事顺序异常：第 ${i + 1} 页的叙事角色 "${role}" 出现在更后期的叙事阶段之后（当前最大阶段为 ${maxStage}）`,
-          fixSuggestion: '按照 opening→background→problem→solution→evidence→comparison→closing 的逻辑顺序编排页面',
+          fixSuggestion:
+            '按照 opening→background→problem→solution→evidence→comparison→closing 的逻辑顺序编排页面',
           fixable: false,
           metadata: { narrativeRole: role, stage, maxStageBefore: maxStage },
         });

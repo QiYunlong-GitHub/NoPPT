@@ -40,7 +40,12 @@ describe('M6 编辑工具组', () => {
       previewBase: 'http://localhost:5173/mcp-preview/t1/u1',
       audit: async () => undefined,
       configService: {
-        resolveModelConfig: async () => ({ provider: 'openai', apiKey: 'x', baseUrl: '', model: 'm' }),
+        resolveModelConfig: async () => ({
+          provider: 'openai',
+          apiKey: 'x',
+          baseUrl: '',
+          model: 'm',
+        }),
       } as never,
       presentationService: {
         get: async () => presentation,
@@ -52,7 +57,13 @@ describe('M6 编辑工具组', () => {
       aiService: {
         editSlide: async () => ({ html: '<div><h1>改后标题</h1></div>' }),
         editElement: async () => ({ html: '<h1>改后元素</h1>' }),
-        editGlobal: async () => ({ title: '整份改后', slides: [{ title: 'A', html: '<div>A2</div>' }, { title: 'B', html: '<div>B2</div>' }] }),
+        editGlobal: async () => ({
+          title: '整份改后',
+          slides: [
+            { title: 'A', html: '<div>A2</div>' },
+            { title: 'B', html: '<div>B2</div>' },
+          ],
+        }),
       } as never,
       ...overrides,
     }) as unknown as McpContext;
@@ -67,7 +78,9 @@ describe('M6 编辑工具组', () => {
       title: '原演示',
       selectedSlideId: 's1',
       slides: [
-        makeSlide(0, '<div><h1>标题</h1><p>正文</p></div>', { elements: [{ id: 'e0', type: 'heading', tag: 'h1', label: '标题', selector: 'h1' }] }),
+        makeSlide(0, '<div><h1>标题</h1><p>正文</p></div>', {
+          elements: [{ id: 'e0', type: 'heading', tag: 'h1', label: '标题', selector: 'h1' }],
+        }),
         makeSlide(1, '<div><h2>第二页</h2></div>'),
       ],
       zoom: 1,
@@ -145,7 +158,9 @@ describe('M6 编辑工具组', () => {
   });
 
   it('edit_element：selector 匹配失败 → E5003 且不写盘', async () => {
-    presentation.slides[0].elements = [{ id: 'e0', type: 'heading', tag: 'h1', label: '标题', selector: '.not-exist' }];
+    presentation.slides[0].elements = [
+      { id: 'e0', type: 'heading', tag: 'h1', label: '标题', selector: '.not-exist' },
+    ];
     const res = await (controller as never as Record<string, any>).editElement(
       { presentationId: 'p1', slideIndex: 0, elementIndex: 0, userRequest: '改', wait: true },
       auth,
@@ -173,7 +188,10 @@ describe('M6 编辑工具组', () => {
   });
 
   it('edit_global：返回页数 > 40 → E5004 且不写盘', async () => {
-    const many = Array.from({ length: 41 }, (_, i) => ({ title: `P${i}`, html: `<div>${i}</div>` }));
+    const many = Array.from({ length: 41 }, (_, i) => ({
+      title: `P${i}`,
+      html: `<div>${i}</div>`,
+    }));
     const ctx = buildCtx({
       aiService: { editGlobal: async () => ({ title: 'x', slides: many }) } as never,
     });
@@ -187,7 +205,9 @@ describe('M6 编辑工具组', () => {
   });
 
   it('演示不存在（非当前作用域）→ E4001', async () => {
-    const ctx = buildCtx({ presentationService: { get: async () => null, save: async () => undefined } as never });
+    const ctx = buildCtx({
+      presentationService: { get: async () => null, save: async () => undefined } as never,
+    });
     const res = await (controller as never as Record<string, any>).editSlide(
       { presentationId: 'p_other', userRequest: '改', slideIndex: 0, wait: true },
       auth,

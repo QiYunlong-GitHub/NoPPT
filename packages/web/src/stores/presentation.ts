@@ -8,8 +8,7 @@ import { replaceIconsInHtml, type IconStyle } from '@/utils/iconReplacer';
 import { t } from '@/i18n';
 
 type HistoryEntry =
-  | { type: 'full'; presentation: Presentation }
-  | { type: 'slide'; slideId: string; html: string };
+  { type: 'full'; presentation: Presentation } | { type: 'slide'; slideId: string; html: string };
 
 interface PresentationState {
   presentation: Presentation | null;
@@ -24,7 +23,11 @@ interface PresentationState {
   loadPresentation: (id: string) => Promise<void>;
   savePresentation: () => Promise<boolean>;
   updatePresentation: (updates: Partial<Presentation>, markUnsaved?: boolean) => void;
-  setPresentation: (presentation: Presentation, markUnsaved?: boolean, resetHistory?: boolean) => void;
+  setPresentation: (
+    presentation: Presentation,
+    markUnsaved?: boolean,
+    resetHistory?: boolean,
+  ) => void;
   loadAllPresentations: () => Promise<void>;
   addPresentation: (presentation: Presentation) => void;
   deletePresentation: (id: string) => Promise<void>;
@@ -73,10 +76,10 @@ const HISTORY_LIMIT = 100;
 function sanitizePresentationHtml(presentation: Presentation): Presentation {
   return {
     ...presentation,
-    slides: presentation.slides.map(slide => ({
+    slides: presentation.slides.map((slide) => ({
       ...slide,
-      html: sanitizeHtml(slide.html)
-    }))
+      html: sanitizeHtml(slide.html),
+    })),
   };
 }
 
@@ -114,7 +117,9 @@ function getDefaultChatMessages(): ChatMessage[] {
     {
       id: '1',
       role: 'assistant',
-      content: t('你好！我是你的 AI 演示助手。你可以告诉我怎么修改当前页面，或者对整个演示进行调整。想试试什么？'),
+      content: t(
+        '你好！我是你的 AI 演示助手。你可以告诉我怎么修改当前页面，或者对整个演示进行调整。想试试什么？',
+      ),
       scope: 'current',
       timestamp: formatBeijingTime(),
     },
@@ -142,7 +147,7 @@ export const usePresentationStore = create<PresentationState>()(
     loadAllPresentations: async () => {
       const maxRetries = 8;
       const retryDelay = 1500;
-      
+
       for (let attempt = 0; attempt < maxRetries; attempt++) {
         try {
           const list = await presentationApi.list();
@@ -265,9 +270,7 @@ export const usePresentationStore = create<PresentationState>()(
           if (markUnsaved) {
             state.hasUnsavedChanges = true;
           }
-          const idx = state.presentations.findIndex(
-            (p) => p.id === state.presentation!.id,
-          );
+          const idx = state.presentations.findIndex((p) => p.id === state.presentation!.id);
           if (idx !== -1) {
             state.presentations[idx] = {
               ...state.presentations[idx],
@@ -292,9 +295,7 @@ export const usePresentationStore = create<PresentationState>()(
           state.canUndo = false;
           state.canRedo = false;
         }
-        const idx = state.presentations.findIndex(
-          (p) => p.id === sanitizedPresentation.id,
-        );
+        const idx = state.presentations.findIndex((p) => p.id === sanitizedPresentation.id);
         if (idx !== -1) {
           state.presentations[idx] = {
             ...state.presentations[idx],
@@ -851,8 +852,8 @@ export const usePresentationStore = create<PresentationState>()(
       if (!snapshot) return;
 
       const currentSelectedSlideId = presentation?.selectedSlideId;
-      const slideExists = currentSelectedSlideId
-        && snapshot.slides.some((s) => s.id === currentSelectedSlideId);
+      const slideExists =
+        currentSelectedSlideId && snapshot.slides.some((s) => s.id === currentSelectedSlideId);
       const targetSelectedSlideId = slideExists
         ? currentSelectedSlideId
         : snapshot.slides[snapshot.slides.length - 1]?.id;
@@ -878,8 +879,8 @@ export const usePresentationStore = create<PresentationState>()(
       if (!snapshot) return;
 
       const currentSelectedSlideId = presentation?.selectedSlideId;
-      const slideExists = currentSelectedSlideId
-        && snapshot.slides.some((s) => s.id === currentSelectedSlideId);
+      const slideExists =
+        currentSelectedSlideId && snapshot.slides.some((s) => s.id === currentSelectedSlideId);
       const targetSelectedSlideId = slideExists
         ? currentSelectedSlideId
         : snapshot.slides[snapshot.slides.length - 1]?.id;

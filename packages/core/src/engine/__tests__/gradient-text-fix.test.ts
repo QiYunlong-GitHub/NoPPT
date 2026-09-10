@@ -13,11 +13,18 @@ const BROKEN_H1 =
 describe('fixGradientTextDeclarationOrder · 黑块标题修复（pres_mtrcm1nx 现场复现）', () => {
   it('isEffectiveClipText：background 简写覆盖 clip 时判为无效渐变文字', () => {
     expect(isEffectiveClipText(BROKEN_H1.match(/style="([^"]*)"/)![1])).toBe(false);
-    expect(isEffectiveClipText('background:linear-gradient(135deg,#ff4d6d,#c9184a);-webkit-background-clip:text;background-clip:text;')).toBe(true);
+    expect(
+      isEffectiveClipText(
+        'background:linear-gradient(135deg,#ff4d6d,#c9184a);-webkit-background-clip:text;background-clip:text;',
+      ),
+    ).toBe(true);
   });
 
   it('深色→深色渐变字降级为纯色（保留参考标题色 #22223b，删除黑块与透明填充）', () => {
-    const fixed = fixGradientTextDeclarationOrder(BROKEN_H1, { titleColor: '#22223b', primaryColor: '#ff4d6d' });
+    const fixed = fixGradientTextDeclarationOrder(BROKEN_H1, {
+      titleColor: '#22223b',
+      primaryColor: '#ff4d6d',
+    });
     expect(fixed).not.toMatch(/background\s*:\s*linear-gradient\([^)]*#22223b[^)]*#5c5c72/i);
     expect(fixed).not.toMatch(/-webkit-text-fill-color\s*:\s*transparent/i);
     expect(fixed).not.toMatch(/background-clip\s*:\s*text/i);
@@ -27,14 +34,20 @@ describe('fixGradientTextDeclarationOrder · 黑块标题修复（pres_mtrcm1nx 
   });
 
   it('有效主色渐变文字保持原样（幂等，不被降级）', () => {
-    const ok = '<h1 style="background:linear-gradient(135deg,#ff4d6d,#c9184a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">B</h1>';
+    const ok =
+      '<h1 style="background:linear-gradient(135deg,#ff4d6d,#c9184a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">B</h1>';
     expect(fixGradientTextDeclarationOrder(ok, { primaryColor: '#ff4d6d' })).toBe(ok);
   });
 
   it('声明顺序错乱但有效时归一（background 简写前置）', () => {
-    const reordered = '-webkit-background-clip:text;background:linear-gradient(135deg,#ff4d6d,#c9184a);background-clip:text;-webkit-text-fill-color:transparent;';
-    const fixed = fixGradientTextDeclarationOrder(`<h1 style="${reordered}">X</h1>`, { primaryColor: '#ff4d6d' });
-    expect(fixed.indexOf('background:linear-gradient')).toBeLessThan(fixed.indexOf('background-clip:text'));
+    const reordered =
+      '-webkit-background-clip:text;background:linear-gradient(135deg,#ff4d6d,#c9184a);background-clip:text;-webkit-text-fill-color:transparent;';
+    const fixed = fixGradientTextDeclarationOrder(`<h1 style="${reordered}">X</h1>`, {
+      primaryColor: '#ff4d6d',
+    });
+    expect(fixed.indexOf('background:linear-gradient')).toBeLessThan(
+      fixed.indexOf('background-clip:text'),
+    );
   });
 });
 

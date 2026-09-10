@@ -16,7 +16,11 @@ export interface ApplyMasterOptions {
 }
 
 function escapeAttr(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 function escapeHtml(s: string): string {
@@ -40,9 +44,12 @@ function buildMasterLayer(master: ReferenceMaster): string {
     if (master.logo.src) {
       const { x, y, w, h, refW, refH } = master.logo;
       const hasBox =
-        typeof x === 'number' && typeof y === 'number' &&
-        typeof w === 'number' && typeof h === 'number' &&
-        w > 0 && h > 0;
+        typeof x === 'number' &&
+        typeof y === 'number' &&
+        typeof w === 'number' &&
+        typeof h === 'number' &&
+        w > 0 &&
+        h > 0;
       if (hasBox) {
         // P1 CSS 开窗（FR-16）：把整张参考原图按归一化 bbox 窗口化展示为 LOGO，
         // 无需服务端裁剪，JPEG/PNG 通用。
@@ -51,9 +58,8 @@ function buildMasterLayer(master: ReferenceMaster): string {
         //   - 区域真实宽高比 = (w*refW)/(h*refH)（缺失按 16:9 退化，绝不抛错）
         //   - 在 180×120 约束内取 boxW/boxH = regionAspect
         //   - background-size:(100/w)% (100/h)% + background-position:(x/(1-w))% (y/(1-h))%
-        const regionAspect = refW && refH && refW > 0 && refH > 0
-          ? (w * refW) / (h * refH)
-          : 16 / 9;
+        const regionAspect =
+          refW && refH && refW > 0 && refH > 0 ? (w * refW) / (h * refH) : 16 / 9;
         const MAX_W = 180;
         const MAX_H = 120;
         let boxW: number;
@@ -91,7 +97,10 @@ function buildMasterLayer(master: ReferenceMaster): string {
 
   if (master.header?.elements?.length) {
     const heads = master.header.elements
-      .map((e) => `<span style="display:inline-block;height:3px;width:28px;background:${e.colorHex || '#9ca3af'};margin-right:8px;border-radius:2px;"></span>`)
+      .map(
+        (e) =>
+          `<span style="display:inline-block;height:3px;width:28px;background:${e.colorHex || '#9ca3af'};margin-right:8px;border-radius:2px;"></span>`,
+      )
       .join('');
     parts.push(
       `<div style="position:absolute;top:20px;left:50%;transform:translateX(-50%);pointer-events:none;display:flex;align-items:center;" data-master-header>${heads}</div>`,
@@ -141,17 +150,20 @@ function buildMasterLayer(master: ReferenceMaster): string {
 
 /** 确保根 <div> 是定位上下文（position:relative），便于母版层绝对定位。 */
 function ensureRootRelative(html: string): string {
-  return html.replace(/^(\s*<div\b)([^>]*?)(\/?)>/i, (_m, p1: string, attrs: string, selfClose: string) => {
-    if (/\bposition\s*:/i.test(attrs)) return _m;
-    const styleMatch = attrs.match(/style\s*=\s*(["'])(.*?)\1/i);
-    if (styleMatch) {
-      const quote = styleMatch[1];
-      const newStyle = `${styleMatch[2]};position:relative`;
-      const newAttrs = attrs.replace(styleMatch[0], `style=${quote}${newStyle}${quote}`);
-      return `${p1}${newAttrs}${selfClose}>`;
-    }
-    return `${p1}${attrs} style="position:relative;"${selfClose}>`;
-  });
+  return html.replace(
+    /^(\s*<div\b)([^>]*?)(\/?)>/i,
+    (_m, p1: string, attrs: string, selfClose: string) => {
+      if (/\bposition\s*:/i.test(attrs)) return _m;
+      const styleMatch = attrs.match(/style\s*=\s*(["'])(.*?)\1/i);
+      if (styleMatch) {
+        const quote = styleMatch[1];
+        const newStyle = `${styleMatch[2]};position:relative`;
+        const newAttrs = attrs.replace(styleMatch[0], `style=${quote}${newStyle}${quote}`);
+        return `${p1}${newAttrs}${selfClose}>`;
+      }
+      return `${p1}${attrs} style="position:relative;"${selfClose}>`;
+    },
+  );
 }
 
 /**
@@ -203,7 +215,13 @@ export function hasOpaqueDarkOrGradientBackground(html: string): boolean {
     const hex = v.match(/^#([0-9a-f]{3,8})/i);
     if (hex) {
       const raw = hex[1].toLowerCase();
-      const full = raw.length >= 6 ? raw.slice(0, 6) : raw.split('').map((c) => c + c).join('');
+      const full =
+        raw.length >= 6
+          ? raw.slice(0, 6)
+          : raw
+              .split('')
+              .map((c) => c + c)
+              .join('');
       const a = raw.length === 8 ? parseInt(raw.slice(6, 8), 16) / 255 : 1;
       if (a < 0.2) continue;
       const r = parseInt(full.slice(0, 2), 16);
@@ -229,7 +247,14 @@ function injectHeroFirst(html: string, hero: NonNullable<ReferenceMaster['heroIm
   const out = ensureRootRelative(html);
   const { src, x, y, w, h } = hero;
   let bg: string;
-  if (typeof x === 'number' && typeof y === 'number' && typeof w === 'number' && typeof h === 'number' && w > 0 && h > 0) {
+  if (
+    typeof x === 'number' &&
+    typeof y === 'number' &&
+    typeof w === 'number' &&
+    typeof h === 'number' &&
+    w > 0 &&
+    h > 0
+  ) {
     // 归一化 bbox {x,y,w,h} → CSS 精灵图开窗：让主体区域恰好铺满容器
     const sizeW = (1 / w) * 100; // w=1 → 100%
     const sizeH = (1 / h) * 100; // h=1 → 100%
@@ -255,24 +280,24 @@ function injectHeroFirst(html: string, hero: NonNullable<ReferenceMaster['heroIm
   // 天然可见；且只依赖白名单内的 background-* 属性，抗 sanitize 剥离。
   // 幂等标记用 HTML 注释 <!--noppt-hero-->（DOMParser/JSDOM 均保留注释），双保险。
   // 注意：必须用 replace（保留标签后的全部内容），不能用 match 后手动拼接（会把正文与 </div> 丢掉的致命 bug）。
-  return out.replace(/^(\s*<div\b)([^>]*?)(\/?)>/i, (_m, p1: string, attrs: string, selfClose: string) => {
-    const styleMatch = attrs.match(/style\s*=\s*(["'])(.*?)\1/i);
-    let newAttrs: string;
-    if (styleMatch) {
-      const quote = styleMatch[1];
-      const merged = `${styleMatch[2]};${bg}`;
-      newAttrs = attrs.replace(styleMatch[0], `style=${quote}${merged}${quote}`);
-    } else {
-      newAttrs = `${attrs} style="${bg}"`;
-    }
-    return `${p1}${newAttrs}${selfClose}><!--noppt-hero-->`;
-  });
+  return out.replace(
+    /^(\s*<div\b)([^>]*?)(\/?)>/i,
+    (_m, p1: string, attrs: string, selfClose: string) => {
+      const styleMatch = attrs.match(/style\s*=\s*(["'])(.*?)\1/i);
+      let newAttrs: string;
+      if (styleMatch) {
+        const quote = styleMatch[1];
+        const merged = `${styleMatch[2]};${bg}`;
+        newAttrs = attrs.replace(styleMatch[0], `style=${quote}${merged}${quote}`);
+      } else {
+        newAttrs = `${attrs} style="${bg}"`;
+      }
+      return `${p1}${newAttrs}${selfClose}><!--noppt-hero-->`;
+    },
+  );
 }
 
-export function applyMasterToSlideHtml(
-  html: string,
-  master: ReferenceMaster | undefined,
-): string {
+export function applyMasterToSlideHtml(html: string, master: ReferenceMaster | undefined): string {
   if (!html || !master) return html;
   // 幂等判据（双保险）：母版层与 hero 背景分别独立判定，避免「已注入一部分却重复叠加另一部分」。
   // - 母版层：data-master 属性（server/web 白名单均已放行）或 class="noppt-master-layer"。

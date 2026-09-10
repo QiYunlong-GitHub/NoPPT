@@ -8,13 +8,7 @@
  * - architecture 复用同一套分层渲染辅助（renderHierarchicalSvg），与 content-org-chart 共享视觉（Q13 决策）。
  */
 
-import type {
-  ChartSpec,
-  ChartSeries,
-  ArchitectureSpec,
-  ArchNode,
-  ArchNodeVariant,
-} from '../types';
+import type { ChartSpec, ChartSeries, ArchitectureSpec, ArchNode, ArchNodeVariant } from '../types';
 
 export interface SvgRenderOptions {
   primaryColor: string;
@@ -54,8 +48,14 @@ function fmtVal(v: number, unit?: string): string {
 }
 
 function hexToRgb(hex: string): [number, number, number] {
-  let h = String(hex || '').replace('#', '').trim();
-  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+  let h = String(hex || '')
+    .replace('#', '')
+    .trim();
+  if (h.length === 3)
+    h = h
+      .split('')
+      .map((c) => c + c)
+      .join('');
   const n = parseInt(h, 16);
   if (!isFinite(n) || h.length !== 6) return [37, 99, 235]; // 兜底蓝
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
@@ -197,7 +197,7 @@ function renderBar(spec: ChartSpec, opts: SvgRenderOptions, ly: AxisLayout): str
         const val = p ? clampNum(p.value) : 0;
         const barH = (val / maxVal) * plotH;
         const x = groupX;
-        const y = padT + plotH - (acc + val) / maxVal * plotH;
+        const y = padT + plotH - ((acc + val) / maxVal) * plotH;
         s += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${groupW.toFixed(1)}" height="${Math.max(0, barH).toFixed(1)}" rx="3" fill="${palette[si]}"/>`;
         if (spec.showValues !== false && val > 0) {
           s += `<text x="${(x + groupW / 2).toFixed(1)}" y="${(y - 5).toFixed(1)}" text-anchor="middle" font-size="11" fill="#374151">${fmtVal(val, spec.unit)}</text>`;
@@ -255,7 +255,13 @@ function renderLine(spec: ChartSpec, opts: SvgRenderOptions, ly: AxisLayout): st
 // 饼图 / 环形图
 // ---------------------------------------------------------------------------
 
-function renderPieDonut(spec: ChartSpec, opts: SvgRenderOptions, w: number, h: number, donut: boolean): string {
+function renderPieDonut(
+  spec: ChartSpec,
+  opts: SvgRenderOptions,
+  w: number,
+  h: number,
+  donut: boolean,
+): string {
   const series = spec.series?.[0];
   const points = series?.points || [];
   if (points.length === 0) return '';
@@ -306,7 +312,12 @@ function renderPieDonut(spec: ChartSpec, opts: SvgRenderOptions, w: number, h: n
 // 循环图（环形节点 + 单向箭头，独立渲染器，Q13）
 // ---------------------------------------------------------------------------
 
-export function renderCycleSvg(keyPoints: string[], opts: SvgRenderOptions, width = DEFAULT_W, height = DEFAULT_H): string {
+export function renderCycleSvg(
+  keyPoints: string[],
+  opts: SvgRenderOptions,
+  width = DEFAULT_W,
+  height = DEFAULT_H,
+): string {
   try {
     const items = (keyPoints || []).map((k) => String(k ?? '')).filter((k) => k.length > 0);
     if (items.length < 2) return '';
@@ -407,8 +418,14 @@ export function renderDashboardSvg(
 // 分层架构图（复用分层渲染，Q13：与 org-chart 共享视觉）
 // ---------------------------------------------------------------------------
 
-function renderHierarchicalSvg(spec: ArchitectureSpec, opts: SvgRenderOptions, width = DEFAULT_W): string {
-  const layers = (spec?.layers || []).filter((l) => l && Array.isArray(l.nodeIds) && l.nodeIds.length > 0);
+function renderHierarchicalSvg(
+  spec: ArchitectureSpec,
+  opts: SvgRenderOptions,
+  width = DEFAULT_W,
+): string {
+  const layers = (spec?.layers || []).filter(
+    (l) => l && Array.isArray(l.nodeIds) && l.nodeIds.length > 0,
+  );
   if (layers.length === 0) return '';
   const nodeMap = new Map<number, ArchNode>();
   for (const nd of spec?.nodes || []) {
@@ -458,7 +475,14 @@ function renderHierarchicalSvg(spec: ArchitectureSpec, opts: SvgRenderOptions, w
   return svgWrap(width, height, s);
 }
 
-function renderArchNode(cx: number, cy: number, variant: ArchNodeVariant, label: string, color: string, dark: string): string {
+function renderArchNode(
+  cx: number,
+  cy: number,
+  variant: ArchNodeVariant,
+  label: string,
+  color: string,
+  dark: string,
+): string {
   const w = 132;
   const h = 52;
   const x = cx - w / 2;
@@ -485,7 +509,11 @@ function renderArchNode(cx: number, cy: number, variant: ArchNodeVariant, label:
   return shape + text;
 }
 
-export function renderArchitectureSvg(spec: ArchitectureSpec, opts: SvgRenderOptions, width = DEFAULT_W): string {
+export function renderArchitectureSvg(
+  spec: ArchitectureSpec,
+  opts: SvgRenderOptions,
+  width = DEFAULT_W,
+): string {
   try {
     return renderHierarchicalSvg(spec, opts, width);
   } catch {

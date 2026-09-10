@@ -19,7 +19,11 @@ interface SelectionOverlayProps {
 const HANDLE_SIZE = 12;
 const HANDLE_OFFSET = HANDLE_SIZE / 2;
 
-const HANDLES: { direction: ResizeDirection; cursor: string; getPosition: (box: SelectionBoxRect) => { left: number; top: number } }[] = [
+const HANDLES: {
+  direction: ResizeDirection;
+  cursor: string;
+  getPosition: (box: SelectionBoxRect) => { left: number; top: number };
+}[] = [
   {
     direction: 'nw',
     cursor: 'nw-resize',
@@ -28,7 +32,10 @@ const HANDLES: { direction: ResizeDirection; cursor: string; getPosition: (box: 
   {
     direction: 'n',
     cursor: 'n-resize',
-    getPosition: (box) => ({ left: box.x + box.width / 2 - HANDLE_OFFSET, top: box.y - HANDLE_OFFSET }),
+    getPosition: (box) => ({
+      left: box.x + box.width / 2 - HANDLE_OFFSET,
+      top: box.y - HANDLE_OFFSET,
+    }),
   },
   {
     direction: 'ne',
@@ -38,27 +45,42 @@ const HANDLES: { direction: ResizeDirection; cursor: string; getPosition: (box: 
   {
     direction: 'e',
     cursor: 'e-resize',
-    getPosition: (box) => ({ left: box.x + box.width - HANDLE_OFFSET, top: box.y + box.height / 2 - HANDLE_OFFSET }),
+    getPosition: (box) => ({
+      left: box.x + box.width - HANDLE_OFFSET,
+      top: box.y + box.height / 2 - HANDLE_OFFSET,
+    }),
   },
   {
     direction: 'se',
     cursor: 'se-resize',
-    getPosition: (box) => ({ left: box.x + box.width - HANDLE_OFFSET, top: box.y + box.height - HANDLE_OFFSET }),
+    getPosition: (box) => ({
+      left: box.x + box.width - HANDLE_OFFSET,
+      top: box.y + box.height - HANDLE_OFFSET,
+    }),
   },
   {
     direction: 's',
     cursor: 's-resize',
-    getPosition: (box) => ({ left: box.x + box.width / 2 - HANDLE_OFFSET, top: box.y + box.height - HANDLE_OFFSET }),
+    getPosition: (box) => ({
+      left: box.x + box.width / 2 - HANDLE_OFFSET,
+      top: box.y + box.height - HANDLE_OFFSET,
+    }),
   },
   {
     direction: 'sw',
     cursor: 'sw-resize',
-    getPosition: (box) => ({ left: box.x - HANDLE_OFFSET, top: box.y + box.height - HANDLE_OFFSET }),
+    getPosition: (box) => ({
+      left: box.x - HANDLE_OFFSET,
+      top: box.y + box.height - HANDLE_OFFSET,
+    }),
   },
   {
     direction: 'w',
     cursor: 'w-resize',
-    getPosition: (box) => ({ left: box.x - HANDLE_OFFSET, top: box.y + box.height / 2 - HANDLE_OFFSET }),
+    getPosition: (box) => ({
+      left: box.x - HANDLE_OFFSET,
+      top: box.y + box.height / 2 - HANDLE_OFFSET,
+    }),
   },
 ];
 

@@ -51,13 +51,7 @@ export class SeedreamProvider extends BaseProvider {
   }
 
   async getModels(): Promise<string[]> {
-    return [
-      'seedream-5.0-lite',
-      'seedream-5.0',
-      'seedream-4.5',
-      'seedream-4',
-      'seedream-3.0',
-    ];
+    return ['seedream-5.0-lite', 'seedream-5.0', 'seedream-4.5', 'seedream-4', 'seedream-3.0'];
   }
 
   async generateImage(prompt: string, options?: ImageGenerationOptions): Promise<GeneratedImage[]> {
@@ -117,7 +111,7 @@ export class SeedreamProvider extends BaseProvider {
         this.logError('generateImage', {
           status: response.status,
           statusText: response.statusText,
-          error: errorText
+          error: errorText,
         });
         const err = new Error(`Seedream image generation error: ${response.status} ${errorText}`);
         writeTrace({ error: { message: err.message, stack: err.stack } });
@@ -143,15 +137,26 @@ export class SeedreamProvider extends BaseProvider {
           const item = data.data[i];
           let imageUrl = item.url || item.b64_json || '';
           if (imageUrl) {
-            imageUrl = imageUrl.trim().replace(/^`|`$/g, '').trim().replace(/^["']|["']$/g, '').trim();
+            imageUrl = imageUrl
+              .trim()
+              .replace(/^`|`$/g, '')
+              .trim()
+              .replace(/^["']|["']$/g, '')
+              .trim();
           }
-          console.log(`[LLM:${this.name}] Extracted image URL ${i + 1}:`, imageUrl ? imageUrl.substring(0, 150) + '...' : 'EMPTY');
+          console.log(
+            `[LLM:${this.name}] Extracted image URL ${i + 1}:`,
+            imageUrl ? imageUrl.substring(0, 150) + '...' : 'EMPTY',
+          );
 
           if (imageUrl) {
             results.push({
-              url: imageUrl.startsWith('data:') || imageUrl.startsWith('http')
-                ? imageUrl
-                : (item.b64_json ? `data:image/png;base64,${item.b64_json}` : imageUrl),
+              url:
+                imageUrl.startsWith('data:') || imageUrl.startsWith('http')
+                  ? imageUrl
+                  : item.b64_json
+                    ? `data:image/png;base64,${item.b64_json}`
+                    : imageUrl,
               revisedPrompt: item.revised_prompt,
             });
           }

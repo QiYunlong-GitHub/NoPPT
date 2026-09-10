@@ -15,7 +15,10 @@ export function parseColor(str: string): RGB | null {
   if (hexMatch) {
     let hex = hexMatch[1];
     if (hex.length === 3) {
-      hex = hex.split('').map(c => c + c).join('');
+      hex = hex
+        .split('')
+        .map((c) => c + c)
+        .join('');
     }
     const r = parseInt(hex.substring(0, 2), 16);
     const g = parseInt(hex.substring(2, 4), 16);
@@ -109,7 +112,9 @@ export function findAllElements(html: string, tagPattern?: RegExp): ElementMatch
   return results;
 }
 
-export function findOuterContainer(html: string): { tag: string; attrs: string; fullTag: string; innerStart: number; closeIndex: number } | null {
+export function findOuterContainer(
+  html: string,
+): { tag: string; attrs: string; fullTag: string; innerStart: number; closeIndex: number } | null {
   const trimmed = html.trim();
   const m = /^<(div|section|article)\b([^>]*)>/i.exec(trimmed);
   if (!m) return null;
@@ -124,7 +129,10 @@ export function findOuterContainer(html: string): { tag: string; attrs: string; 
   while ((mm = scanRe.exec(rest)) !== null) {
     if (mm[1] === '/') {
       depth--;
-      if (depth === 0) { closeIdx = mm.index; break; }
+      if (depth === 0) {
+        closeIdx = mm.index;
+        break;
+      }
     } else if (!/\/\s*$/.test(mm[3] || '')) {
       depth++;
     }
@@ -141,7 +149,10 @@ export function findOuterContainer(html: string): { tag: string; attrs: string; 
 export function getDirectChildren(html: string, parentTag: string): ElementMatch[] {
   const outer = findOuterContainer(html);
   if (!outer || outer.tag !== parentTag) return [];
-  const inner = html.substring(outer.innerStart, outer.closeIndex >= 0 ? outer.closeIndex : html.length);
+  const inner = html.substring(
+    outer.innerStart,
+    outer.closeIndex >= 0 ? outer.closeIndex : html.length,
+  );
   const children: ElementMatch[] = [];
   let depth = 0;
   const re = /<(\/?)([a-zA-Z][a-zA-Z0-9]*)\b([^>]*)>/g;
@@ -150,7 +161,9 @@ export function getDirectChildren(html: string, parentTag: string): ElementMatch
     const isClose = m[1] === '/';
     const tag = m[2].toLowerCase();
     const attrs = m[3] || '';
-    const isSelfClosing = /\/\s*$/.test(attrs) || /^(img|br|hr|input|meta|link|base|wbr|source|track|embed|param|col)$/i.test(tag);
+    const isSelfClosing =
+      /\/\s*$/.test(attrs) ||
+      /^(img|br|hr|input|meta|link|base|wbr|source|track|embed|param|col)$/i.test(tag);
     if (isSelfClosing) {
       if (depth === 0) {
         children.push({ tag, attrs, fullTag: m[0], index: m.index });
@@ -174,7 +187,10 @@ export function getElementInnerText(html: string, tag: string): string[] {
   const re = new RegExp(`<${tag}\\b[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'gi');
   let m: RegExpExecArray | null;
   while ((m = re.exec(html)) !== null) {
-    const inner = m[1].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    const inner = m[1]
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
     if (inner) texts.push(inner);
   }
   return texts;
@@ -188,7 +204,9 @@ export function colorDistance(c1: RGB, c2: RGB): number {
 }
 
 export function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
-  r /= 255; g /= 255; b /= 255;
+  r /= 255;
+  g /= 255;
+  b /= 255;
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
   let h = 0;
@@ -198,9 +216,15 @@ export function rgbToHsl(r: number, g: number, b: number): { h: number; s: numbe
     const d = max - min;
     s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
     switch (max) {
-      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
-      case g: h = ((b - r) / d + 2) / 6; break;
-      case b: h = ((r - g) / d + 4) / 6; break;
+      case r:
+        h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+        break;
+      case g:
+        h = ((b - r) / d + 2) / 6;
+        break;
+      case b:
+        h = ((r - g) / d + 4) / 6;
+        break;
     }
   }
   return { h: h * 360, s, l };
@@ -212,7 +236,9 @@ export function isNeonBrightColor(color: RGB): boolean {
 }
 
 export function stringifyStyleMap(styleMap: Record<string, string>): string {
-  return Object.entries(styleMap).map(([k, v]) => `${k}:${v}`).join(';');
+  return Object.entries(styleMap)
+    .map(([k, v]) => `${k}:${v}`)
+    .join(';');
 }
 
 export function setStyleInAttrs(attrs: string, key: string, value: string): string {

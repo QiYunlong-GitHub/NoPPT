@@ -49,11 +49,9 @@ export function buildListReplacementText(
   }
   const lineInfos = rawLines.map((l) => getLinePrefixInfo(l));
   const firstType = lineInfos[0].type;
-  const allSameType =
-    firstType !== null && lineInfos.every((info) => info.type === firstType);
+  const allSameType = firstType !== null && lineInfos.every((info) => info.type === firstType);
 
-  const targetStyle =
-    styleOverride || (listType === 'ul' ? 'disc' : 'decimal');
+  const targetStyle = styleOverride || (listType === 'ul' ? 'disc' : 'decimal');
 
   // 全部同类型，且与目标相同，且用户未指定强制样式 -> 视为 toggle off
   if (allSameType && firstType === listType && !styleOverride) {

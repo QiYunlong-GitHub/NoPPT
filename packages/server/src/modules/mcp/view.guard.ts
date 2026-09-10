@@ -25,14 +25,25 @@ export interface ViewGuardResult {
   body: { error: string; message: string };
 }
 
-export function checkViewAccess(req: Pick<Request, 'ip' | 'socket' | 'query' | 'headers'>): ViewGuardResult {
+export function checkViewAccess(
+  req: Pick<Request, 'ip' | 'socket' | 'query' | 'headers'>,
+): ViewGuardResult {
   const token = envStr('NOPPT_MCP_VIEW_TOKEN');
   if (token) {
     const queryToken = (req.query as Record<string, unknown>)?.token;
     const headerToken = (req.headers as Record<string, unknown>)?.['x-view-token'];
-    const provided = typeof queryToken === 'string' ? queryToken : typeof headerToken === 'string' ? headerToken : '';
+    const provided =
+      typeof queryToken === 'string'
+        ? queryToken
+        : typeof headerToken === 'string'
+          ? headerToken
+          : '';
     if (provided !== token) {
-      return { ok: false, status: 403, body: { error: 'forbidden', message: '缺少或错误的预览访问令牌' } };
+      return {
+        ok: false,
+        status: 403,
+        body: { error: 'forbidden', message: '缺少或错误的预览访问令牌' },
+      };
     }
     return { ok: true, status: 403, body: { error: '', message: '' } };
   }

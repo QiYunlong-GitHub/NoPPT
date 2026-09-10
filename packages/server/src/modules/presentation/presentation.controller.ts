@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Put, Patch, Delete, Body, Param, NotFoundException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  NotFoundException,
+} from '@nestjs/common';
 import type { Presentation } from '@noppt/core';
 import { PresentationService, PresentationListItem, ChatMessage } from './presentation.service';
 import { getStorageService } from '../../common/storage.service';
@@ -26,7 +36,9 @@ export class PresentationController {
   }
 
   @Post()
-  async create(@Body() body?: { title?: string; width?: number; height?: number }): Promise<Presentation> {
+  async create(
+    @Body() body?: { title?: string; width?: number; height?: number },
+  ): Promise<Presentation> {
     return this.presentationService.create(body?.title, body?.width, body?.height);
   }
 
@@ -73,7 +85,10 @@ export class PresentationController {
   }
 
   @Put(':id/chat')
-  async saveChatHistory(@Param('id') id: string, @Body() messages: ChatMessage[]): Promise<{ success: boolean }> {
+  async saveChatHistory(
+    @Param('id') id: string,
+    @Body() messages: ChatMessage[],
+  ): Promise<{ success: boolean }> {
     await this.presentationService.saveChatHistory(id, messages);
     return { success: true };
   }

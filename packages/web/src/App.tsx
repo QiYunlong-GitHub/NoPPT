@@ -11,14 +11,14 @@ import { useSettingsStore } from './stores/settings';
 
 function applyTheme(theme: 'light' | 'dark' | 'auto') {
   const root = document.documentElement;
-  
+
   let isDark = false;
   if (theme === 'dark') {
     isDark = true;
   } else if (theme === 'auto') {
     isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   }
-  
+
   if (isDark) {
     root.classList.add('dark');
   } else {
@@ -31,11 +31,14 @@ function App() {
   const theme = useSettingsStore((s) => s.interfaceSettings.theme);
 
   useEffect(() => {
-    useSettingsStore.getState().loadSettings().finally(() => {
-      const loadedTheme = useSettingsStore.getState().interfaceSettings.theme;
-      applyTheme(loadedTheme);
-      setIsReady(true);
-    });
+    useSettingsStore
+      .getState()
+      .loadSettings()
+      .finally(() => {
+        const loadedTheme = useSettingsStore.getState().interfaceSettings.theme;
+        applyTheme(loadedTheme);
+        setIsReady(true);
+      });
   }, []);
 
   useEffect(() => {

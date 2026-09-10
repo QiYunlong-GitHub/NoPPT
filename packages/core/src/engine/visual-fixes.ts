@@ -27,23 +27,32 @@ export function parseStyleDeclarations(styleStr: string): Array<{ key: string; v
   const len = styleStr.length;
   while (i < len) {
     // 1) 跳过分隔符（分号 / 空格 / 换行 / 制表），同时识别 HTML 实体里的 &; 以免误跳
-    while (i < len && (styleStr[i] === ';' || styleStr[i] === ' ' || styleStr[i] === '\n' || styleStr[i] === '\t')) {
+    while (
+      i < len &&
+      (styleStr[i] === ';' || styleStr[i] === ' ' || styleStr[i] === '\n' || styleStr[i] === '\t')
+    ) {
       if (styleStr[i] === ';') {
         const afterEntity = skipHtmlEntity(styleStr, i);
-        if (afterEntity !== i) { i = afterEntity; continue; }
+        if (afterEntity !== i) {
+          i = afterEntity;
+          continue;
+        }
       }
       i++;
     }
     if (i >= len) break;
     // 2) 找冒号：在括号外 + 引号外 且 跳过实体
     let colonIdx = -1;
-    let depth = 0;           // 括号深度（url(xxx) / calc(1 + 2)）
-    let inQuote = 0;         // 0 无，1 单引号，2 双引号
+    let depth = 0; // 括号深度（url(xxx) / calc(1 + 2)）
+    let inQuote = 0; // 0 无，1 单引号，2 双引号
     for (let j = i; j < len; j++) {
       const ch = styleStr[j];
       if (ch === '&') {
         const afterEntity = skipHtmlEntity(styleStr, j);
-        if (afterEntity !== j) { j = afterEntity - 1; continue; }
+        if (afterEntity !== j) {
+          j = afterEntity - 1;
+          continue;
+        }
       }
       // 引号状态机（括号外才切换）
       if (depth === 0) {
@@ -53,7 +62,10 @@ export function parseStyleDeclarations(styleStr: string): Array<{ key: string; v
       if (inQuote === 0) {
         if (ch === '(') depth++;
         else if (ch === ')') depth--;
-        else if (ch === ':' && depth === 0) { colonIdx = j; break; }
+        else if (ch === ':' && depth === 0) {
+          colonIdx = j;
+          break;
+        }
       }
     }
     if (colonIdx === -1) break; // 无冒号 → 到此为止
@@ -61,12 +73,16 @@ export function parseStyleDeclarations(styleStr: string): Array<{ key: string; v
     // 3) 找分号：括号/引号外且跳过实体
     let valStart = colonIdx + 1;
     let semiIdx = -1;
-    depth = 0; inQuote = 0;
+    depth = 0;
+    inQuote = 0;
     for (let j = valStart; j < len; j++) {
       const ch = styleStr[j];
       if (ch === '&') {
         const afterEntity = skipHtmlEntity(styleStr, j);
-        if (afterEntity !== j) { j = afterEntity - 1; continue; }
+        if (afterEntity !== j) {
+          j = afterEntity - 1;
+          continue;
+        }
       }
       if (depth === 0) {
         if (ch === "'" && inQuote !== 2) inQuote = inQuote === 1 ? 0 : 1;
@@ -75,7 +91,10 @@ export function parseStyleDeclarations(styleStr: string): Array<{ key: string; v
       if (inQuote === 0) {
         if (ch === '(') depth++;
         else if (ch === ')') depth--;
-        else if (ch === ';' && depth === 0) { semiIdx = j; break; }
+        else if (ch === ';' && depth === 0) {
+          semiIdx = j;
+          break;
+        }
       }
     }
     const valueEnd = semiIdx === -1 ? len : semiIdx;
@@ -161,7 +180,10 @@ export interface GradientTextFixOptions {
  *   background / background-image / background-clip / -webkit-background-clip /
  *   -webkit-text-fill-color，保留 text-shadow 与 -webkit-text-stroke 等装饰。
  */
-export function fixGradientTextDeclarationOrder(html: string, options?: GradientTextFixOptions): string {
+export function fixGradientTextDeclarationOrder(
+  html: string,
+  options?: GradientTextFixOptions,
+): string {
   const opts = options || {};
   const allowed = new Set<string>(
     [opts.titleColor, opts.primaryColor, ...(opts.allowedAccents || [])]
@@ -200,18 +222,29 @@ export function fixGradientTextDeclarationOrder(html: string, options?: Gradient
       let solid = opts.titleColor || opts.primaryColor || '#22223b';
       if (existingColor) {
         const v = existingColor.value.trim();
-        if (/#([0-9a-f]{3}|[0-9a-f]{6})/i.test(v) && (allowed.has(v.toLowerCase()) || !opts.titleColor)) {
+        if (
+          /#([0-9a-f]{3}|[0-9a-f]{6})/i.test(v) &&
+          (allowed.has(v.toLowerCase()) || !opts.titleColor)
+        ) {
           solid = v;
-        } else if (/#([0-9a-f]{3}|[0-9a-f]{6})/i.test(v) && !allowed.has(v.toLowerCase()) && allowed.size > 0) {
+        } else if (
+          /#([0-9a-f]{3}|[0-9a-f]{6})/i.test(v) &&
+          !allowed.has(v.toLowerCase()) &&
+          allowed.size > 0
+        ) {
           // 已有 color 不在白名单：回落到 titleColor/primary 以免出现意外色
           solid = opts.titleColor || opts.primaryColor || v;
         }
       }
       const kept = decs.filter(
         (d) =>
-          !['background', 'background-image', 'background-clip', '-webkit-background-clip', '-webkit-text-fill-color'].includes(
-            d.key,
-          ),
+          ![
+            'background',
+            'background-image',
+            'background-clip',
+            '-webkit-background-clip',
+            '-webkit-text-fill-color',
+          ].includes(d.key),
       );
       if (!kept.some((d) => d.key === 'color')) kept.push({ key: 'color', value: solid });
       const newStyle = kept.map((d) => `${d.key}:${d.value}`).join(';');
@@ -220,10 +253,13 @@ export function fixGradientTextDeclarationOrder(html: string, options?: Gradient
 
     // 有效渐变：仅当 background 简写出现在 clip 之后时才重排（幂等）
     const bgIdx = decs.findIndex((d) => d.key === 'background' || d.key === 'background-image');
-    const clipIdx = decs.findIndex((d) => d.key === '-webkit-background-clip' || d.key === 'background-clip');
+    const clipIdx = decs.findIndex(
+      (d) => d.key === '-webkit-background-clip' || d.key === 'background-clip',
+    );
     if (bgIdx !== -1 && clipIdx !== -1 && bgIdx > clipIdx) {
       const reordered = [...decs].sort((a, b) => {
-        const rank = (d: { key: string }) => (d.key === 'background' || d.key === 'background-image' ? 0 : 1);
+        const rank = (d: { key: string }) =>
+          d.key === 'background' || d.key === 'background-image' ? 0 : 1;
         return rank(a) - rank(b);
       });
       const newStyle = reordered.map((d) => `${d.key}:${d.value}`).join(';');
@@ -246,11 +282,13 @@ export function applyCompositionGuard(html: string, composition?: ReferenceCompo
   const firstOuter = /^<(div|section|article)\b([^>]*)>/i.exec(html.trim());
   if (!firstOuter) return html;
   // 内容标记：存在 H2/H3 / 列表 / 图片 / 表格 / 多栏 → 非纯标题页
-  const hasContentMarks = /<h[23]\b|<(ul|ol)\b|<img[\s>]|<table\b|grid-template-columns\s*:|flex-direction\s*:\s*row\b|flex\s*:\s*0\s+0\s+\d+%/i.test(
-    html,
-  );
+  const hasContentMarks =
+    /<h[23]\b|<(ul|ol)\b|<img[\s>]|<table\b|grid-template-columns\s*:|flex-direction\s*:\s*row\b|flex\s*:\s*0\s+0\s+\d+%/i.test(
+      html,
+    );
   const mustRemoveCenter =
-    composition === 'left-aligned' || (composition !== 'centered' && hasContentMarks && !/^<h1\b/i.test(html.trim()));
+    composition === 'left-aligned' ||
+    (composition !== 'centered' && hasContentMarks && !/^<h1\b/i.test(html.trim()));
 
   if (!mustRemoveCenter) return html;
 
@@ -268,7 +306,9 @@ export function applyCompositionGuard(html: string, composition?: ReferenceCompo
     }
   }
   if (!changed) return html;
-  const newStyle = Array.from(props.entries()).map(([k, v]) => `${k}:${v}`).join(';');
+  const newStyle = Array.from(props.entries())
+    .map(([k, v]) => `${k}:${v}`)
+    .join(';');
   const newAttrs = attrs.replace(/style="[^"]*"/i, `style="${newStyle}"`);
   return html.replace(firstOuter[0], `<${tag}${newAttrs}>`);
 }
@@ -313,7 +353,7 @@ export function enforceImageStyles(html: string, options?: EnforceImageStylesOpt
     const ratio = (ratioM && (ratioM[1] || ratioM[2] || ratioM[3])) || '';
     const hasRatio = !!ratio && /^(\d+)\s*:\s*(\d+)$/.test(ratio);
     const explicitHeight = styles['height'];
-    const isBadDefault = explicitHeight && (explicitHeight.trim() === '100%');
+    const isBadDefault = explicitHeight && explicitHeight.trim() === '100%';
     if (!explicitHeight || (hasRatio && isBadDefault)) {
       if (hasRatio) {
         const rm = /^(\d+)\s*:\s*(\d+)$/.exec(ratio)!;
@@ -324,7 +364,9 @@ export function enforceImageStyles(html: string, options?: EnforceImageStylesOpt
         styles['height'] = 'auto';
       }
     }
-    const newStyle = Object.entries(styles).map(([k, v]) => `${k}:${v}`).join(';');
+    const newStyle = Object.entries(styles)
+      .map(([k, v]) => `${k}:${v}`)
+      .join(';');
     let finalAttrs = attrs;
     if (styleMatch) {
       finalAttrs = finalAttrs.replace(/style="[^"]*"/i, `style="${newStyle}"`);
@@ -347,17 +389,23 @@ export function enforceMinFontSize(html: string, minSize: number = 14): string {
 }
 
 export function enforceFlexChildrenMinWidth(html: string): string {
-  return html.replace(/<(?:div|section|article|ul|ol|table)([^>]*style="[^"]*"[^>]*)>/gi, (match) => {
-    const styleMatch = match.match(/style="([^"]*)"/i);
-    if (!styleMatch) return match;
-    const style = styleMatch[1];
-    if (style.includes('position:absolute') || style.includes('position: absolute')) return match;
-    if (style.includes('min-width:0') || style.includes('min-width: 0')) return match;
-    const isFlexChild = /flex:\s*\d/.test(style) || /flex:\d/.test(style) ||
-      style.includes('display:grid') || style.includes('grid-template');
-    if (!isFlexChild) return match;
-    return match.replace(/style="([^"]*)"/i, `style="${style};min-width:0"`);
-  });
+  return html.replace(
+    /<(?:div|section|article|ul|ol|table)([^>]*style="[^"]*"[^>]*)>/gi,
+    (match) => {
+      const styleMatch = match.match(/style="([^"]*)"/i);
+      if (!styleMatch) return match;
+      const style = styleMatch[1];
+      if (style.includes('position:absolute') || style.includes('position: absolute')) return match;
+      if (style.includes('min-width:0') || style.includes('min-width: 0')) return match;
+      const isFlexChild =
+        /flex:\s*\d/.test(style) ||
+        /flex:\d/.test(style) ||
+        style.includes('display:grid') ||
+        style.includes('grid-template');
+      if (!isFlexChild) return match;
+      return match.replace(/style="([^"]*)"/i, `style="${style};min-width:0"`);
+    },
+  );
 }
 
 export function enforceTextWrapping(html: string): string {
@@ -376,10 +424,22 @@ export function enforceTextWrapping(html: string): string {
 
 export function enforceFlatStructure(html: string): string {
   let result = html;
-  result = result.replace(/<p([^>]*)>\s*(<span[^>]*>\d+<\/span>\s*<span[^>]*>[^<]*<\/span>)\s*<\/p>/gi, (_match: string, _attrs: string, inner: string) => inner);
-  result = result.replace(/<p\s*>\s*(<span[^>]*>[\s\S]*?<\/span>)\s*<\/p>/gi, (_match: string, inner: string) => inner);
-  result = result.replace(/<p\s*>\s*(<div[\s\S]*?<\/div>)\s*<\/p>/gi, (_match: string, inner: string) => inner);
-  result = result.replace(/<p\s*>\s*(<h[1-6][^>]*>[\s\S]*?<\/h[1-6]>)\s*<\/p>/gi, (_match: string, inner: string) => inner);
+  result = result.replace(
+    /<p([^>]*)>\s*(<span[^>]*>\d+<\/span>\s*<span[^>]*>[^<]*<\/span>)\s*<\/p>/gi,
+    (_match: string, _attrs: string, inner: string) => inner,
+  );
+  result = result.replace(
+    /<p\s*>\s*(<span[^>]*>[\s\S]*?<\/span>)\s*<\/p>/gi,
+    (_match: string, inner: string) => inner,
+  );
+  result = result.replace(
+    /<p\s*>\s*(<div[\s\S]*?<\/div>)\s*<\/p>/gi,
+    (_match: string, inner: string) => inner,
+  );
+  result = result.replace(
+    /<p\s*>\s*(<h[1-6][^>]*>[\s\S]*?<\/h[1-6]>)\s*<\/p>/gi,
+    (_match: string, inner: string) => inner,
+  );
   return result;
 }
 

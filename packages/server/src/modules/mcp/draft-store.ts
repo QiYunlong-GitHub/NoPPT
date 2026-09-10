@@ -86,8 +86,12 @@ function draftPath(draftId: string): string {
 export function referenceTextLimit(slideCount?: number, maxChars?: number): number {
   const env = readMcpEnv();
   const perSlide = env.draftCharsPerSlide > 0 ? env.draftCharsPerSlide : 800;
-  const slides = Number.isFinite(slideCount) && (slideCount as number) > 0 ? (slideCount as number) : DEFAULT_SLIDE_COUNT;
-  const ceiling = maxChars && maxChars > 0 ? maxChars : env.maxRefTextChars > 0 ? env.maxRefTextChars : 20000;
+  const slides =
+    Number.isFinite(slideCount) && (slideCount as number) > 0
+      ? (slideCount as number)
+      : DEFAULT_SLIDE_COUNT;
+  const ceiling =
+    maxChars && maxChars > 0 ? maxChars : env.maxRefTextChars > 0 ? env.maxRefTextChars : 20000;
   const raw = perSlide * slides;
   return Math.min(Math.max(raw, REFERENCE_TEXT_MIN_CHARS), ceiling);
 }
@@ -103,7 +107,13 @@ function tokenPayload(draftId: string, tenant: string, user: string, exp: number
 }
 
 /** 生成草稿读取签名：`HMAC-SHA256(secret, draftId|tenant|user|expiresAt)`。 */
-export function signDraftToken(draftId: string, tenant: string, user: string, exp: number, env: McpEnv = readMcpEnv()): string {
+export function signDraftToken(
+  draftId: string,
+  tenant: string,
+  user: string,
+  exp: number,
+  env: McpEnv = readMcpEnv(),
+): string {
   return createHmac('sha256', resolveDraftSigningSecret(env))
     .update(tokenPayload(draftId, tenant, user, exp))
     .digest('hex');
@@ -146,7 +156,11 @@ export function buildOpenUrl(rec: DraftRecord, env: McpEnv = readMcpEnv()): stri
 // ————————————————————————— 存取 —————————————————————————
 
 function normalizeParams(input: DraftParams): DraftParams {
-  const params: DraftParams = { topic: String(input.topic || '').trim().slice(0, 500) };
+  const params: DraftParams = {
+    topic: String(input.topic || '')
+      .trim()
+      .slice(0, 500),
+  };
   if (input.style) params.style = input.style;
   if (input.audience) params.audience = String(input.audience).slice(0, 200);
   if (Number.isFinite(input.slideCount)) {
@@ -165,7 +179,11 @@ function normalizeParams(input: DraftParams): DraftParams {
  * @param scope 作用域（来自 MCP Key / 身份头）
  * @param source 素材来源标识，仅用于前端展示
  */
-export async function createDraft(input: DraftParams, scope: DraftScope, source?: string): Promise<DraftRecord> {
+export async function createDraft(
+  input: DraftParams,
+  scope: DraftScope,
+  source?: string,
+): Promise<DraftRecord> {
   const env = readMcpEnv();
   const params = normalizeParams(input);
   const limit = referenceTextLimit(params.slideCount, env.maxRefTextChars);

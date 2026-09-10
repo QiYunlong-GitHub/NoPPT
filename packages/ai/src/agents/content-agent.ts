@@ -120,10 +120,7 @@ export class ContentAgent {
     };
   }
 
-  async refineOutline(
-    outline: GeneratedOutline,
-    _feedback: string,
-  ): Promise<GeneratedOutline> {
+  async refineOutline(outline: GeneratedOutline, _feedback: string): Promise<GeneratedOutline> {
     // TODO: implement outline refinement
     return outline;
   }

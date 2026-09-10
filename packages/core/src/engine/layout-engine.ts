@@ -45,7 +45,10 @@ function removeEmptyDefaultContainer(html: string): string {
   const inner = firstDiv.substring(firstTagEnd + 1, firstCloseIdx).trim();
   if (inner.length > 0) return html;
   const firstAttrs = firstDivMatch[1] || '';
-  const hasFlexStyles = /display\s*:\s*flex|justify-content\s*:|align-items\s*:|background-color\s*:\s*#f8fafc/i.test(firstAttrs);
+  const hasFlexStyles =
+    /display\s*:\s*flex|justify-content\s*:|align-items\s*:|background-color\s*:\s*#f8fafc/i.test(
+      firstAttrs,
+    );
   if (!hasFlexStyles) return html;
   const afterFirstDiv = html.substring(firstDiv.length).trim();
   if (afterFirstDiv.length === 0) return html;
@@ -54,7 +57,8 @@ function removeEmptyDefaultContainer(html: string): string {
 
 const COVER_CONTENT_SIGN_RE = /<h[23]\b|<(ul|ol)\b|<img[\s>]|<table\b/i;
 // 多列 / 分栏结构标记：网格列定义、行向 flex、定宽百分比列（如 flex:0 0 40%）→ 内容页，禁止居中。
-const COVER_MULTI_COL_RE = /grid-template-columns\s*:|display\s*:\s*(?:inline-)?grid\b|flex-direction\s*:\s*row\b|flex\s*:\s*0\s+0\s+\d+%/i;
+const COVER_MULTI_COL_RE =
+  /grid-template-columns\s*:|display\s*:\s*(?:inline-)?grid\b|flex-direction\s*:\s*row\b|flex\s*:\s*0\s+0\s+\d+%/i;
 
 /**
  * 居中护栏单一真源（与 @noppt/ai 侧 ensureOuterContainer / enforceCoverPosterArtStyles 共用）。
@@ -71,7 +75,13 @@ export function isCoverLikeHtml(innerHtml: string): boolean {
 }
 
 function extractBackgroundStyles(styleStr: string): Record<string, string> | null {
-  const bgKeys = ['background-image', 'background-size', 'background-position', 'background-repeat', 'background'];
+  const bgKeys = [
+    'background-image',
+    'background-size',
+    'background-position',
+    'background-repeat',
+    'background',
+  ];
   const bgStyles: Record<string, string> = {};
   for (const { key, value } of parseStyleDeclarations(styleStr)) {
     if (bgKeys.includes(key)) {
@@ -87,7 +97,8 @@ function normalizeOuterContainer(html: string): string {
 
   result = removeEmptyDefaultContainer(result);
 
-  const FULL_FONT = "system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif";
+  const FULL_FONT =
+    "system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif";
 
   // ============================================================
   // 🛡️ 强信任第一道防线：如果外层就是合规容器（ok8），直接 return，
@@ -115,14 +126,25 @@ function normalizeOuterContainer(html: string): string {
           // 只缺字段追加，已有值一字不改
           let safeStyle = existingStyle;
           const addIfMissing = (prop: string, fallback: string) => {
-            if (!new RegExp(`(?:^|;)\\s*${prop.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*:`, 'i').test(`;${safeStyle}`)) {
-              safeStyle = safeStyle.endsWith(';') ? `${safeStyle}${prop}:${fallback}` : `${safeStyle};${prop}:${fallback}`;
+            if (
+              !new RegExp(
+                `(?:^|;)\\s*${prop.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*:`,
+                'i',
+              ).test(`;${safeStyle}`)
+            ) {
+              safeStyle = safeStyle.endsWith(';')
+                ? `${safeStyle}${prop}:${fallback}`
+                : `${safeStyle};${prop}:${fallback}`;
             }
           };
           if (/(?:^|;)\s*padding\s*:\s*0(?:px)?\s*(?:;|$)/i.test(safeStyle)) {
-            safeStyle = safeStyle.replace(/(padding\s*:\s*)0(?:px)?\s*(;|$)/i, (_m, p, s) => `${p}${defaultPadYx()}${s || ';'}`);
+            safeStyle = safeStyle.replace(
+              /(padding\s*:\s*)0(?:px)?\s*(;|$)/i,
+              (_m, p, s) => `${p}${defaultPadYx()}${s || ';'}`,
+            );
           }
-          if (!/(?:^|;)\s*background(?:-color)?\s*:/i.test(`;${safeStyle}`)) safeStyle += ';background-color:#fff';
+          if (!/(?:^|;)\s*background(?:-color)?\s*:/i.test(`;${safeStyle}`))
+            safeStyle += ';background-color:#fff';
           addIfMissing('font-family', FULL_FONT);
           // 居中护栏：仅封面式页面（仅标题、无内容标记、非多列/分栏）才注入居中三件套；
           // 内容页 / 多列页 / 图片被删后误判为「仅标题」的页面一律禁止居中，保护原有构图。
@@ -137,13 +159,17 @@ function normalizeOuterContainer(html: string): string {
           // 闭合 tag 匹配：只找外层开头 tagName 的同级最后 </tagName>
           const rest = result.substring(firstOuter[0].length);
           const closeTag = `</${tagName.toLowerCase()}>`;
-          let dep = 1; let close = -1;
+          let dep = 1;
+          let close = -1;
           const scanRe = new RegExp(`<(/?)(${tagName})\\b([^>]*)>`, 'gi');
           let mm: RegExpExecArray | null;
           while ((mm = scanRe.exec(rest)) !== null) {
             if (mm[1] === '/') {
               dep--;
-              if (dep === 0) { close = mm.index; break; }
+              if (dep === 0) {
+                close = mm.index;
+                break;
+              }
             } else if (!/\/\s*$/.test(mm[3] || '')) {
               dep++;
             }
@@ -212,7 +238,8 @@ function normalizeOuterContainer(html: string): string {
     const isClose = match[1] === '/';
     const tagName = match[2];
     const attrs = match[3] || '';
-    const isSelfClosing = /\/\s*$/.test(attrs.trim()) ||
+    const isSelfClosing =
+      /\/\s*$/.test(attrs.trim()) ||
       /^(img|br|hr|input|meta|link|base|wbr|source|track|embed|param|col)$/i.test(tagName);
     if (!isClose && !isSelfClosing) {
       const isSlideRoot = isSlideRootWrapperTag(tagName, attrs);
@@ -264,7 +291,10 @@ function normalizeOuterContainer(html: string): string {
   return wrapped;
 }
 
-function analyzeTopLevelStructure(html: string): { isSingleDiv: boolean; hasAbsoluteChildren: boolean } {
+function analyzeTopLevelStructure(html: string): {
+  isSingleDiv: boolean;
+  hasAbsoluteChildren: boolean;
+} {
   const openTagEnd = html.indexOf('>');
   if (openTagEnd === -1) return { isSingleDiv: false, hasAbsoluteChildren: false };
   const firstTagName = html.substring(1, openTagEnd).split(/[\s>]/)[0].toLowerCase();
@@ -300,7 +330,8 @@ function mergeStrayElementsIntoContainer(html: string): string {
   const tagStart = html.indexOf('<');
   const firstTagFull = html.substring(tagStart + 1, openTagEnd);
   const firstTagName = firstTagFull.split(/[\s>]/)[0].toLowerCase();
-  if (firstTagName !== 'div' && firstTagName !== 'section' && firstTagName !== 'article') return html;
+  if (firstTagName !== 'div' && firstTagName !== 'section' && firstTagName !== 'article')
+    return html;
 
   const closeTag = `</${firstTagName}>`;
 
@@ -332,9 +363,17 @@ function mergeStrayElementsIntoContainer(html: string): string {
 }
 
 const CONTAINER_STYLE_KEYS = new Set([
-  'width', 'height', 'display', 'flex-direction', 'overflow',
-  'box-sizing', 'justify-content', 'align-items',
-  'background-color', 'background', 'font-family',
+  'width',
+  'height',
+  'display',
+  'flex-direction',
+  'overflow',
+  'box-sizing',
+  'justify-content',
+  'align-items',
+  'background-color',
+  'background',
+  'font-family',
 ]);
 
 const CONTAINER_PADDING_PATTERN = /^48px\s+60px$/i;
@@ -366,12 +405,16 @@ function defaultPadYx(): string {
   // 与 web security.ts 保持一致：默认按 1280x720 基线
   const w = (globalThis as any).__NOPPT_SLIDE_WIDTH__ || 1280;
   const h = (globalThis as any).__NOPPT_SLIDE_HEIGHT__ || 720;
-  const padX = Math.max(32, Math.round((60 * w / 1280) / 8) * 8);
-  const padY = Math.max(24, Math.round((48 * h / 720) / 8) * 8);
+  const padX = Math.max(32, Math.round((60 * w) / 1280 / 8) * 8);
+  const padY = Math.max(24, Math.round((48 * h) / 720 / 8) * 8);
   return `${padY}px ${padX}px`;
 }
 
-function wrapWithContainer(inner: string, addPadding: boolean, bgStyles?: Record<string, string> | null): string {
+function wrapWithContainer(
+  inner: string,
+  addPadding: boolean,
+  bgStyles?: Record<string, string> | null,
+): string {
   const hasBgImage = bgStyles && (bgStyles['background-image'] || bgStyles['background']);
   const styles: string[] = [];
   styles.push('width:100%');
@@ -384,7 +427,9 @@ function wrapWithContainer(inner: string, addPadding: boolean, bgStyles?: Record
     styles.push('display:flex');
     styles.push('flex-direction:column');
     if (!hasBgImage) styles.push('background-color:#fff');
-    styles.push("font-family:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif");
+    styles.push(
+      "font-family:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",
+    );
   } else {
     styles.push('padding:0px');
   }
@@ -410,14 +455,19 @@ function cleanupEmptyDivs(html: string): string {
   // 只删除：① 完全无 style 属性，或 ② style 空字符串/只有空白的空 div（flatten 垃圾容器）
   for (let i = 0; i < 3; i++) {
     const before = result;
-    result = result.replace(/<div(\s+[^>]*)?>\s*<\/div>/gi, (match: string, attrs: string | undefined) => {
-      const a = (attrs || '').trim();
-      const styleIdx = a.search(/style\s*=/i);
-      if (styleIdx === -1) return '';
-      const svm = a.slice(styleIdx).match(/^style\s*=\s*"([^"]*)"/i) || a.slice(styleIdx).match(/^style\s*=\s*'([^']*)'/i);
-      if (!svm || svm[1].trim() === '') return '';
-      return match;
-    });
+    result = result.replace(
+      /<div(\s+[^>]*)?>\s*<\/div>/gi,
+      (match: string, attrs: string | undefined) => {
+        const a = (attrs || '').trim();
+        const styleIdx = a.search(/style\s*=/i);
+        if (styleIdx === -1) return '';
+        const svm =
+          a.slice(styleIdx).match(/^style\s*=\s*"([^"]*)"/i) ||
+          a.slice(styleIdx).match(/^style\s*=\s*'([^']*)'/i);
+        if (!svm || svm[1].trim() === '') return '';
+        return match;
+      },
+    );
     if (result === before) break;
   }
   return result;
@@ -425,7 +475,11 @@ function cleanupEmptyDivs(html: string): string {
 
 function hasVisualStyle(styleStr: string): boolean {
   const s = styleStr.toLowerCase();
-  if (/background(?:-image|-color)?\s*:/.test(s) && !/background(?:-color)?\s*:\s*(?:transparent|#fff\b|white\b|#ffffff\b|none)/i.test(s)) return true;
+  if (
+    /background(?:-image|-color)?\s*:/.test(s) &&
+    !/background(?:-color)?\s*:\s*(?:transparent|#fff\b|white\b|#ffffff\b|none)/i.test(s)
+  )
+    return true;
   if (/\bborder(?:-top|-left|-right|-bottom)?\s*:\s*[1-9]/.test(s)) return true;
   if (/box-shadow\s*:/.test(s) && !/box-shadow\s*:\s*none/i.test(s)) return true;
   return false;
@@ -435,13 +489,16 @@ function cleanupEmptyInlineTags(html: string): string {
   let result = html;
   for (let i = 0; i < 5; i++) {
     const before = result;
-    result = result.replace(/<(p|span)(\s+[^>]*)?>([\s]*?)<\/\1>/gi, (match: string, _tag: string, attrs: string | undefined) => {
-      const a = (attrs || '').trim();
-      const styleMatch = a.match(/style\s*=\s*"([^"]*)"/i) || a.match(/style\s*=\s*'([^']*)'/i);
-      const styleStr = styleMatch ? styleMatch[1] : '';
-      if (styleStr && hasVisualStyle(styleStr)) return match;
-      return '';
-    });
+    result = result.replace(
+      /<(p|span)(\s+[^>]*)?>([\s]*?)<\/\1>/gi,
+      (match: string, _tag: string, attrs: string | undefined) => {
+        const a = (attrs || '').trim();
+        const styleMatch = a.match(/style\s*=\s*"([^"]*)"/i) || a.match(/style\s*=\s*'([^']*)'/i);
+        const styleStr = styleMatch ? styleMatch[1] : '';
+        if (styleStr && hasVisualStyle(styleStr)) return match;
+        return '';
+      },
+    );
     if (result === before) break;
   }
   return result;
@@ -465,7 +522,7 @@ function inferPrimaryColor(html: string): string {
   // 1) 最可信：<h2 ... background:linear-gradient(..., #hex1, #hex2 ...)> 首 stop
   const h2Grad = /<h2\b[^>]*style="[^"]*linear-gradient\s*\(\s*[^)]*\)/i.exec(html);
   if (h2Grad) {
-    const stops = (h2Grad[0].match(/#(?:[0-9a-f]{6}|[0-9a-f]{3})/gi) || []);
+    const stops = h2Grad[0].match(/#(?:[0-9a-f]{6}|[0-9a-f]{3})/gi) || [];
     const first = stops.find((s) => s.length === 7 || s.length === 4);
     if (first) return normalizeHex6(first);
   }
@@ -506,8 +563,9 @@ function repairTrivialSvgIcons(html: string, primaryColor?: string): string {
 
       const size = w >= 10 && h >= 10 ? Math.max(14, Math.min(w, h, 22)) : 20;
 
-      const colorMatch = attrs.match(/\bstroke\s*=\s*["']([^"']+)["']/i)
-        || inner.match(/\bstroke\s*=\s*["']([^"']+)["']/i);
+      const colorMatch =
+        attrs.match(/\bstroke\s*=\s*["']([^"']+)["']/i) ||
+        inner.match(/\bstroke\s*=\s*["']([^"']+)["']/i);
       const color = colorMatch ? colorMatch[1] : effectivePrimary;
 
       return makeCheckSvg(size, color);
@@ -563,13 +621,18 @@ function firstLeftIconIsGeneric(htmlSnippet: string): boolean {
   const wm = attrs.match(/\bwidth\s*=\s*["']?(\d+)/i);
   const hm = attrs.match(/\bheight\s*=\s*["']?(\d+)/i);
   const sz = Math.max(wm ? parseInt(wm[1], 10) : 0, hm ? parseInt(hm[1], 10) : 0);
-  const stroke = (attrs.match(/\bstroke\s*=\s*["']([^"']+)["']/i) || inner.match(/\bstroke\s*=\s*["']([^"']+)["']/i))?.[1] || '';
+  const stroke =
+    (attrs.match(/\bstroke\s*=\s*["']([^"']+)["']/i) ||
+      inner.match(/\bstroke\s*=\s*["']([^"']+)["']/i))?.[1] || '';
   const isWhiteStroke = /^#fff(?:fff)?$/i.test(stroke) || /^white$/i.test(stroke);
   // T4-FR4 HOTFIX：同样把 fill="#fff" / fill="white" 语义图标识别为非占位（图标 → 渐变容器内的白图标是语义最常见的形态）
   // 之前只看 stroke 不看 fill，导致 SVG icon（svg 本身没写 stroke，但 inner path 有 fill="#fff"）被误判为通用，进而被替换成 check。
-  const fill = (attrs.match(/\bfill\s*=\s*["']([^"']+)["']/i) || inner.match(/\bfill\s*=\s*["']([^"']+)["']/i))?.[1] || '';
+  const fill =
+    (attrs.match(/\bfill\s*=\s*["']([^"']+)["']/i) ||
+      inner.match(/\bfill\s*=\s*["']([^"']+)["']/i))?.[1] || '';
   const isWhiteFill = /^#fff(?:fff)?$/i.test(fill) || /^white$/i.test(fill);
-  if (isWhiteStroke || isWhiteFill || hasMultipleLines || hasPolygon || hasPath || hasExtra) return false;
+  if (isWhiteStroke || isWhiteFill || hasMultipleLines || hasPolygon || hasPath || hasExtra)
+    return false;
   if (sz >= 24) return false; // 较大的图标多半是语义图标（作者精心设计的）
   return true;
 }
@@ -610,7 +673,8 @@ function normalizeIconGroups(html: string, primaryColor?: string): string {
     },
   );
 
-  const containerRe = /<div\b([^>]*style="[^"]*display\s*:\s*flex[^"]*flex-direction\s*:\s*column[^"]*"[^>]*)>/gi;
+  const containerRe =
+    /<div\b([^>]*style="[^"]*display\s*:\s*flex[^"]*flex-direction\s*:\s*column[^"]*"[^>]*)>/gi;
   let containerMatch: RegExpExecArray | null;
   const replacements: { start: number; end: number; content: string }[] = [];
 
@@ -624,8 +688,17 @@ function normalizeIconGroups(html: string, primaryColor?: string): string {
 
     if (/<[uo]l[\s>]/i.test(inner)) continue;
 
-    const cardRe = /<div\b([^>]*style="[^"]*(?:padding\s*:\s*\d+px|border-radius\s*:\s*\d+px)[^"]*"[^>]*)>/gi;
-    const cards: { full: string; attrs: string; inner: string; hasLeftIcon: boolean; hasRightNumber: boolean; start: number; end: number }[] = [];
+    const cardRe =
+      /<div\b([^>]*style="[^"]*(?:padding\s*:\s*\d+px|border-radius\s*:\s*\d+px)[^"]*"[^>]*)>/gi;
+    const cards: {
+      full: string;
+      attrs: string;
+      inner: string;
+      hasLeftIcon: boolean;
+      hasRightNumber: boolean;
+      start: number;
+      end: number;
+    }[] = [];
     let cardMatch: RegExpExecArray | null;
 
     while ((cardMatch = cardRe.exec(inner)) !== null) {
@@ -634,7 +707,8 @@ function normalizeIconGroups(html: string, primaryColor?: string): string {
       if (cardCloseEnd === -1) continue;
 
       const cardInner = inner.substring(cardOpenEnd, cardCloseEnd - 6);
-      const isCard = /padding\s*:\s*\d+px/.test(cardMatch[1]) && /border-radius\s*:\s*\d+px/.test(cardMatch[1]);
+      const isCard =
+        /padding\s*:\s*\d+px/.test(cardMatch[1]) && /border-radius\s*:\s*\d+px/.test(cardMatch[1]);
       if (!isCard) {
         cardRe.lastIndex = cardCloseEnd;
         continue;
@@ -668,7 +742,10 @@ function normalizeIconGroups(html: string, primaryColor?: string): string {
         // 仅当图标为「通用占位（check / trivial circle）」时剥离；
         // 语义图标（自定义 path/polygon/multi-line）一律保留，避免把作者精心画的 icon 删除。
         if (!firstLeftIconIsGeneric(c.inner)) continue;
-        let cleaned = c.inner.replace(/^\s*<span\b[^>]*>\s*<svg\b[^>]*>[\s\S]*?<\/svg>\s*<\/span>\s*/i, '');
+        let cleaned = c.inner.replace(
+          /^\s*<span\b[^>]*>\s*<svg\b[^>]*>[\s\S]*?<\/svg>\s*<\/span>\s*/i,
+          '',
+        );
         cleaned = cleaned.replace(/^\s*<svg\b[^>]*>[\s\S]*?<\/svg>\s*/i, '');
         const newCard = `<div${c.attrs}>${cleaned}</div>`;
         newInner = newInner.substring(0, c.start) + newCard + newInner.substring(c.end);
@@ -697,39 +774,37 @@ function normalizeIconGroups(html: string, primaryColor?: string): string {
 function repairEmptySvgs(html: string): string {
   let result = html;
 
-  result = result.replace(
-    /<svg\b([^>]*)>\s*<\/svg>/gi,
-    (match: string, attrs: string) => {
-      if (/<(?:path|rect|circle|polygon|polyline|line|ellipse|g|text|use)\b/i.test(match)) return match;
-
-      const widthMatch = attrs.match(/\bwidth\s*=\s*["']?(\d+)/i);
-      const heightMatch = attrs.match(/\bheight\s*=\s*["']?(\d+)/i);
-      const w = widthMatch ? parseInt(widthMatch[1], 10) : 0;
-      const h = heightMatch ? parseInt(heightMatch[1], 10) : 0;
-
-      let vbW = w;
-      let vbH = h;
-      const vbMatch = attrs.match(/\bviewBox\s*=\s*["']([^"']+)["']/i);
-      if (vbMatch) {
-        const parts = vbMatch[1].split(/[\s,]+/);
-        if (parts.length >= 4) {
-          vbW = parseInt(parts[2], 10) || w;
-          vbH = parseInt(parts[3], 10) || h;
-        }
-      }
-
-      if (w >= 10 && w <= 28 && h >= 10 && h <= 28) {
-        const vw = vbW || w || 16;
-        const vh = vbH || h || 16;
-        const cx = vw / 2;
-        const cy = vh / 2;
-        const r = Math.min(vw, vh) * 0.28;
-        return `<svg${attrs}><circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff" opacity="0.9"/></svg>`;
-      }
-
+  result = result.replace(/<svg\b([^>]*)>\s*<\/svg>/gi, (match: string, attrs: string) => {
+    if (/<(?:path|rect|circle|polygon|polyline|line|ellipse|g|text|use)\b/i.test(match))
       return match;
-    },
-  );
+
+    const widthMatch = attrs.match(/\bwidth\s*=\s*["']?(\d+)/i);
+    const heightMatch = attrs.match(/\bheight\s*=\s*["']?(\d+)/i);
+    const w = widthMatch ? parseInt(widthMatch[1], 10) : 0;
+    const h = heightMatch ? parseInt(heightMatch[1], 10) : 0;
+
+    let vbW = w;
+    let vbH = h;
+    const vbMatch = attrs.match(/\bviewBox\s*=\s*["']([^"']+)["']/i);
+    if (vbMatch) {
+      const parts = vbMatch[1].split(/[\s,]+/);
+      if (parts.length >= 4) {
+        vbW = parseInt(parts[2], 10) || w;
+        vbH = parseInt(parts[3], 10) || h;
+      }
+    }
+
+    if (w >= 10 && w <= 28 && h >= 10 && h <= 28) {
+      const vw = vbW || w || 16;
+      const vh = vbH || h || 16;
+      const cx = vw / 2;
+      const cy = vh / 2;
+      const r = Math.min(vw, vh) * 0.28;
+      return `<svg${attrs}><circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff" opacity="0.9"/></svg>`;
+    }
+
+    return match;
+  });
 
   return result;
 }
@@ -763,22 +838,22 @@ function removeForcedCardHeight(html: string): string {
       if (!/flex-direction\s*:\s*column/i.test(stylePart)) return match;
       if (/flex\s*:\s*1\b/.test(stylePart)) return match;
       // 排除 slide 根容器：它有 position:relative + overflow:hidden + box-sizing:border-box
-      if (/position\s*:\s*relative/i.test(stylePart) && /overflow\s*:\s*hidden/i.test(stylePart)) return match;
+      if (/position\s*:\s*relative/i.test(stylePart) && /overflow\s*:\s*hidden/i.test(stylePart))
+        return match;
       // 必须是卡片样式：有 border-radius 或 background 或 border
       const looksLikeCard =
         /border-radius\s*:/i.test(stylePart) ||
         /background(?:-color)?\s*:/i.test(stylePart) ||
         /border\s*:/i.test(stylePart);
       if (!looksLikeCard) return match;
-      const newStyle = stylePart
-        .replace(/style="([^"]*)"/i, (_s: string, css: string) => {
-          const cleaned = css
-            .replace(/(^|;)\s*height\s*:\s*100%\s*(?=;|$)/i, '$1')
-            .replace(/;;+/g, ';')
-            .replace(/^;\s*/, '')
-            .replace(/;\s*$/, '');
-          return `style="${cleaned}"`;
-        });
+      const newStyle = stylePart.replace(/style="([^"]*)"/i, (_s: string, css: string) => {
+        const cleaned = css
+          .replace(/(^|;)\s*height\s*:\s*100%\s*(?=;|$)/i, '$1')
+          .replace(/;;+/g, ';')
+          .replace(/^;\s*/, '')
+          .replace(/;\s*$/, '');
+        return `style="${cleaned}"`;
+      });
       return `<div${newStyle}${rest}>`;
     },
   );
@@ -790,12 +865,66 @@ function removeForcedCardHeight(html: string): string {
  */
 function _coreHasBareText(html: string): boolean {
   const TEXT_TAGS = new Set([
-    'h1','h2','h3','h4','h5','h6','p','li','figcaption','td','th','label','button',
-    'pre','code','blockquote','sup','sub','textarea','option','title','style','script','noscript',
-    'a','span','strong','em','b','i','u','s','small','mark','abbr','cite','del','ins','kbd','q','samp','var',
-    'time','font'
+    'h1',
+    'h2',
+    'h3',
+    'h4',
+    'h5',
+    'h6',
+    'p',
+    'li',
+    'figcaption',
+    'td',
+    'th',
+    'label',
+    'button',
+    'pre',
+    'code',
+    'blockquote',
+    'sup',
+    'sub',
+    'textarea',
+    'option',
+    'title',
+    'style',
+    'script',
+    'noscript',
+    'a',
+    'span',
+    'strong',
+    'em',
+    'b',
+    'i',
+    'u',
+    's',
+    'small',
+    'mark',
+    'abbr',
+    'cite',
+    'del',
+    'ins',
+    'kbd',
+    'q',
+    'samp',
+    'var',
+    'time',
+    'font',
   ]);
-  const SELF_CLOSING = new Set(['br','img','hr','input','meta','link','wbr','area','base','col','embed','source','track']);
+  const SELF_CLOSING = new Set([
+    'br',
+    'img',
+    'hr',
+    'input',
+    'meta',
+    'link',
+    'wbr',
+    'area',
+    'base',
+    'col',
+    'embed',
+    'source',
+    'track',
+  ]);
   const n = html.length;
   const ctxStack: boolean[] = [false];
   let i = 0;
@@ -803,29 +932,42 @@ function _coreHasBareText(html: string): boolean {
     const ch = html[i];
     if (ch !== '<') {
       if (!ctxStack[ctxStack.length - 1] && !/\s/.test(ch)) return true;
-      i++; continue;
+      i++;
+      continue;
     }
     if (html.startsWith('<!--', i)) {
       const end = html.indexOf('-->', i);
-      i = end === -1 ? n : end + 3; continue;
+      i = end === -1 ? n : end + 3;
+      continue;
     }
     if (html.startsWith('<![CDATA[', i)) {
       const end = html.indexOf(']]>', i);
-      i = end === -1 ? n : end + 3; continue;
+      i = end === -1 ? n : end + 3;
+      continue;
     }
     if (html.startsWith('<!', i) || html.startsWith('<?', i)) {
       const end = html.indexOf('>', i);
-      i = end === -1 ? n : end + 1; continue;
+      i = end === -1 ? n : end + 1;
+      continue;
     }
     const tagEnd = html.indexOf('>', i);
-    if (tagEnd === -1) { i++; continue; }
+    if (tagEnd === -1) {
+      i++;
+      continue;
+    }
     const tagFull = html.slice(i, tagEnd + 1);
     const tm = tagFull.match(/^<\/?([a-zA-Z0-9]+)/);
-    if (!tm) { i = tagEnd + 1; continue; }
+    if (!tm) {
+      i = tagEnd + 1;
+      continue;
+    }
     const tn = tm[1].toLowerCase();
     const closing = tagFull[1] === '/';
     const selfCls = tagFull.endsWith('/>') || SELF_CLOSING.has(tn);
-    if (selfCls) { i = tagEnd + 1; continue; }
+    if (selfCls) {
+      i = tagEnd + 1;
+      continue;
+    }
     if (!closing) {
       const clsMatch = tagFull.match(/class="([^"]*)"/i);
       const isNopptText = clsMatch && /\bnoppt-text-element\b/.test(clsMatch[1]);
@@ -858,7 +1000,8 @@ function enforceBareTextToParagraphs(html: string): string {
   if (!html) return html;
   // B3L：无裸文本直接返回，不动 style
   if (!_coreHasBareText(html)) return html;
-  const DEFAULT_P_STYLE = 'font-size:24px;color:#374151;font-weight:600;line-height:2.0;overflow-wrap:break-word;word-break:break-word;';
+  const DEFAULT_P_STYLE =
+    'font-size:24px;color:#374151;font-weight:600;line-height:2.0;overflow-wrap:break-word;word-break:break-word;';
   // 判断：一个开标签里的 style 是否足以证明它是 Badge/胶囊 容器
   const isBadgeStyle = (openTagFull: string): boolean => {
     const sm = openTagFull.match(/style="([^"]*)"/i);
@@ -869,20 +1012,93 @@ function enforceBareTextToParagraphs(html: string): string {
       has(/display\s*:\s*(?:inline-flex|flex)\b/i),
       has(/padding\s*:[^;]*(?:1[0-9]px\s+2[0-9]px|10px\s+28px|12px\s+24px)\b/i),
       has(/border-radius\s*:[^;]*999px/i),
-      has(/background\s*:[^;]*(?:#[0-9a-f]{6,8}1[0-9a-f]|rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*0\.0[5-9])/i),
+      has(
+        /background\s*:[^;]*(?:#[0-9a-f]{6,8}1[0-9a-f]|rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*0\.0[5-9])/i,
+      ),
     ].filter(Boolean).length;
     return score >= 3;
   };
   const TEXT_TAGS = new Set<string>([
-    'h1','h2','h3','h4','h5','h6','p','li','figcaption','td','th','label','button',
-    'pre','code','blockquote','sup','sub','textarea','option','title','style','script','noscript',
-    'a','span','strong','em','b','i','u','s','small','mark','abbr','cite','del','ins','kbd','q','samp','var',
+    'h1',
+    'h2',
+    'h3',
+    'h4',
+    'h5',
+    'h6',
+    'p',
+    'li',
+    'figcaption',
+    'td',
+    'th',
+    'label',
+    'button',
+    'pre',
+    'code',
+    'blockquote',
+    'sup',
+    'sub',
+    'textarea',
+    'option',
+    'title',
+    'style',
+    'script',
+    'noscript',
+    'a',
+    'span',
+    'strong',
+    'em',
+    'b',
+    'i',
+    'u',
+    's',
+    'small',
+    'mark',
+    'abbr',
+    'cite',
+    'del',
+    'ins',
+    'kbd',
+    'q',
+    'samp',
+    'var',
   ]);
   const CONTAINER_TAGS = new Set<string>([
-    'div','section','article','aside','nav','main','header','footer','body',
-    'figure','ul','ol','table','thead','tbody','tfoot','tr','form','details','summary',
+    'div',
+    'section',
+    'article',
+    'aside',
+    'nav',
+    'main',
+    'header',
+    'footer',
+    'body',
+    'figure',
+    'ul',
+    'ol',
+    'table',
+    'thead',
+    'tbody',
+    'tfoot',
+    'tr',
+    'form',
+    'details',
+    'summary',
   ]);
-  const SINGLETON = new Set<string>(['br','img','hr','input','meta','link','wbr','area','base','col','embed','source','track']);
+  const SINGLETON = new Set<string>([
+    'br',
+    'img',
+    'hr',
+    'input',
+    'meta',
+    'link',
+    'wbr',
+    'area',
+    'base',
+    'col',
+    'embed',
+    'source',
+    'track',
+  ]);
 
   const isNopptTextElement = (tagFull: string): boolean => {
     const clsMatch = tagFull.match(/class="([^"]*)"/i);
@@ -900,7 +1116,15 @@ function enforceBareTextToParagraphs(html: string): string {
     isBadgeContainer: boolean;
   }
   const stack: Frame[] = [
-    { tagName: '__root__', openTagFull: '', inTextContext: false, pendingBare: '', isContainer: false, innerBuffer: '', isBadgeContainer: false },
+    {
+      tagName: '__root__',
+      openTagFull: '',
+      inTextContext: false,
+      pendingBare: '',
+      isContainer: false,
+      innerBuffer: '',
+      isBadgeContainer: false,
+    },
   ];
   const flushBare = (frame: Frame) => {
     if (!frame.pendingBare) return;
@@ -922,30 +1146,40 @@ function enforceBareTextToParagraphs(html: string): string {
         const end = html.indexOf('-->', i);
         const j = end === -1 ? n : end + 3;
         const top = stack[stack.length - 1];
-        if (top.inTextContext || !top.isContainer || top.isBadgeContainer) top.innerBuffer += html.slice(i, j);
-        else { flushBare(top); top.innerBuffer += html.slice(i, j); }
-        i = j; continue;
+        if (top.inTextContext || !top.isContainer || top.isBadgeContainer)
+          top.innerBuffer += html.slice(i, j);
+        else {
+          flushBare(top);
+          top.innerBuffer += html.slice(i, j);
+        }
+        i = j;
+        continue;
       }
       if (html.startsWith('<![CDATA[', i) || html.startsWith('<!', i) || html.startsWith('<?', i)) {
         const end = html.indexOf('>', i);
         const j = end === -1 ? n : end + 1;
         stack[stack.length - 1].innerBuffer += html.slice(i, j);
-        i = j; continue;
+        i = j;
+        continue;
       }
       const tagEnd = html.indexOf('>', i);
       if (tagEnd === -1) {
         const top = stack[stack.length - 1];
-        if (top.inTextContext || !top.isContainer || top.isBadgeContainer) top.innerBuffer += html[i];
+        if (top.inTextContext || !top.isContainer || top.isBadgeContainer)
+          top.innerBuffer += html[i];
         else top.pendingBare += html[i];
-        i++; continue;
+        i++;
+        continue;
       }
       const tagFull = html.slice(i, tagEnd + 1);
       const tagMatch = tagFull.match(/^<\/?([a-zA-Z0-9]+)/);
       if (!tagMatch) {
         const top = stack[stack.length - 1];
-        if (top.inTextContext || !top.isContainer || top.isBadgeContainer) top.innerBuffer += tagFull;
+        if (top.inTextContext || !top.isContainer || top.isBadgeContainer)
+          top.innerBuffer += tagFull;
         else top.pendingBare += tagFull;
-        i = tagEnd + 1; continue;
+        i = tagEnd + 1;
+        continue;
       }
       const tagName = tagMatch[1].toLowerCase();
       const isClosing = tagFull[1] === '/';
@@ -954,36 +1188,58 @@ function enforceBareTextToParagraphs(html: string): string {
         const top = stack[stack.length - 1];
         if (!top.inTextContext && !top.isBadgeContainer && top.isContainer) flushBare(top);
         top.innerBuffer += tagFull;
-        i = tagEnd + 1; continue;
+        i = tagEnd + 1;
+        continue;
       }
       if (!isClosing) {
         const top = stack[stack.length - 1];
         if (!top.inTextContext && !top.isBadgeContainer && top.isContainer) flushBare(top);
         const badged = isBadgeStyle(tagFull);
         const isNopptText = isNopptTextElement(tagFull);
-        const inTextContext = top.inTextContext || TEXT_TAGS.has(tagName) || badged || top.isBadgeContainer || isNopptText;
+        const inTextContext =
+          top.inTextContext ||
+          TEXT_TAGS.has(tagName) ||
+          badged ||
+          top.isBadgeContainer ||
+          isNopptText;
         const isContainer = !inTextContext && CONTAINER_TAGS.has(tagName);
-        stack.push({ tagName, openTagFull: tagFull, inTextContext, pendingBare: '', isContainer, innerBuffer: '', isBadgeContainer: badged || top.isBadgeContainer });
-        i = tagEnd + 1; continue;
+        stack.push({
+          tagName,
+          openTagFull: tagFull,
+          inTextContext,
+          pendingBare: '',
+          isContainer,
+          innerBuffer: '',
+          isBadgeContainer: badged || top.isBadgeContainer,
+        });
+        i = tagEnd + 1;
+        continue;
       } else {
         let popIdx = -1;
         for (let k = stack.length - 1; k >= 1; k--) {
-          if (stack[k].tagName === tagName) { popIdx = k; break; }
+          if (stack[k].tagName === tagName) {
+            popIdx = k;
+            break;
+          }
         }
         if (popIdx === -1) {
           const top = stack[stack.length - 1];
-          if (top.inTextContext || !top.isContainer || top.isBadgeContainer) top.innerBuffer += tagFull;
+          if (top.inTextContext || !top.isContainer || top.isBadgeContainer)
+            top.innerBuffer += tagFull;
           else top.pendingBare += tagFull;
-          i = tagEnd + 1; continue;
+          i = tagEnd + 1;
+          continue;
         }
         const popped = stack.splice(popIdx)[0];
         if (popped.isContainer && !popped.isBadgeContainer) flushBare(popped);
         const closing = `</${popped.tagName}>`;
         const assembled = popped.openTagFull + popped.innerBuffer + closing;
         const newTop = stack[stack.length - 1];
-        if (!newTop.inTextContext && !newTop.isBadgeContainer && newTop.isContainer) flushBare(newTop);
+        if (!newTop.inTextContext && !newTop.isBadgeContainer && newTop.isContainer)
+          flushBare(newTop);
         newTop.innerBuffer += assembled;
-        i = tagEnd + 1; continue;
+        i = tagEnd + 1;
+        continue;
       }
     } else {
       const top = stack[stack.length - 1];
@@ -996,7 +1252,10 @@ function enforceBareTextToParagraphs(html: string): string {
   while (stack.length > 1) {
     const popped = stack.pop()!;
     if (popped.isContainer && !popped.isBadgeContainer) flushBare(popped);
-    const assembled = popped.openTagFull + popped.innerBuffer + (popped.tagName !== '__root__' ? `</${popped.tagName}>` : '');
+    const assembled =
+      popped.openTagFull +
+      popped.innerBuffer +
+      (popped.tagName !== '__root__' ? `</${popped.tagName}>` : '');
     stack[stack.length - 1].innerBuffer += assembled;
   }
   if (stack[0].isContainer) flushBare(stack[0]);
@@ -1022,23 +1281,26 @@ function enforceBareTextToParagraphs(html: string): string {
  * ========================================================================== */
 
 function stringifyDecls(decls: Array<{ key: string; value: string }>): string {
-  return decls.map(d => `${d.key}:${d.value}`).join(';');
+  return decls.map((d) => `${d.key}:${d.value}`).join(';');
 }
 
 function setDecl(decls: Array<{ key: string; value: string }>, key: string, value: string): void {
-  const idx = decls.findIndex(d => d.key === key);
+  const idx = decls.findIndex((d) => d.key === key);
   if (idx >= 0) decls[idx].value = value;
   else decls.push({ key, value });
 }
 function delDecl(decls: Array<{ key: string; value: string }>, key: string): void {
-  const idx = decls.findIndex(d => d.key === key);
+  const idx = decls.findIndex((d) => d.key === key);
   if (idx >= 0) decls.splice(idx, 1);
 }
 function getDecl(decls: Array<{ key: string; value: string }>, key: string): string | undefined {
-  return decls.find(d => d.key === key)?.value;
+  return decls.find((d) => d.key === key)?.value;
 }
 
-function transformStyleAttr(tagStr: string, fn: (decls: Array<{ key: string; value: string }>) => boolean | void): string {
+function transformStyleAttr(
+  tagStr: string,
+  fn: (decls: Array<{ key: string; value: string }>) => boolean | void,
+): string {
   return tagStr.replace(/style="([^"]*)"/i, (_m: string, styleVal: string) => {
     const decls = parseStyleDeclarations(styleVal);
     const changed = fn(decls);
@@ -1203,8 +1465,13 @@ function tightenTextSpanInLi(spanOpenTag: string): string {
       const m = fs.match(/(\d+(?:\.\d+)?)px/);
       if (m) {
         const n = parseFloat(m[1]);
-        if (n >= 27) { setDecl(decls, 'font-size', '22px'); changed = true; }
-        else if (n >= 23) { setDecl(decls, 'font-size', '20px'); changed = true; }
+        if (n >= 27) {
+          setDecl(decls, 'font-size', '22px');
+          changed = true;
+        } else if (n >= 23) {
+          setDecl(decls, 'font-size', '20px');
+          changed = true;
+        }
       }
     }
     return changed;
@@ -1217,14 +1484,23 @@ function tightenIconSpanInLi(spanOpenTag: string): string {
     let changed = false;
     const w = getDecl(decls, 'width');
     const h = getDecl(decls, 'height');
-    if (w && /40px/.test(w)) { setDecl(decls, 'width', '36px'); changed = true; }
-    if (h && /40px/.test(h)) { setDecl(decls, 'height', '36px'); changed = true; }
+    if (w && /40px/.test(w)) {
+      setDecl(decls, 'width', '36px');
+      changed = true;
+    }
+    if (h && /40px/.test(h)) {
+      setDecl(decls, 'height', '36px');
+      changed = true;
+    }
     const fs = getDecl(decls, 'font-size');
     if (fs) {
       const m = fs.match(/(\d+(?:\.\d+)?)px/);
       if (m) {
         const n = parseFloat(m[1]);
-        if (n >= 19) { setDecl(decls, 'font-size', '18px'); changed = true; }
+        if (n >= 19) {
+          setDecl(decls, 'font-size', '18px');
+          changed = true;
+        }
       }
     }
     return changed;
@@ -1239,17 +1515,26 @@ function tightenH2(h2OpenTag: string): string {
     const fs = getDecl(decls, 'font-size');
     if (fs) {
       const m = fs.match(/(\d+(?:\.\d+)?)px/);
-      if (m && parseFloat(m[1]) >= 43) { setDecl(decls, 'font-size', '40px'); changed = true; }
+      if (m && parseFloat(m[1]) >= 43) {
+        setDecl(decls, 'font-size', '40px');
+        changed = true;
+      }
     }
     // margin-bottom:32px → 20px
     const mb = getDecl(decls, 'margin-bottom');
     if (mb) {
       const m = mb.match(/(\d+(?:\.\d+)?)px/);
-      if (m && parseFloat(m[1]) >= 30) { setDecl(decls, 'margin-bottom', '20px'); changed = true; }
+      if (m && parseFloat(m[1]) >= 30) {
+        setDecl(decls, 'margin-bottom', '20px');
+        changed = true;
+      }
     }
     // line-height:1.25 → 1.2
     const lh = getDecl(decls, 'line-height');
-    if (lh && /1\.25/.test(lh)) { setDecl(decls, 'line-height', '1.2'); changed = true; }
+    if (lh && /1\.25/.test(lh)) {
+      setDecl(decls, 'line-height', '1.2');
+      changed = true;
+    }
     return changed;
   });
 }
@@ -1261,11 +1546,11 @@ function tightenH2(h2OpenTag: string): string {
  */
 interface VerticalLayoutProbe {
   mode: 'top' | 'bottom';
-  liCount: number;                 // ul-list: 实际 li 数; stats-grid: 用列数（用于阶梯判定）
-  ulTagName: 'ul' | 'ol';          // 仅 ul-list 模式有意义；stats-grid 占位为 'ul'
-  ulOpenGlobalIdx: number;         // UL/OL 或卡片 grid div 开标签在整 html 中的起始下标
+  liCount: number; // ul-list: 实际 li 数; stats-grid: 用列数（用于阶梯判定）
+  ulTagName: 'ul' | 'ol'; // 仅 ul-list 模式有意义；stats-grid 占位为 'ul'
+  ulOpenGlobalIdx: number; // UL/OL 或卡片 grid div 开标签在整 html 中的起始下标
   layoutKind: 'ul-list' | 'stats-grid';
-  cardCols?: number;               // stats-grid 时的列数（N>=3）
+  cardCols?: number; // stats-grid 时的列数（N>=3）
 }
 /** 探测 H2 后是否存在「水平双栏」布局：
  *  - 在 afterH2 最近的一级（未遇到 UL/OL 前）里，若发现一对兄弟 div：
@@ -1304,9 +1589,10 @@ function isHorizontalImageSide(afterH2: string, imgRelIdx: number, listRelIdx: n
       if (sumPct < 95 || sumPct > 105) return false;
       const earliest = imgStart;
       const beforeBoth = afterH2.slice(0, earliest);
-      const probeWindow = beforeBoth.endsWith('>') === false
-        ? afterH2.slice(0, Math.min(afterH2.length, earliest + 120))
-        : beforeBoth;
+      const probeWindow =
+        beforeBoth.endsWith('>') === false
+          ? afterH2.slice(0, Math.min(afterH2.length, earliest + 120))
+          : beforeBoth;
       const rowParent = findLastFlexRowParent(probeWindow);
       if (rowParent === null) return false;
       return true;
@@ -1334,9 +1620,10 @@ function isHorizontalImageSide(afterH2: string, imgRelIdx: number, listRelIdx: n
   // 但 beforeBoth 若未以 > 结尾说明没有包含 row 容器结束 >，
   // 导致 findLastFlexRowParent 把内部 flex 样式当成属性片段而非完整开标签 → 正则无法命中。
   // 此时将 beforeBoth 向后补最多 120 字符，使其包含第一个完整开标签再扫描父级 row。
-  const probeWindow = beforeBoth.endsWith('>') === false
-    ? afterH2.slice(0, Math.min(afterH2.length, earliest + 120))
-    : beforeBoth;
+  const probeWindow =
+    beforeBoth.endsWith('>') === false
+      ? afterH2.slice(0, Math.min(afterH2.length, earliest + 120))
+      : beforeBoth;
   const rowParent = findLastFlexRowParent(probeWindow);
   // T5-FR5 HOTFIX：rowParent === 0 是合法值（row 容器出现在 afterH2 开头，极常见），
   // 不能用 if (!rowParent) 判定——必须显式 === null，避免 index=0 被误判为"未找到"。
@@ -1476,37 +1763,52 @@ function preventContentImageTopOverflow(html: string): string {
       return r;
     });
     // 文字 span：样式有 font-size:24/28px 且有 flex:1
-    output = output.replace(/<span\b([^>]*style="[^"]*font-size\s*:\s*(?:24|28)px[^"]*flex\s*:\s*1[^"]*"[^>]*)>/gi, (m) => {
-      const r = tightenTextSpanInLi(m);
-      if (r !== m) repaired = true;
-      return r;
-    });
+    output = output.replace(
+      /<span\b([^>]*style="[^"]*font-size\s*:\s*(?:24|28)px[^"]*flex\s*:\s*1[^"]*"[^>]*)>/gi,
+      (m) => {
+        const r = tightenTextSpanInLi(m);
+        if (r !== m) repaired = true;
+        return r;
+      },
+    );
     // 图标 span：width:40px;height:40px
-    output = output.replace(/<span\b([^>]*style="[^"]*width\s*:\s*40px[^"]*height\s*:\s*40px[^"]*)>/gi, (m) => {
-      const r = tightenIconSpanInLi(m);
-      if (r !== m) repaired = true;
-      return r;
-    });
+    output = output.replace(
+      /<span\b([^>]*style="[^"]*width\s*:\s*40px[^"]*height\s*:\s*40px[^"]*)>/gi,
+      (m) => {
+        const r = tightenIconSpanInLi(m);
+        if (r !== m) repaired = true;
+        return r;
+      },
+    );
   }
 
   // Step 2：按 li 数量 / 卡片列数 压缩图片容器高度（TOP/BOTTOM 均需要，只是 margin 方向不同）
   // FR-5：stats-grid 模式统一 32% + margin-top:24px（不按列数阶梯变化）
   if (liCount >= 3) {
     let targetPct = 40;
-    let marginSide: 'margin-top' | 'margin-bottom' = mode === 'top' ? 'margin-bottom' : 'margin-top';
+    let marginSide: 'margin-top' | 'margin-bottom' =
+      mode === 'top' ? 'margin-bottom' : 'margin-top';
     let newMarginVal = '20px';
     if (layoutKind === 'stats-grid') {
       targetPct = 32;
       newMarginVal = '24px';
-    } else if (liCount === 3) { targetPct = 40; newMarginVal = '20px'; }
-    else if (liCount === 4) { targetPct = 35; newMarginVal = '16px'; }
-    else { targetPct = 32; newMarginVal = '16px'; }
+    } else if (liCount === 3) {
+      targetPct = 40;
+      newMarginVal = '20px';
+    } else if (liCount === 4) {
+      targetPct = 35;
+      newMarginVal = '16px';
+    } else {
+      targetPct = 32;
+      newMarginVal = '16px';
+    }
 
     // FR-5：stats-grid 模式下 imgWrap 可能还没有 flex:0 0 XX%（LLM 原生仅 display:flex），
     // 所以放宽匹配——只要是带 style 的 div 且紧接 <img> 就允许 transform 注入 flex:0 0 32%
-    const imgWrapRe = layoutKind === 'stats-grid'
-      ? /(<div\b[^>]*style="[^"]*"[^>]*>)(?=\s*<img\b)/i
-      : /(<div\b[^>]*style="[^"]*flex\s*:\s*0\s+0\s+\d+(?:\.\d+)?%[^"]*"[^>]*>)(?=\s*<img\b)/i;
+    const imgWrapRe =
+      layoutKind === 'stats-grid'
+        ? /(<div\b[^>]*style="[^"]*"[^>]*>)(?=\s*<img\b)/i
+        : /(<div\b[^>]*style="[^"]*flex\s*:\s*0\s+0\s+\d+(?:\.\d+)?%[^"]*"[^>]*>)(?=\s*<img\b)/i;
     output = output.replace(imgWrapRe, (imgWrapTag) => {
       // 这里使用 transformStyleAttr 精细压缩 + 设置 margin 方向（TOP → mb，BOTTOM → mt）
       const r = transformStyleAttr(imgWrapTag, (decls) => {
@@ -1515,7 +1817,10 @@ function preventContentImageTopOverflow(html: string): string {
         const flex = getDecl(decls, 'flex');
         if (flex) {
           const newFlex = flex.replace(/0\s+0\s+\d+(?:\.\d+)?%/, `0 0 ${targetPct}%`);
-          if (newFlex !== flex) { setDecl(decls, 'flex', newFlex); local = true; }
+          if (newFlex !== flex) {
+            setDecl(decls, 'flex', newFlex);
+            local = true;
+          }
         } else {
           setDecl(decls, 'flex-basis', `${targetPct}%`);
           setDecl(decls, 'flex-shrink', '0');
@@ -1525,13 +1830,25 @@ function preventContentImageTopOverflow(html: string): string {
         // FR-5 stats-grid 模式：为防包裹缺少关键显示约束，补齐 display:flex / align-items / overflow / min-height
         if (layoutKind === 'stats-grid') {
           const disp = (getDecl(decls, 'display') || '').toLowerCase();
-          if (!disp) { setDecl(decls, 'display', 'flex'); local = true; }
+          if (!disp) {
+            setDecl(decls, 'display', 'flex');
+            local = true;
+          }
           const align = getDecl(decls, 'align-items');
-          if (!align) { setDecl(decls, 'align-items', 'stretch'); local = true; }
+          if (!align) {
+            setDecl(decls, 'align-items', 'stretch');
+            local = true;
+          }
           const oh = getDecl(decls, 'overflow');
-          if (!oh) { setDecl(decls, 'overflow', 'hidden'); local = true; }
+          if (!oh) {
+            setDecl(decls, 'overflow', 'hidden');
+            local = true;
+          }
           const mh = getDecl(decls, 'min-height');
-          if (!mh) { setDecl(decls, 'min-height', '0'); local = true; }
+          if (!mh) {
+            setDecl(decls, 'min-height', '0');
+            local = true;
+          }
         }
         setDecl(decls, marginSide, newMarginVal);
         local = true;
@@ -1558,28 +1875,37 @@ function preventContentImageTopOverflow(html: string): string {
   if (layoutKind !== 'stats-grid' && liCount >= 6) {
     // TOP 模式：文本容器在列表前
     let anyHit = false;
-    output = output.replace(/(<div\b[^>]*style="[^"]*flex\s*:\s*1[^"]*min-height\s*:\s*0[^"]*"[^>]*>)(?=\s*<(ul|ol)\b)/i, (full) => {
-      const r = transformStyleAttr(full, (decls) => {
-        setDecl(decls, 'max-height', '100%');
-        setDecl(decls, 'overflow-y', 'auto');
-        return true;
-      });
-      if (r !== full) { repaired = true; anyHit = true; }
-      return r;
-    });
-    // BOTTOM 模式：文本容器在列表之后且紧邻图片容器前也可能需要，这里只要没命中 TOP，
-    // 就尝试把"任何包含大量 li 的单列/双列容器的外层"统一处理；上面TOP已兜底且不重复修改（重复调用 transformStyleAttr 是幂等的）
-    if (!anyHit && mode === 'bottom') {
-      // 找第一个 flex:1 且 min-height:0 的 <div...>（通常就是列表所在文本容器），给它加滚动。
-      output = output.replace(/(<div\b[^>]*style="[^"]*flex\s*:\s*1[^"]*min-height\s*:\s*0[^"]*"[^>]*>)/i, (full) => {
+    output = output.replace(
+      /(<div\b[^>]*style="[^"]*flex\s*:\s*1[^"]*min-height\s*:\s*0[^"]*"[^>]*>)(?=\s*<(ul|ol)\b)/i,
+      (full) => {
         const r = transformStyleAttr(full, (decls) => {
           setDecl(decls, 'max-height', '100%');
           setDecl(decls, 'overflow-y', 'auto');
           return true;
         });
-        if (r !== full) repaired = true;
+        if (r !== full) {
+          repaired = true;
+          anyHit = true;
+        }
         return r;
-      });
+      },
+    );
+    // BOTTOM 模式：文本容器在列表之后且紧邻图片容器前也可能需要，这里只要没命中 TOP，
+    // 就尝试把"任何包含大量 li 的单列/双列容器的外层"统一处理；上面TOP已兜底且不重复修改（重复调用 transformStyleAttr 是幂等的）
+    if (!anyHit && mode === 'bottom') {
+      // 找第一个 flex:1 且 min-height:0 的 <div...>（通常就是列表所在文本容器），给它加滚动。
+      output = output.replace(
+        /(<div\b[^>]*style="[^"]*flex\s*:\s*1[^"]*min-height\s*:\s*0[^"]*"[^>]*>)/i,
+        (full) => {
+          const r = transformStyleAttr(full, (decls) => {
+            setDecl(decls, 'max-height', '100%');
+            setDecl(decls, 'overflow-y', 'auto');
+            return true;
+          });
+          if (r !== full) repaired = true;
+          return r;
+        },
+      );
     }
   }
 
@@ -1685,7 +2011,8 @@ export class LayoutEngine {
 
     result = removeEmptyDefaultContainer(result);
 
-    const FULL_FONT = "system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif";
+    const FULL_FONT =
+      "system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif";
 
     // —— 完全复用 normalizeOuterContainer 中已有的 ok8 判定逻辑 ——
     const firstOuter = /^<(div|section|article)\b([^>]*)>/.exec(result);
@@ -1704,20 +2031,32 @@ export class LayoutEngine {
             has(/(?:^|;)\s*overflow\s*:\s*hidden\s*(?:;|$)/i) &&
             has(/(?:^|;)\s*position\s*:\s*relative\s*(?:;|$)/i) &&
             has(/(?:^|;)\s*box-sizing\s*:\s*border-box\s*(?:;|$)/i) &&
-            has(/(?:^|;)\s*padding\s*:/i) && !/(?:^|;)\s*padding\s*:\s*0(?:px)?\s*(?:;|$)/i.test(existingStyle) &&
+            has(/(?:^|;)\s*padding\s*:/i) &&
+            !/(?:^|;)\s*padding\s*:\s*0(?:px)?\s*(?:;|$)/i.test(existingStyle) &&
             has(/(?:^|;)\s*display\s*:\s*flex\s*(?:;|$)/i) &&
             has(/(?:^|;)\s*flex-direction\s*:\s*(?:column|row)\s*(?:;|$)/i);
           if (ok8) {
             let safeStyle = existingStyle;
             const addIfMissing = (prop: string, fallback: string) => {
-              if (!new RegExp(`(?:^|;)\\s*${prop.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*:`, 'i').test(`;${safeStyle}`)) {
-                safeStyle = safeStyle.endsWith(';') ? `${safeStyle}${prop}:${fallback}` : `${safeStyle};${prop}:${fallback}`;
+              if (
+                !new RegExp(
+                  `(?:^|;)\\s*${prop.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*:`,
+                  'i',
+                ).test(`;${safeStyle}`)
+              ) {
+                safeStyle = safeStyle.endsWith(';')
+                  ? `${safeStyle}${prop}:${fallback}`
+                  : `${safeStyle};${prop}:${fallback}`;
               }
             };
             if (/(?:^|;)\s*padding\s*:\s*0(?:px)?\s*(?:;|$)/i.test(safeStyle)) {
-              safeStyle = safeStyle.replace(/(padding\s*:\s*)0(?:px)?\s*(;|$)/i, (_m, p, s) => `${p}${defaultPadYx()}${s || ';'}`);
+              safeStyle = safeStyle.replace(
+                /(padding\s*:\s*)0(?:px)?\s*(;|$)/i,
+                (_m, p, s) => `${p}${defaultPadYx()}${s || ';'}`,
+              );
             }
-            if (!/(?:^|;)\s*background(?:-color)?\s*:/i.test(`;${safeStyle}`)) safeStyle += ';background-color:#fff';
+            if (!/(?:^|;)\s*background(?:-color)?\s*:/i.test(`;${safeStyle}`))
+              safeStyle += ';background-color:#fff';
             addIfMissing('font-family', FULL_FONT);
             addIfMissing('justify-content', 'center');
             addIfMissing('align-items', 'center');
@@ -1727,13 +2066,17 @@ export class LayoutEngine {
               : `${attrs} style="${safeStyle}"`;
             const rest = result.substring(firstOuter[0].length);
             const closeTag = `</${tagName.toLowerCase()}>`;
-            let dep = 1; let close = -1;
+            let dep = 1;
+            let close = -1;
             const scanRe = new RegExp(`<(/?)(${tagName})\\b([^>]*)>`, 'gi');
             let mm: RegExpExecArray | null;
             while ((mm = scanRe.exec(rest)) !== null) {
               if (mm[1] === '/') {
                 dep--;
-                if (dep === 0) { close = mm.index; break; }
+                if (dep === 0) {
+                  close = mm.index;
+                  break;
+                }
               } else if (!/\/\s*$/.test(mm[3] || '')) {
                 dep++;
               }
@@ -1765,20 +2108,23 @@ export class LayoutEngine {
    */
   private static cleanDirtyAdvancedLayoutStyles(html: string, _layoutType: string): string {
     // 扫描每个标签的 style=""，把脏属性整条删除（注意保持其他 style 不变）
-    return html.replace(/<([a-z][a-z0-9-]*)\b([^>]*)>/gi, (_tagMatch, tag: string, attrs: string) => {
-      const styleMatch = attrs.match(/style="([^"]*)"/i);
-      if (!styleMatch) return `<${tag}${attrs}>`;
-      let style = styleMatch[1];
-      const dropProps = [
-        /(?:^|;)\s*max-width\s*:\s*none\s*(?=;|$)/gi,
-        /(?:^|;)\s*max-height\s*:\s*none\s*(?=;|$)/gi,
-        /(?:^|;)\s*overflow\s*:\s*visible\s*(?=;|$)/gi,
-      ];
-      for (const re of dropProps) style = style.replace(re, '');
-      style = style.replace(/^;+|;+$/g, '').replace(/;;+/g, ';');
-      const newAttrs = attrs.replace(/style="[^"]*"/i, `style="${style}"`);
-      return `<${tag}${newAttrs}>`;
-    });
+    return html.replace(
+      /<([a-z][a-z0-9-]*)\b([^>]*)>/gi,
+      (_tagMatch, tag: string, attrs: string) => {
+        const styleMatch = attrs.match(/style="([^"]*)"/i);
+        if (!styleMatch) return `<${tag}${attrs}>`;
+        let style = styleMatch[1];
+        const dropProps = [
+          /(?:^|;)\s*max-width\s*:\s*none\s*(?=;|$)/gi,
+          /(?:^|;)\s*max-height\s*:\s*none\s*(?=;|$)/gi,
+          /(?:^|;)\s*overflow\s*:\s*visible\s*(?=;|$)/gi,
+        ];
+        for (const re of dropProps) style = style.replace(re, '');
+        style = style.replace(/^;+|;+$/g, '').replace(/;;+/g, ';');
+        const newAttrs = attrs.replace(/style="[^"]*"/i, `style="${style}"`);
+        return `<${tag}${newAttrs}>`;
+      },
+    );
   }
 
   private static repairComparisonDeepDiveHtml(html: string): string {
@@ -1807,8 +2153,14 @@ export class LayoutEngine {
         if (!hasNestedTags) return match;
         const text = rectInner.replace(/<[^>]+>/g, '').trim();
         if (!text) return match;
-        const cleanedBefore = divInner.substring(0, brokenRect.index).replace(/<p\b[^>]*>\s*<\/p>/gi, '').replace(/<p\b[^>]*>[\s\S]*?<\/p>/gi, '');
-        const cleanedAfter = divInner.substring(brokenRect.index + brokenRect[0].length).replace(/<p\b[^>]*>\s*<\/p>/gi, '').replace(/<p\b[^>]*>[\s\S]*?<\/p>/gi, '');
+        const cleanedBefore = divInner
+          .substring(0, brokenRect.index)
+          .replace(/<p\b[^>]*>\s*<\/p>/gi, '')
+          .replace(/<p\b[^>]*>[\s\S]*?<\/p>/gi, '');
+        const cleanedAfter = divInner
+          .substring(brokenRect.index + brokenRect[0].length)
+          .replace(/<p\b[^>]*>\s*<\/p>/gi, '')
+          .replace(/<p\b[^>]*>[\s\S]*?<\/p>/gi, '');
         const iconHtml = `<span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:22px;height:22px;border-radius:50%;background:#E5E7EB;"><svg width="10" height="10" viewBox="0 0 10 10"><rect x="2" y="4.5" width="6" height="1.5" rx="0.75" fill="#9CA3AF"/></svg></span>`;
         const labelHtml = `<span style="font-size:20px;font-weight:600;color:#374151;line-height:1.4;flex:1;min-width:0;overflow-wrap:break-word;word-break:break-word">${text}</span>`;
         return `${divOpen}${cleanedBefore}${iconHtml}${labelHtml}${cleanedAfter}</div>`;
@@ -1823,8 +2175,9 @@ export class LayoutEngine {
       'right',
       /<div\b([^>]*)>/gi,
       (attrs1: string) =>
-        /background\s*:\s*linear-gradient\s*\(\s*135deg\s*,\s*#0891b206\s*,\s*#0891b20A\s*\)/i.test(attrs1) &&
-        /box-shadow\s*:\s*0\s*8px\s*28px\s*#0891b218/i.test(attrs1),
+        /background\s*:\s*linear-gradient\s*\(\s*135deg\s*,\s*#0891b206\s*,\s*#0891b20A\s*\)/i.test(
+          attrs1,
+        ) && /box-shadow\s*:\s*0\s*8px\s*28px\s*#0891b218/i.test(attrs1),
     );
     result = LayoutEngine.sanitizeComparisonColumnInjectedImages(
       result,
@@ -1835,10 +2188,7 @@ export class LayoutEngine {
         /border\s*:\s*2px\s*solid\s*#E5E7EB/i.test(attrs2),
     );
 
-    result = result.replace(
-      /<p\b[^>]*>\s*<\/p>/gi,
-      '',
-    );
+    result = result.replace(/<p\b[^>]*>\s*<\/p>/gi, '');
 
     result = result.replace(
       /(<svg\b[^>]*width="14"[^>]*>)\s*(<\/svg>)/gi,
@@ -1874,7 +2224,8 @@ export class LayoutEngine {
     void divOpenRe; // 统一用 flagsRe 并在回调内部用 attrsPredicate 判定，避免 g 状态问题
     flagsRe.lastIndex = 0;
     let m: RegExpExecArray | null;
-    const matches: Array<{ openIdx: number; openTagLen: number; attrs: string; closeIdx: number }> = [];
+    const matches: Array<{ openIdx: number; openTagLen: number; attrs: string; closeIdx: number }> =
+      [];
     // 第一轮：定位所有 <div 开标签 + attrs
     while ((m = flagsRe.exec(html)) !== null) {
       const attrs = m[1] || '';
@@ -1890,7 +2241,10 @@ export class LayoutEngine {
       while ((inner = innerScan.exec(html)) !== null) {
         if (inner[1] === '/') {
           depth--;
-          if (depth === 0) { closeIdx = inner.index; break; }
+          if (depth === 0) {
+            closeIdx = inner.index;
+            break;
+          }
         } else if (!/\/\s*$/.test(inner[2] || '')) {
           depth++;
         }
@@ -1942,7 +2296,10 @@ export class LayoutEngine {
             let matchedClose: { index: number; len: number } | null = null;
             while ((p = pairRe.exec(cleaned)) !== null) {
               if (p[1] === '/') {
-                if (--depth === 0) { matchedClose = { index: p.index, len: p[0].length }; break; }
+                if (--depth === 0) {
+                  matchedClose = { index: p.index, len: p[0].length };
+                  break;
+                }
               } else if (!/\/\s*$/.test(p[2] || '')) {
                 depth++;
               }
@@ -1973,7 +2330,10 @@ export class LayoutEngine {
         // (3) 合并多余空白行（保留 1 行）
         cleaned = cleaned.replace(/\n[ \t]*(?:\r?\n[ \t]*){2,}/g, '\n\n');
         // (4) 去掉只剩空白的孤立 `margin-bottom:16px` style 残留
-        cleaned = cleaned.replace(/<div\b[^>]*style\s*=\s*"[^"]*margin-bottom\s*:\s*\d+px[^"]*"[^>]*>\s*<\/div>/gi, '');
+        cleaned = cleaned.replace(
+          /<div\b[^>]*style\s*=\s*"[^"]*margin-bottom\s*:\s*\d+px[^"]*"[^>]*>\s*<\/div>/gi,
+          '',
+        );
         return `${h3Close}${cleaned}`;
       });
       if (newCardInner === cardInner) continue;
@@ -2008,7 +2368,14 @@ export class LayoutEngine {
   }
 
   private static balanceComparisonDeepDiveLIs(html: string): string {
-    const uls: Array<{ open: string; close: string; openIdx: number; closeIdx: number; liCount: number; body: string }> = [];
+    const uls: Array<{
+      open: string;
+      close: string;
+      openIdx: number;
+      closeIdx: number;
+      liCount: number;
+      body: string;
+    }> = [];
     const ulRe = /<ul\b([^>]*)>/gi;
     let m: RegExpExecArray | null;
     while ((m = ulRe.exec(html)) !== null) {
@@ -2020,8 +2387,13 @@ export class LayoutEngine {
       let closeIdx = -1;
       let inner: RegExpExecArray | null;
       while ((inner = innerScan.exec(html)) !== null) {
-        if (inner[1] === '/') { dep--; if (dep === 0) { closeIdx = inner.index; break; } }
-        else if (!/\/\s*$/.test(inner[2] || '')) dep++;
+        if (inner[1] === '/') {
+          dep--;
+          if (dep === 0) {
+            closeIdx = inner.index;
+            break;
+          }
+        } else if (!/\/\s*$/.test(inner[2] || '')) dep++;
       }
       if (closeIdx < 0) continue;
       const closeTag = `</ul>`;
@@ -2036,7 +2408,10 @@ export class LayoutEngine {
 
     const leftLabels = LayoutEngine.extractLiTexts(ulL.body);
 
-    const leftPlaceholder = (_idx: number, label: string) => `<li style="display:flex;flex-direction:column;gap:8px;padding:16px 20px;border-radius:12px;background:#FFFFFF;border:1px dashed #D1D5DB;min-width:0;overflow-wrap:break-word;word-break:break-word;opacity:0.65;">
+    const leftPlaceholder = (
+      _idx: number,
+      label: string,
+    ) => `<li style="display:flex;flex-direction:column;gap:8px;padding:16px 20px;border-radius:12px;background:#FFFFFF;border:1px dashed #D1D5DB;min-width:0;overflow-wrap:break-word;word-break:break-word;opacity:0.65;">
   <div style="display:flex;align-items:center;gap:12px;">
     <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:22px;height:22px;border-radius:50%;background:#F3F4F6;">
       <svg width="10" height="10" viewBox="0 0 10 10"><rect x="2" y="4.5" width="6" height="1.5" rx="0.75" fill="#9CA3AF"/></svg>
@@ -2048,7 +2423,10 @@ export class LayoutEngine {
   </div>
 </li>`;
 
-    const rightPlaceholder = (_idx: number, label: string) => `<li style="display:flex;flex-direction:column;gap:8px;padding:16px 20px;border-radius:12px;background:#FFFFFF;border:1px dashed #D1D5DB;min-width:0;overflow-wrap:break-word;word-break:break-word;opacity:0.65;">
+    const rightPlaceholder = (
+      _idx: number,
+      label: string,
+    ) => `<li style="display:flex;flex-direction:column;gap:8px;padding:16px 20px;border-radius:12px;background:#FFFFFF;border:1px dashed #D1D5DB;min-width:0;overflow-wrap:break-word;word-break:break-word;opacity:0.65;">
   <div style="display:flex;align-items:center;gap:12px;">
     <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:22px;height:22px;border-radius:50%;background:#F3F4F6;">
       <svg width="10" height="10" viewBox="0 0 10 10"><rect x="2" y="4.5" width="6" height="1.5" rx="0.75" fill="#9CA3AF"/></svg>
@@ -2065,8 +2443,8 @@ export class LayoutEngine {
       const extras: string[] = [];
       for (let i = ul.liCount; i < N; i++) {
         const label = isLeft
-          ? (leftLabels[i] || `对比维度 ${i + 1}`)
-          : (leftLabels[i] || `对比维度 ${i + 1}`);
+          ? leftLabels[i] || `对比维度 ${i + 1}`
+          : leftLabels[i] || `对比维度 ${i + 1}`;
         extras.push(isLeft ? leftPlaceholder(i, label) : rightPlaceholder(i, label));
       }
       return extras.join('\n');
@@ -2095,12 +2473,19 @@ export class LayoutEngine {
 
     // ========== 🚀 L1 data-layout 路由：高级版式走轻量分支，跳过 flatten ==========
     // 判定：开头 <tag...> 里有没有 data-layout 且值在 ADVANCED_LAYOUTS 白名单中
-    const layoutMatch = /^<\s*(?:div|section|article)\b[^>]*\bdata-layout\s*=\s*["']?([a-z0-9-]+)["']?[^>]*>/i.exec(html);
-    const isAdvancedLayout = layoutMatch && LayoutEngine.ADVANCED_LAYOUTS.has(layoutMatch[1].toLowerCase());
+    const layoutMatch =
+      /^<\s*(?:div|section|article)\b[^>]*\bdata-layout\s*=\s*["']?([a-z0-9-]+)["']?[^>]*>/i.exec(
+        html,
+      );
+    const isAdvancedLayout =
+      layoutMatch && LayoutEngine.ADVANCED_LAYOUTS.has(layoutMatch[1].toLowerCase());
 
     if (isAdvancedLayout) {
       html = LayoutEngine.normalizeOuterContainerForAdvancedLayout(html);
-      html = LayoutEngine.cleanDirtyAdvancedLayoutStyles(html, layoutMatch?.[1]?.toLowerCase() ?? '');
+      html = LayoutEngine.cleanDirtyAdvancedLayoutStyles(
+        html,
+        layoutMatch?.[1]?.toLowerCase() ?? '',
+      );
       if (layoutMatch?.[1]?.toLowerCase() === 'comparison-deep-dive') {
         html = LayoutEngine.repairComparisonDeepDiveHtml(html);
         html = LayoutEngine.balanceComparisonDeepDiveLIs(html);

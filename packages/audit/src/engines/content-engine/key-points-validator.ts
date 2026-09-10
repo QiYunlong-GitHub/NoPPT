@@ -3,7 +3,10 @@ import type { Slide } from '@noppt/core';
 import type { AuditIssue } from '../../types';
 import { extractPlainText, extractKeywords } from './html-text-utils';
 
-function computeCoverage(keyPoint: string, htmlText: string): { ratio: number; keywords: string[]; matched: string[] } {
+function computeCoverage(
+  keyPoint: string,
+  htmlText: string,
+): { ratio: number; keywords: string[]; matched: string[] } {
   const keywords = extractKeywords(keyPoint);
   if (keywords.length === 0) {
     return { ratio: 1, keywords: [], matched: [] };

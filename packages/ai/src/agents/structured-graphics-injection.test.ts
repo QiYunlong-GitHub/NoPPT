@@ -7,7 +7,10 @@ function buildAgent(): HTMLPresentationAgent {
     name: 'stub',
     config: {},
     supportsStreaming: false,
-    chat: async () => ({ content: '', usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 } }),
+    chat: async () => ({
+      content: '',
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    }),
   } as any;
   return new HTMLPresentationAgent(dummy);
 }
@@ -28,7 +31,17 @@ describe('injectStructuredGraphics (PostProcess 受控 SVG 注入)', () => {
     const html = '<div class="structured-graphic" data-graphic-slot="chart"></div>';
     const plan = basePlan({
       pageType: 'content-chart-bar',
-      chart: { kind: 'bar', series: [{ points: [{ label: 'a', value: 1 }, { label: 'b', value: 2 }] }] },
+      chart: {
+        kind: 'bar',
+        series: [
+          {
+            points: [
+              { label: 'a', value: 1 },
+              { label: 'b', value: 2 },
+            ],
+          },
+        ],
+      },
     });
     const out = (agent as any).injectStructuredGraphics(html, plan, '#2563eb', '#1e40af');
     expect(out).toContain('<svg');
@@ -38,7 +51,9 @@ describe('injectStructuredGraphics (PostProcess 受控 SVG 注入)', () => {
   it('无占位符时原样返回（不破坏 DOM）', () => {
     const agent = buildAgent();
     const html = '<div>hello</div>';
-    const plan = basePlan({ chart: { kind: 'bar', series: [{ points: [{ label: 'a', value: 1 }] }] } });
+    const plan = basePlan({
+      chart: { kind: 'bar', series: [{ points: [{ label: 'a', value: 1 }] }] },
+    });
     const out = (agent as any).injectStructuredGraphics(html, plan, '#2563eb', '#1e40af');
     expect(out).toBe(html);
   });
@@ -76,7 +91,17 @@ describe('injectStructuredGraphics (PostProcess 受控 SVG 注入)', () => {
     const html = '<div data-graphic-slot="chart" class="structured-graphic"></div>';
     const plan = basePlan({
       pageType: 'content-chart-pie',
-      chart: { kind: 'pie', series: [{ points: [{ label: 'x', value: 1 }, { label: 'y', value: 3 }] }] },
+      chart: {
+        kind: 'pie',
+        series: [
+          {
+            points: [
+              { label: 'x', value: 1 },
+              { label: 'y', value: 3 },
+            ],
+          },
+        ],
+      },
     });
     const out = (agent as any).injectStructuredGraphics(html, plan, '#2563eb', '#1e40af');
     expect(out).toContain('<svg');

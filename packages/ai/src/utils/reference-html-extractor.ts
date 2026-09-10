@@ -106,10 +106,15 @@ function pickCanvasElement(doc: Document): Element {
 }
 
 // 图文槽位方位（修正左右镜像）：优先 class 关键字，再回退级联的 left/right/top/bottom。
-function getImageSide(canvas: Element, cascade?: CascadeIndex): 'left' | 'right' | 'top' | 'bottom' | undefined {
+function getImageSide(
+  canvas: Element,
+  cascade?: CascadeIndex,
+): 'left' | 'right' | 'top' | 'bottom' | undefined {
   const imgEl =
     canvas.querySelector('img') ||
-    canvas.querySelector('[class*="img"],[class*="image"],[class*="photo"],[class*="pic"],[class*="figure"]');
+    canvas.querySelector(
+      '[class*="img"],[class*="image"],[class*="photo"],[class*="pic"],[class*="figure"]',
+    );
   if (!imgEl) return undefined;
   const cls = (imgEl.getAttribute('class') || '').toLowerCase();
   if (/right/.test(cls)) return 'right';
@@ -135,13 +140,17 @@ function buildLayoutVerbal(
   hasImageSlot?: boolean,
 ): string {
   const comp = visual.composition;
-  if (comp === 'split') return `分栏构图${hasImageSlot ? `（图文分栏，图区位于${imageSide || '右'}侧）` : '（左右/上下分栏）'}`;
+  if (comp === 'split')
+    return `分栏构图${hasImageSlot ? `（图文分栏，图区位于${imageSide || '右'}侧）` : '（左右/上下分栏）'}`;
   if (comp === 'full-bleed') return '全幅构图（内容铺满画布）';
   if (comp === 'centered') return '居中构图';
   return '左对齐构图';
 }
 
-function buildDecorationVerbal(visual: ReferenceVisualFeatures, palette?: ReferencePalette): string {
+function buildDecorationVerbal(
+  visual: ReferenceVisualFeatures,
+  palette?: ReferencePalette,
+): string {
   const parts: string[] = [];
   const decoMap: Record<string, string> = {
     'geometric-shapes': '几何形状装饰（色块/波浪线/圆点阵/粗描边）',
@@ -179,11 +188,15 @@ function extractColorPalette(
     const mColor = s.match(/color\s*:\s*([^;]+)/i);
     if (mColor) consider(firstColorIn(mColor[1] ?? ''), 1);
     if (cascade) {
-      const cb = resolveComputedDecl(el, 'background-color', '', cascade) || resolveComputedDecl(el, 'background', '', cascade);
+      const cb =
+        resolveComputedDecl(el, 'background-color', '', cascade) ||
+        resolveComputedDecl(el, 'background', '', cascade);
       if (cb) consider(firstColorIn(cb), 3);
       const cc = resolveComputedDecl(el, 'color', '', cascade);
       if (cc) consider(cc, 1);
-      const bcol = resolveComputedDecl(el, 'border-color', '', cascade) || resolveComputedDecl(el, 'border', '', cascade);
+      const bcol =
+        resolveComputedDecl(el, 'border-color', '', cascade) ||
+        resolveComputedDecl(el, 'border', '', cascade);
       if (bcol) {
         const h = firstColorIn(bcol);
         if (h) consider(h, 1);
@@ -231,7 +244,10 @@ function extractColorPalette(
   const mBg = cs.match(/background(?:-color)?\s*:\s*([^;]+)/i);
   if (mBg) canvasBg = toHex(firstColorIn(mBg[1] ?? '') ?? '');
   if (!canvasBg && cascade) {
-    const c = (resolveComputedDecl(canvas, 'background-color', '', cascade) || resolveComputedDecl(canvas, 'background', '', cascade) || '');
+    const c =
+      resolveComputedDecl(canvas, 'background-color', '', cascade) ||
+      resolveComputedDecl(canvas, 'background', '', cascade) ||
+      '';
     if (c) canvasBg = toHex(firstColorIn(c) ?? '');
   }
   let maxPair = 0;
@@ -269,7 +285,9 @@ function extractPrimaryColor(doc: Document, cascade?: CascadeIndex): string | un
     const mColor = s.match(/color\s*:\s*([^;]+)/i);
     if (mColor) consider(mColor[1], 1);
     if (cascade) {
-      const cb = resolveComputedDecl(el, 'background-color', '', cascade) || resolveComputedDecl(el, 'background', '', cascade);
+      const cb =
+        resolveComputedDecl(el, 'background-color', '', cascade) ||
+        resolveComputedDecl(el, 'background', '', cascade);
       if (cb) consider(firstColorIn(cb), 3);
       const cc = resolveComputedDecl(el, 'color', '', cascade);
       if (cc) consider(cc, 1);
@@ -288,7 +306,11 @@ function extractPrimaryColor(doc: Document, cascade?: CascadeIndex): string | un
 }
 
 // ---------- C-1b 文字色（标题/正文，允许近黑/白/灰，不复用 isExcludedColor）----------
-function extractTextColorBySelector(doc: Document, selector: string, cascade?: CascadeIndex): string | undefined {
+function extractTextColorBySelector(
+  doc: Document,
+  selector: string,
+  cascade?: CascadeIndex,
+): string | undefined {
   const freq: Record<string, number> = {};
   doc.querySelectorAll(selector).forEach((el) => {
     const s = (el as HTMLElement).getAttribute('style') || '';
@@ -312,7 +334,10 @@ function extractBodyColor(doc: Document, cascade?: CascadeIndex): string | undef
 }
 
 // ---------- C-2 字体（内联 + 级联）----------
-function extractFontFamily(doc: Document, cascade?: CascadeIndex): 'sans' | 'serif' | 'mono' | undefined {
+function extractFontFamily(
+  doc: Document,
+  cascade?: CascadeIndex,
+): 'sans' | 'serif' | 'mono' | undefined {
   let serif = 0;
   let mono = 0;
   let sans = 0;
@@ -430,12 +455,16 @@ function extractImagePreference(
 // ---------- C-7 背景 ----------
 function extractBackgroundEnabled(doc: Document): boolean {
   const html = doc.documentElement.outerHTML.toLowerCase();
-  return /background-image|background:\s*url|<div[^>]*background|backgroundprompt/.test(html) || /gradient/.test(html);
+  return (
+    /background-image|background:\s*url|<div[^>]*background|backgroundprompt/.test(html) ||
+    /gradient/.test(html)
+  );
 }
 
 // ---------- C-8 pageHints ----------
 function extractPageHints(pageTypeSetSize: number): ReferencePageHints | undefined {
-  if (pageTypeSetSize >= 4) return { disableCover: true, disableToc: true, disableConclusion: true };
+  if (pageTypeSetSize >= 4)
+    return { disableCover: true, disableToc: true, disableConclusion: true };
   return undefined;
 }
 
@@ -450,14 +479,16 @@ function extractSlideCount(doc: Document, slides: Element[]): number | undefined
     return max;
   }
   const ptEls = doc.querySelectorAll('[data-page-type]');
-  const set = new Set(Array.from(ptEls).map((p) => (p as HTMLElement).getAttribute('data-page-type') || ''));
+  const set = new Set(
+    Array.from(ptEls).map((p) => (p as HTMLElement).getAttribute('data-page-type') || ''),
+  );
   if (set.size >= 3) return set.size;
   return undefined;
 }
 
 // ---------- C-13 母版 ----------
 function logoPosition(img: Element): NonNullable<ReferenceMaster['logo']>['position'] {
-  const cls = `${img.className || ''} ${(img.parentElement?.className || '')}`.toLowerCase();
+  const cls = `${img.className || ''} ${img.parentElement?.className || ''}`.toLowerCase();
   if (cls.includes('right')) return 'top-right';
   if (cls.includes('bottom')) return 'bottom-left';
   return 'top-left';
@@ -478,11 +509,17 @@ function findFooterText(doc: Document): string | undefined {
   });
   return candidates.length ? candidates[candidates.length - 1].textContent!.trim() : undefined;
 }
-function extractMaster(doc: Document, slides: Element[], _cascade?: CascadeIndex): ReferenceMaster | undefined {
+function extractMaster(
+  doc: Document,
+  slides: Element[],
+  _cascade?: CascadeIndex,
+): ReferenceMaster | undefined {
   if (slides.length === 0) return undefined;
   const master: ReferenceMaster = {};
   // logo 候选：优先 class 含 logo（含 background-image 形式的 logo），否则回退到首个 img
-  const logoEl = (doc.querySelector('[class*="logo"]') as HTMLElement | null) || (doc.querySelector('img') as HTMLElement | null);
+  const logoEl =
+    (doc.querySelector('[class*="logo"]') as HTMLElement | null) ||
+    (doc.querySelector('img') as HTMLElement | null);
   if (logoEl) {
     const src = logoEl.getAttribute('src') || undefined;
     const bg = (logoEl.getAttribute('style') || '').match(/background-image\s*:\s*url\(([^)]+)\)/i);
@@ -516,7 +553,9 @@ function extractMaster(doc: Document, slides: Element[], _cascade?: CascadeIndex
   if (sideEls.length) {
     master.sideDecorations = sideEls.map((el) => {
       const cls = (el.className || '').toLowerCase();
-      const side: NonNullable<ReferenceMaster['sideDecorations']>[number]['side'] = cls.includes('right')
+      const side: NonNullable<ReferenceMaster['sideDecorations']>[number]['side'] = cls.includes(
+        'right',
+      )
         ? 'right'
         : cls.includes('bottom')
           ? 'bottom'
@@ -524,10 +563,12 @@ function extractMaster(doc: Document, slides: Element[], _cascade?: CascadeIndex
             ? 'top'
             : 'left';
       const s = el.getAttribute('style') || '';
-      const color = extractBorderColor(el) || (() => {
-        const m = s.match(/background(?:-color)?\s*:\s*([^;]+)/i);
-        return m ? firstColorIn(m[1]) : undefined;
-      })();
+      const color =
+        extractBorderColor(el) ||
+        (() => {
+          const m = s.match(/background(?:-color)?\s*:\s*([^;]+)/i);
+          return m ? firstColorIn(m[1]) : undefined;
+        })();
       return {
         side,
         ...(color ? { colorHex: toHex(color) } : {}),
@@ -546,7 +587,8 @@ function classifySlide(slide: Element): LayoutSkeletonType {
   if (/<table/.test(html)) return 'table-dominant';
   // 注意：仅当显式含流程语义（mermaid/flowchart/arrow 连线/节点/流程）才判 flowchart，
   // 不能仅凭 <svg> 命中——孟菲斯装饰波浪线 SVG、内容页占位 SVG 会误判。
-  if (/mermaid|flowchart|org-chart|arrow-connector|节点|连线|\b流程\b|\b箭头\b/.test(html)) return 'flowchart';
+  if (/mermaid|flowchart|org-chart|arrow-connector|节点|连线|\b流程\b|\b箭头\b/.test(html))
+    return 'flowchart';
   if (/org-chart|organization/.test(html)) return 'org-chart';
   if (/<img/.test(html) && /caption/.test(text)) return 'big-image-caption';
   const cards = s.querySelectorAll('.card, [class*="card"]').length;
@@ -615,7 +657,8 @@ function extractVisualFeatures(
       doc.querySelectorAll('h1,h2,h3,div,p').forEach((el) => {
         const s = (el as HTMLElement).getAttribute('style') || '';
         const m = s.match(/text-align\s*:\s*([^;]+)/i);
-        const val = (m && m[1]) || (cascade ? resolveComputedDecl(el, 'text-align', '', cascade) || '' : '');
+        const val =
+          (m && m[1]) || (cascade ? resolveComputedDecl(el, 'text-align', '', cascade) || '' : '');
         if (/center/.test(val)) center++;
         total++;
       });
@@ -623,10 +666,12 @@ function extractVisualFeatures(
     }
     // 栏数
     let maxCols = 1;
-    doc.querySelectorAll('[class*="grid"],[class*="cards"],[class*="columns"],[class*="flex-row"]').forEach((c) => {
-      const n = c.children.length;
-      if (n > maxCols) maxCols = Math.min(n, 4);
-    });
+    doc
+      .querySelectorAll('[class*="grid"],[class*="cards"],[class*="columns"],[class*="flex-row"]')
+      .forEach((c) => {
+        const n = c.children.length;
+        if (n > maxCols) maxCols = Math.min(n, 4);
+      });
     if (maxCols > 1) v.columns = maxCols as 1 | 2 | 3 | 4;
     // 标题层级
     let maxFs = 0;
@@ -647,8 +692,9 @@ function extractVisualFeatures(
     const html = doc.documentElement.outerHTML.toLowerCase();
     const svgCount = doc.querySelectorAll('svg').length;
     const hasGeo =
-      /clip-path|polygon|repeating-linear-gradient|border:\s*\d+px\s+solid|border-radius:\s*50%|squiggle|sticker|dots-box|half-disc|triangle|stripe/.test(html) ||
-      svgCount > 3;
+      /clip-path|polygon|repeating-linear-gradient|border:\s*\d+px\s+solid|border-radius:\s*50%|squiggle|sticker|dots-box|half-disc|triangle|stripe/.test(
+        html,
+      ) || svgCount > 3;
     if (hasGeo) v.decoration = 'geometric-shapes';
     else if (/gradient|box-shadow|glow|blur/.test(html)) v.decoration = 'gradient-glow';
     else if (/border\s*:\s*1px|border-top\s*:\s*1px/.test(html)) v.decoration = 'thin-lines';
@@ -659,7 +705,9 @@ function extractVisualFeatures(
     const mBg = canvasStyle.match(/background(?:-color)?\s*:\s*([^;]+)/i);
     if (mBg) bg = firstColorIn(mBg[1]) || '';
     if (!bg && cascade) {
-      const c = resolveComputedDecl(canvas, 'background-color', '', cascade) || resolveComputedDecl(canvas, 'background', '', cascade);
+      const c =
+        resolveComputedDecl(canvas, 'background-color', '', cascade) ||
+        resolveComputedDecl(canvas, 'background', '', cascade);
       if (c) bg = firstColorIn(c) || '';
     }
     if (bg) {
@@ -717,9 +765,13 @@ function buildBriefText(
   if (style.iconStyle && style.iconStyle !== 'auto') bullets.push(`图标风格：${style.iconStyle}`);
   if (style.style) bullets.push(`风格：${style.style}`);
   if (style.imagePreference) bullets.push(`配图偏好：${style.imagePreference}`);
-  if (style.backgroundEnabled !== undefined) bullets.push(`背景：${style.backgroundEnabled ? '启用' : '未启用'}`);
+  if (style.backgroundEnabled !== undefined)
+    bullets.push(`背景：${style.backgroundEnabled ? '启用' : '未启用'}`);
   if (style.slideCount) bullets.push(`参考页数：${style.slideCount}`);
-  if (master?.logo) bullets.push(`母版 LOGO：${master.logo.position}${master.logo.colorHex ? ' ' + master.logo.colorHex : ''}`);
+  if (master?.logo)
+    bullets.push(
+      `母版 LOGO：${master.logo.position}${master.logo.colorHex ? ' ' + master.logo.colorHex : ''}`,
+    );
   if (master?.footer) bullets.push(`母版页脚：${master.footer.textContent || ''}`);
   if (master?.watermark?.text) bullets.push(`母版水印：${master.watermark.text}`);
   if (master?.sideDecorations?.length)
@@ -729,7 +781,11 @@ function buildBriefText(
   if (layout) {
     if (layout.type === 'single' && layout.single) bullets.push(`布局骨架：${layout.single}`);
     else if (layout.type === 'page-type-map') {
-      bullets.push(`布局骨架(按页型)：${Object.entries(layout.pageTypeMap || {}).map(([k, v]) => `${k}=${v}`).join(', ')}`);
+      bullets.push(
+        `布局骨架(按页型)：${Object.entries(layout.pageTypeMap || {})
+          .map(([k, v]) => `${k}=${v}`)
+          .join(', ')}`,
+      );
     }
   }
   if (visual) {
@@ -780,7 +836,9 @@ export function extractReferenceHtmlAttributes(
   const palette = extractColorPalette(doc, cascade, canvas);
   const hasImageSlot = !!(
     doc.querySelector('img') ||
-    canvas.querySelector('[class*="img"],[class*="image"],[class*="photo"],[class*="pic"],[class*="figure"]')
+    canvas.querySelector(
+      '[class*="img"],[class*="image"],[class*="photo"],[class*="pic"],[class*="figure"]',
+    )
   );
   const imageSide = getImageSide(canvas, cascade);
   style.imagePreference = extractImagePreference(doc, slides.length, hasImageSlot);
@@ -799,7 +857,9 @@ export function extractReferenceHtmlAttributes(
   const skeleton = buildSkeletonSnippet(canvas);
 
   const structure: ReferenceStructure = {
-    canvasSelector: canvas.className ? `.${String(canvas.className).split(/\s+/)[0]}` : canvas.tagName.toLowerCase(),
+    canvasSelector: canvas.className
+      ? `.${String(canvas.className).split(/\s+/)[0]}`
+      : canvas.tagName.toLowerCase(),
     skeleton,
     layoutVerbal: buildLayoutVerbal(visual, imageSide, hasImageSlot),
     decorationVerbal: buildDecorationVerbal(visual, palette),
@@ -810,5 +870,15 @@ export function extractReferenceHtmlAttributes(
 
   const briefText = buildBriefText(style, master, layout, visual);
 
-  return { uploaded: true, style, master, layout, visual, briefText, referenceHtml: skeleton, palette, structure };
+  return {
+    uploaded: true,
+    style,
+    master,
+    layout,
+    visual,
+    briefText,
+    referenceHtml: skeleton,
+    palette,
+    structure,
+  };
 }
