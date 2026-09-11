@@ -1,0 +1,42 @@
+#!/bin/sh
+# NoPPT pre-commit 钩子
+# 防御性兜底：即使有人绕过 .gitignore（如 git add -f），也不让密钥/敏感数据入库。
+# 启用方式（每个 clone 只需一次）：git config core.hooksPath .githooks
+set -e
+
+# 1) 禁止 packages/server/data/ 下除 config.example.json 以外的任何文件入库
+BAD_PATHS=$(git diff --cached --name-only --diff-filter=ACM \
+  | grep -E '^packages/server/data/' \
+  | grep -vE 'config\.example\.json$' || true)
+if [ -n "$BAD_PATHS" ]; then
+  echo "✗ 拒绝提交：以下 data/ 下的敏感文件不允许入库（应被 .gitignore 排除）："
+  echo "$BAD_PATHS"
+  echo "  如需例外，请先确认已脱敏，并调整 .gitignore / 本钩子。"
+  exit 1
+fi
+
+# 2) 扫描暂存文件中的疑似密钥（跳过钩子目录自身，避免 regex 字面量误报）
+SUSPECT=$(git diff --cached --name-only --diff-filter=ACM \
+  | grep -vE '^\.githooks/' \
+  | while read -r f; do
+      if git show ":$f" 2>/dev/null | grep -nE \
+        'sk-[A-Za-z0-9]{20,}|LTAI[A-Za-z0-9]{12,}|AKIA[A-Z0-9]{12,}|k_[a-f0-9]{16}'; then
+        echo "  $f"
+      fi
+    done)
+if [ -n "$SUSPECT" ]; then
+  echo "✗ 拒绝提交：以下文件疑似包含 API Key："
+  echo "$SUSPECT"
+  exit 1
+fi
+
+# 3) 针对性守卫：开源模板 config.example.json 不得含有非空的 apiKey
+if git diff --cached --name-only --diff-filter=ACM | grep -q '^packages/server/data/config\.example\.json$'; then
+  if git show ':packages/server/data/config.example.json' 2>/dev/null \
+    | grep -qE '"apiKey"[[:space:]]*:[[:space:]]*"[A-Za-z0-9_\-]{12,}"'; then
+    echo "✗ 拒绝提交：config.example.json 含有非空 apiKey，请保持脱敏后的占位值（空字符串）。"
+    exit 1
+  fi
+fi
+
+exit 0
