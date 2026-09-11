@@ -179,6 +179,17 @@ curl -X POST http://localhost:3001/api/keys \
 - 未设置 `NOPPT_MCP_VIEW_TOKEN` 时，预览接口仅放行本机回环（本机联调最省事）；跨机访问请设置该变量，
   并在请求中带 `?token=` 或 `X-View-Token`。
 
+### Agent 联调约定（推荐工作流）
+
+> 以下约定用于让智能体（如 Hermes）接入时保持「人在回路」的一致体验。它们**不是服务端强制规则**，而是协作约定；跳过本节的 cloner 也能正常运行，只是会直接出片、跳过确认页。
+
+- **优先用 `noppt_prepare_outline_draft`，禁止用 `noppt_generate` 直接出片**：前者只落草稿并返回 `openUrl`，由用户在 NoPPT Web 的「AI 生成演示」配置页确认生成模式 / 风格 / 页数 / 配色等参数后再生成；后者会立即异步出片，绕开确认环节。只有当用户明确要求「直接产出成片」时才用 `noppt_generate`。
+- **`referenceText` 预算**：`800 × slideCount` 字，并 `clamp(3000, 20000)`；最重要内容放最前（超限直接从头部截断）。`referenceSource` 仅用于前端展示素材来源。
+- **`mode` 固定 `auto`**（除非有意使用 `guided` 分步引导）。
+- **API Key 自行签发，勿使用仓库外的字面值**：用上面的「方式 B」管理接口签发自己的作用域 Key，例如 `{"name":"hermes-local","tenantId":"hermes","userKey":"local"}`；不要把任何本地 Dev Key 提交进仓库（`.gitignore` 已忽略 `server.env` 等）。
+- **四源 RAG 取舍（建议）**：本地 `wiki/`（L0 单源 LLM Wiki）、`corpus/`（L1 本地语料）、联网检索（L2）、`aws-knowledge`（L3）；冲突仲裁优先级 `L3 ≈ L1 > L2`。注意：`corpus/`、`wiki/` 均为 git 忽略的本地资料，clone 者需自备素材，或直接在 `referenceText` 中投递权威文本。
+- **适用时机**：用户只描述需求、尚未要求立刻出片，或需要用户先把关主题 / 素材时，使用 `noppt_prepare_outline_draft`；投递后只回 `openUrl`，停在配置界面等用户确认。
+
 ## 🔐 数据存储与私有化部署
 
 - 运行时数据保存在 `packages/server/data/`（演示、草稿、租户、API Key、日志）。**请勿提交该目录** ——

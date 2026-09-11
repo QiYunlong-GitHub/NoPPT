@@ -190,6 +190,17 @@ The plaintext key appears in the response **only once** — store it immediately
 - If `NOPPT_MCP_VIEW_TOKEN` is unset, the view endpoints only allow loopback requests — convenient for
   local use. Set it (and pass `?token=` / `X-View-Token`) when accessing from another machine.
 
+### Agent integration conventions (recommended workflow)
+
+> These conventions keep agents (e.g. Hermes) consistent with a "human-in-the-loop" flow. They are **not enforced by the server** — a cloner can run fine without them, but will generate directly and skip the confirmation page.
+
+- **Prefer `noppt_prepare_outline_draft`; do not use `noppt_generate` to produce slides directly**: the former only stages a draft and returns `openUrl`, letting the user confirm generation mode / style / slide count / colour theme on the NoPPT Web "AI Generate Presentation" config page before generation; the latter generates asynchronously immediately, bypassing confirmation. Use `noppt_generate` only when the user explicitly asks for the final deck.
+- **`referenceText` budget**: `800 × slideCount` characters, `clamp(3000, 20000)`; put the most important content first (overflow is truncated from the head). `referenceSource` is shown on the UI only.
+- **`mode` is fixed to `auto`** (unless you intentionally want `guided` step-by-step).
+- **Issue your own API key; do not reuse any literal key from outside the repo**: use "Way B" admin endpoint to issue your own scoped key, e.g. `{"name":"hermes-local","tenantId":"hermes","userKey":"local"}`; never commit a local Dev Key (`.gitignore` already excludes `server.env`, etc.).
+- **Four-source RAG (suggested)**: local `wiki/` (L0 single-source LLM Wiki), `corpus/` (L1 local corpus), web search (L2), `aws-knowledge` (L3); conflict arbitration priority `L3 ≈ L1 > L2`. Note: `corpus/` and `wiki/` are git-ignored local assets — cloners must supply their own material or pass authoritative text directly via `referenceText`.
+- **When to use it**: when the user only describes a need without asking for the deck yet, or needs to review the topic / material first, use `noppt_prepare_outline_draft`; after staging, return only `openUrl` and wait on the config page for the user's confirmation.
+
 ## 🔐 Data Storage & Self-hosting
 
 - Runtime data lives under `packages/server/data/` (presentations, drafts, tenants, API keys, logs).
