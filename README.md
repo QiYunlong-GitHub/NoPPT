@@ -55,6 +55,63 @@ packages/
 └── web/       # React editor and presentation viewer (@noppt/web)
 ```
 
+## 🛡️ AI Quality Assurance (Inline Review · LLM / VLM Review · Auto-Regeneration · Auto-Fix)
+
+NoPPT doesn't just generate slides — it verifies them. Two layers of checking wrap the generation pipeline,
+both configurable under **Settings → AI Model → AI Audit Settings** and **AI Inline Self-Check Settings**.
+
+### Inline review (per-slide, during generation)
+Controlled by `inlineSelfCheckSettings`. As each slide is produced, NoPPT runs two immediate checks before
+moving on:
+
+- **LLM critique** (`llmCritique`) — reviews the slide copy for quality, typos, and semantic duplication.
+- **VLM placeholder check** (`vlmPlaceholder`) — renders the slide and uses a vision model (VLM) to catch
+  failed AI-image placeholders / obvious layout breakage.
+
+When a slide's issue count exceeds `threshold` (default 7), it is **auto-regenerated in place**, up to
+`maxRetries` (default 1) times — no user action required.
+
+### Post-generation multi-engine audit (LLM + VLM review)
+Controlled by `auditSettings`. After the full deck is assembled, the `@noppt/audit` engine runs four
+sub-engines — `layout`, `visual`, `content`, `fidelity` (plus `sanitization`) — driven by:
+
+- **LLM review** (`llmReview`) — an LLM grades content quality / correctness.
+- **VLM review** (`vlmReview`) — a vision model screenshots each slide and grades the visual design / layout.
+
+The combined score is gated against `thresholds.pass` / `thresholds.warn`. Strictness presets
+(`strict` / `normal` / `relaxed`) tune the pass thresholds to 80 / 70 / 50.
+
+### Auto-regeneration
+When the audit still finds blocking issues that can't be auto-fixed, NoPPT **auto-regenerates** the affected
+slide(s), feeding the LLM / VLM feedback back into the generator, up to `maxRegenerationRetries` (default 1)
+times, then keeps the best-scoring version.
+
+### Automatic post-processing fix
+Controlled by `autoFix` (default `true`). Layout / style issues flagged as `fixable` are patched directly by
+the `AutoFixer` (deterministic HTML / CSS transforms — e.g. fixing icon spans, overflow, contrast) and then
+re-verified. Issues that can't be auto-fixed fall through to the auto-regeneration path above.
+
+### Configuration
+
+```jsonc
+// packages/server/data/config.json
+"auditSettings": {
+  "enabled": true, "strictness": "normal",
+  "autoFix": true,              // automatic post-processing fix
+  "maxRegenerationRetries": 1,  // auto-regeneration ceiling
+  "llmReview": true,            // LLM review
+  "vlmReview": true,            // VLM review
+  "engines": { "layout": true, "visual": true, "content": true, "fidelity": true, "sanitization": true }
+},
+"inlineSelfCheckSettings": {
+  "enabled": true, "llmCritique": true, "vlmPlaceholder": true,
+  "maxRetries": 1, "threshold": 7       // per-slide auto-regeneration
+}
+```
+
+Requires an `audit` (text) and `auditVlm` (vision) model routed under **Settings → AI Model**; if a model is
+missing, that review stage is skipped with a warning rather than failing the run.
+
 ## 🚀 Quick Start
 
 Requirements: **Node ≥ 18.17.0**, **pnpm ≥ 8.0.0**.

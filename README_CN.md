@@ -50,6 +50,59 @@ packages/
 └── web/       # React 编辑器与演示预览 (@noppt/web)
 ```
 
+## 🛡️ AI 质量保障（内联审核 · LLM / VLM 审核 · 自动重生成 · 自动后处理修复）
+
+NoPPT 不只是生成幻灯片，还会对成品做校验。围绕生成流程有两层验证，均可在「设置 → AI 模型 →
+AI 审核设置」与「AI 内联自检设置」中配置。
+
+### 内联审核（生成过程中逐页校验）
+由 `inlineSelfCheckSettings` 控制。每张幻灯片生成后、进入下一步前，NoPPT 会立即执行两项检查：
+
+- **LLM 文本批评**（`llmCritique`）：检查文案质量、错别字与语义重复。
+- **VLM 占位视觉检测**（`vlmPlaceholder`）：将幻灯片渲染成图，用视觉模型（VLM）识别替换失败的 AI 图片占位符 / 明显排版崩坏。
+
+当该页问题数超过 `threshold`（默认 7）时，会在原位置**自动重生成**，最多 `maxRetries`（默认 1）次，无需人工干预。
+
+### 生成后的多引擎审核（LLM + VLM 审核）
+由 `auditSettings` 控制。整套演示拼装完成后，`@noppt/audit` 引擎会运行四个子引擎——`layout`、`visual`、
+`content`、`fidelity`（外加 `sanitization`），其中包含：
+
+- **LLM 审核**（`llmReview`）：由 LLM 评判内容质量 / 正确性。
+- **VLM 审核**（`vlmReview`）：由视觉模型对每页截图打视觉设计 / 排版分。
+
+综合评分按 `thresholds.pass` / `thresholds.warn` 门禁判定，严格度预设（`strict` / `normal` / `relaxed`）
+将通过阈值分别调到 80 / 70 / 50。
+
+### 自动重生成
+若审核仍发现无法自动修复的致命问题，NoPPT 会**自动重生成**相关页面，把 LLM / VLM 的反馈回灌给生成器，
+最多 `maxRegenerationRetries`（默认 1）次，并保留得分最高的一版。
+
+### 自动后处理修复
+由 `autoFix`（默认 `true`）控制。被标记为可修复的布局 / 样式问题，会由 `AutoFixer` 直接修补
+（确定性的 HTML / CSS 变换，例如修复图标 span、溢出、对比度等），随后二次验证。无法自动修复的问题会
+落到上面的自动重生成流程。
+
+### 配置示例
+
+```jsonc
+// packages/server/data/config.json
+"auditSettings": {
+  "enabled": true, "strictness": "normal",
+  "autoFix": true,               // 自动后处理修复
+  "maxRegenerationRetries": 1,   // 自动重生成上限
+  "llmReview": true,             // LLM 审核
+  "vlmReview": true,             // VLM 审核
+  "engines": { "layout": true, "visual": true, "content": true, "fidelity": true, "sanitization": true }
+},
+"inlineSelfCheckSettings": {
+  "enabled": true, "llmCritique": true, "vlmPlaceholder": true,
+  "maxRetries": 1, "threshold": 7       // 逐页自动重生成
+}
+```
+
+需要「设置 → AI 模型」中路由出一个 `audit`（文本）模型与一个 `auditVlm`（视觉）模型；若缺少对应模型，
+该审核阶段会被跳过并给出告警，而不会让整个生成失败。
+
 ## 🚀 快速开始
 
 环境要求：**Node ≥ 18.17.0**，**pnpm ≥ 8.0.0**。
