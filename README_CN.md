@@ -242,6 +242,7 @@ curl -X POST http://localhost:3001/api/keys \
 - **API Key 自行签发，勿使用仓库外的字面值**：用上面的「方式 B」管理接口签发自己的作用域 Key，例如 `{"name":"hermes-local","tenantId":"hermes","userKey":"local"}`；不要把任何本地 Dev Key 提交进仓库（`.gitignore` 已忽略 `server.env` 等）。
 - **四源 RAG 取舍（建议）**：本地 `wiki/`（L0 单源 LLM Wiki）、`corpus/`（L1 本地语料）、联网检索（L2）、`aws-knowledge`（L3）；冲突仲裁优先级 `L3 ≈ L1 > L2`。注意：`corpus/`、`wiki/` 均为 git 忽略的本地资料，clone 者需自备素材，或直接在 `referenceText` 中投递权威文本。
 - **适用时机**：用户只描述需求、尚未要求立刻出片，或需要用户先把关主题 / 素材时，使用 `noppt_prepare_outline_draft`；投递后只回 `openUrl`，停在配置界面等用户确认。
+- **可直接粘贴的提示词模板**：见仓库根 `HERMES_NOPPT_USER_PROMPT.md`（用户任务指令版）与 `HERMES_NOPPT_SYSTEM.md`（系统提示 / Skill 版）。注意：本仓库的 `AGENTS.md` 已被 `.gitignore` 忽略（含本地 Key 字面值），clone 后请按上方「签发 API Key」小节自建 Key，不要依赖该文件。
 
 ## 🔐 数据存储与私有化部署
 

@@ -257,6 +257,7 @@ The plaintext key appears in the response **only once** — store it immediately
 - **Issue your own API key; do not reuse any literal key from outside the repo**: use "Way B" admin endpoint to issue your own scoped key, e.g. `{"name":"hermes-local","tenantId":"hermes","userKey":"local"}`; never commit a local Dev Key (`.gitignore` already excludes `server.env`, etc.).
 - **Four-source RAG (suggested)**: local `wiki/` (L0 single-source LLM Wiki), `corpus/` (L1 local corpus), web search (L2), `aws-knowledge` (L3); conflict arbitration priority `L3 ≈ L1 > L2`. Note: `corpus/` and `wiki/` are git-ignored local assets — cloners must supply their own material or pass authoritative text directly via `referenceText`.
 - **When to use it**: when the user only describes a need without asking for the deck yet, or needs to review the topic / material first, use `noppt_prepare_outline_draft`; after staging, return only `openUrl` and wait on the config page for the user's confirmation.
+- **Ready-to-paste prompt templates**: see `HERMES_NOPPT_USER_PROMPT.md` (per-task user-message version) and `HERMES_NOPPT_SYSTEM.md` (system-prompt / Skill version) at the repo root. Note: this repo's `AGENTS.md` is git-ignored (it contains a local key literal); after cloning, issue your own key via the "Issue an API key" section above instead of relying on that file.
 
 ## 🔐 Data Storage & Self-hosting
 
