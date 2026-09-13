@@ -66,7 +66,9 @@ import {
   resolveDeckReferencePrimaryColor,
   resolveFinalPagePrimaryColor,
   getReferencePaletteForPage,
+  isStructurePage,
 } from '@noppt/ai';
+import { JSDOM } from 'jsdom';
 import type { Presentation, Slide } from '@noppt/core';
 import { LayoutEngine } from '@noppt/core';
 import { SlideRenderer, runVlmCritique, type VlmReviewResult } from '@noppt/audit';
@@ -2794,8 +2796,11 @@ export class AiService {
             if (/<img\b/i.test(slide.html)) return;
             if (pref !== 'all' && !singleSlideMode) return;
             const orphanUrl = orphanUrlAt(orphanIdx);
+            // 结构页（封面/总结）恒不配图：result.slides 为 core Slide 无 pageType 字段，
+            // 这里显式传入 kind（'cover'/'summary'）让 injectOrphanImageIntoBackground 的
+            // isStructurePage 守卫真正生效，避免 pref=all 下往封面/总结叠无关的孤儿背景图。
             const rebuilt = this.injectOrphanImageIntoBackground(slide.html, orphanUrl, kind, {
-              pageType: (slide as any).pageType,
+              pageType: kind,
             });
             if (rebuilt !== slide.html) {
               if (detailed) {
@@ -2820,10 +2825,19 @@ export class AiService {
             s++
           ) {
             const slide = result.slides[s];
+            // 结构页（封面/目录/总结）恒不配图：孤儿救援一律跳过（与参考模板一致）。
+            // result.slides 为 core Slide，无 pageType 字段，故用 index 推断 + HTML 特征识别。
+            const inferredPt =
+              s === 0 ? 'cover' : s === result.slides.length - 1 ? 'summary' : 'content';
+            if (isStructurePage(inferredPt)) continue;
+            if (
+              /data-layout\s*=\s*["']?toc\b/i.test(slide.html) ||
+              /目录|table\s*of\s*contents|大纲/i.test(slide.html)
+            ) continue;
             if (/<img\b/i.test(slide.html)) continue;
             if (pref !== 'all' && !singleSlideMode) {
               const isCoverLike =
-                /font-size:\s*[7-9]\dpx|font-size:\s*1\d{2,}px|<h1\b|目录|总结|感谢|开启.*纪元|结论/i.test(
+                /font-size:\s*[7-9]\dpx|font-size:\s*1\d{2,}px|<h1\b|总结|感谢|开启.*纪元|结论/i.test(
                   `${slide.title} ${slide.html}`,
                 );
               if (isCoverLike) continue;
@@ -2831,7 +2845,7 @@ export class AiService {
             if (!this.slideHasMeaningfulBody(slide.html)) continue;
             const orphanUrl = orphanUrlAt(orphanIdx);
             const rebuilt = this.injectOrphanImageIntoSlide(slide.html, orphanUrl, {
-              pageType: (slide as any).pageType,
+              pageType: inferredPt,
             });
             if (rebuilt !== slide.html) {
               if (detailed) {
@@ -2914,17 +2928,25 @@ export class AiService {
             sIdx++
           ) {
             const slide = result.slides[sIdx];
+            // 结构页（封面/目录/总结）恒不配图：孤儿救援终局注入也一律跳过
+            const inferredPt2 =
+              sIdx === 0 ? 'cover' : sIdx === result.slides.length - 1 ? 'summary' : 'content';
+            if (isStructurePage(inferredPt2)) continue;
+            if (
+              /data-layout\s*=\s*["']?toc\b/i.test(slide.html) ||
+              /目录|table\s*of\s*contents|大纲/i.test(slide.html)
+            ) continue;
             if (/<img\b/i.test(slide.html)) continue;
             if (pref2 !== 'all' && !singleSlide2) {
               const cLike =
-                /font-size:\s*[7-9]\dpx|font-size:\s*1\d{2,}px|<h1\b|目录|总结|感谢|开启.*纪元|结论/i.test(
+                /font-size:\s*[7-9]\dpx|font-size:\s*1\d{2,}px|<h1\b|总结|感谢|开启.*纪元|结论/i.test(
                   `${slide.title} ${slide.html}`,
                 );
               if (cLike) continue;
             }
             if (!this.slideHasMeaningfulBody(slide.html)) continue;
             const rebuilt = this.injectOrphanImageIntoSlide(slide.html, urlOf(oi), {
-              pageType: (slide as any).pageType,
+              pageType: inferredPt2,
             });
             if (rebuilt !== slide.html) {
               if (detailed) {
@@ -4781,6 +4803,9 @@ export class AiService {
   ): string {
     if (!html || !localImageUrl) return html;
     if (/<img\b/i.test(html)) return html;
+    const explicitPt = typeof opts.pageType === 'string' ? opts.pageType.toLowerCase() : undefined;
+    // 结构页（封面/目录/总结）恒不配图：结构化救援只服务内容页（与参考模板一致）
+    if (explicitPt && isStructurePage(explicitPt)) return html;
     // ——— FR-2 同构（Server 侧 L5.3 + L5.4 共用入口）———
     const PROTECTED_LAYOUT_FOR_INJECT: ReadonlySet<string> = new Set([
       'comparison-deep-dive',
@@ -4795,7 +4820,6 @@ export class AiService {
       'content-zigzag',
       'content-cards',
     ]);
-    const explicitPt = typeof opts.pageType === 'string' ? opts.pageType.toLowerCase() : undefined;
     const layoutFromHtml = (html.match(
       /<\s*(?:div|section|article)\b[^>]*\bdata-layout\s*=\s*["']?([a-z0-9-]+)["']?[^>]*>/i,
     ) || [])[1]?.toLowerCase();
@@ -4805,70 +4829,85 @@ export class AiService {
     ) {
       return html;
     }
-    const outerOpen = html.match(/^(<div[^>]*>)/i);
-    if (!outerOpen) return html;
-    const openTag = outerOpen[1];
-    const closeIdx = html.lastIndexOf('</div>');
-    if (closeIdx < openTag.length) return html;
-    const innerRaw = html.substring(openTag.length, closeIdx);
-    const h2Match = innerRaw.match(/<h2\b[^>]*>[\s\S]*?<\/h2>/i);
-    const h2Part = h2Match ? h2Match[0] : '';
-    const afterH2 = h2Match ? innerRaw.substring(h2Match.index! + h2Match[0].length) : innerRaw;
 
-    let contentRaw = afterH2.trim();
-    if (contentRaw) {
-      contentRaw = this.normalizeBodyLinesToParagraphs(contentRaw);
+    // ——— DOM 级最小侵入（与 agent 侧同构）：只把原正文容器整段搬进文字列，绝不重建页面 ———
+    // 旧的字符串切片实现会把 h2 之前的内容整段丢弃、并按行重切正文，
+    // 导致装饰丢失、列表溢出到 0 宽容器（文字不可见）。
+    const dom = new JSDOM(
+      `<!doctype html><html><body><div id="__noppt_orphan_root">${html}</div></body></html>`,
+    );
+    const doc = dom.window.document;
+    const wrap = doc.getElementById('__noppt_orphan_root');
+    const outer = wrap?.firstElementChild as HTMLElement | null;
+    if (!wrap || !outer) return html;
+    const outerStyle = outer.getAttribute('style') || '';
+    if (
+      /flex-direction\s*:\s*row/i.test(outerStyle) &&
+      !/flex-direction\s*:\s*column/i.test(outerStyle)
+    ) {
+      return html;
     }
-    if (!contentRaw) return html;
+    const h2 = outer.querySelector('h2');
+    if (!h2) return html;
+    const isMeaningful = (el: HTMLElement): boolean => {
+      if (el.matches('ul,ol,p,table,section,article')) return true;
+      if (el.querySelector('ul,ol,p,table,li')) return true;
+      return (el.textContent || '').trim().length >= 20;
+    };
+    let body: HTMLElement | undefined;
+    const h2Siblings = Array.from(h2.parentElement?.children ?? []) as HTMLElement[];
+    const h2Idx = h2Siblings.indexOf(h2);
+    if (h2Idx >= 0) body = h2Siblings.slice(h2Idx + 1).find(isMeaningful);
+    if (!body) {
+      const children = Array.from(outer.children) as HTMLElement[];
+      const anchorIdx = children.findIndex((c) => c === h2 || c.contains(h2));
+      if (anchorIdx >= 0) body = children.slice(anchorIdx + 1).find(isMeaningful);
+    }
+    if (!body) return html;
 
-    const imageCol = `<div style="flex:0 0 45%;display:flex;align-items:stretch;min-height:0;min-width:0;overflow:hidden;border-radius:16px;"><img src="${localImageUrl}" data-image-ratio="4:3" style="width:100%;height:100%;object-fit:cover;border-radius:16px;display:block;"></div>`;
-    const contentCol = `<div style="flex:0 0 55%;display:flex;flex-direction:column;gap:16px;min-height:0;min-width:0;overflow:hidden;justify-content:space-evenly;">${contentRaw}</div>`;
-    const row = `<div style="flex:1;display:flex;gap:40px;align-items:stretch;min-height:0;min-width:0;">${imageCol}${contentCol}</div>`;
-    const rebuilt = `${openTag}${h2Part}${row}</div>`;
+    const makeDiv = (style: string): HTMLElement => {
+      const div = doc.createElement('div');
+      div.setAttribute('style', style);
+      return div;
+    };
+    const img = doc.createElement('img');
+    img.setAttribute('src', localImageUrl);
+    img.setAttribute('data-image-ratio', '4:3');
+    img.setAttribute(
+      'style',
+      'width:100%;height:100%;object-fit:cover;border-radius:16px;display:block;',
+    );
+
+    const imageCol = makeDiv(
+      'flex:0 0 45%;display:flex;align-items:stretch;min-height:0;min-width:0;overflow:hidden;border-radius:16px;',
+    );
+    imageCol.appendChild(img);
+    const contentCol = makeDiv(
+      'flex:0 0 55%;display:flex;flex-direction:column;gap:16px;min-height:0;min-width:0;overflow:hidden;justify-content:space-evenly;',
+    );
+    contentCol.appendChild(body);
+    const row = makeDiv(
+      'flex:1;display:flex;gap:40px;align-items:stretch;min-height:0;min-width:0;',
+    );
+    row.appendChild(imageCol);
+    row.appendChild(contentCol);
+    outer.appendChild(row);
+
+    const rebuilt = wrap.innerHTML;
     if (!rebuilt.includes(localImageUrl)) return html;
+    // 文本不许丢失（否则 fail-safe 回退原 HTML，交给后续链路处理）
+    if (this._visibleTextLength(rebuilt) < this._visibleTextLength(html)) return html;
     return rebuilt;
   }
 
-  /**
-   * 将 h2 后的混合内容规整：把每行裸文本（非空、非纯注释、非已有块级标签包裹）包装成
-   * 带样式的 <p> 段落，保证左图右文布局下文字整齐可读。
-   */
-  private normalizeBodyLinesToParagraphs(raw: string): string {
-    if (!raw) return '';
-    const cleaned = raw.replace(/<!--[\s\S]*?-->/g, '');
-    const BLOCK_TAG_RE = /^\s*<(p|ul|ol|div|h[3-6]|table|blockquote|pre|section|article)\b/i;
-    const lines = cleaned.split(/\r?\n/);
-    const parts: string[] = [];
-    let bufferLines: string[] = [];
-
-    const flushBuffer = () => {
-      if (bufferLines.length === 0) return;
-      const joined = bufferLines.join(' ').trim();
-      if (joined) {
-        parts.push(
-          `<p style="font-size:24px;color:#374151;margin:0;font-weight:600;line-height:1.5;overflow-wrap:break-word;word-break:break-word;">${joined}</p>`,
-        );
-      }
-      bufferLines = [];
-    };
-
-    for (const line of lines) {
-      const t = line.trim();
-      if (!t) {
-        flushBuffer();
-        continue;
-      }
-      if (BLOCK_TAG_RE.test(t)) {
-        flushBuffer();
-        parts.push(line);
-      } else {
-        const strippedLine = t.replace(/^<p(\s[^>]*)?>\s*<\/p>$/i, '').trim();
-        if (strippedLine) bufferLines.push(strippedLine);
-      }
-    }
-    flushBuffer();
-
-    return parts.join('\n');
+  /** 可见文本长度（去标签/注释/空白），用于「图片注入不得吞文本」的不变量校验 */
+  private _visibleTextLength(html: string): number {
+    return html
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/\s+/g, '').length;
   }
 
   /**
@@ -4937,6 +4976,13 @@ export class AiService {
   ): string {
     if (!html || !localImageUrl) return html;
     if (/<img\b/i.test(html)) return html;
+    // 结构页（封面/目录/总结）在任何偏好下都不配图（含背景大图）——与参考模板保持一致
+    if (
+      typeof opts.pageType === 'string' &&
+      isStructurePage(opts.pageType.toLowerCase())
+    ) {
+      return html;
+    }
     // ——— FR-2 同构（扩展版）：保护版式既不做 BG 大图叠加，也不回退触发 orphan-slide 45:55 overwrite
     const PROTECTED_LAYOUT_FOR_INJECT: ReadonlySet<string> = new Set([
       'comparison-deep-dive',

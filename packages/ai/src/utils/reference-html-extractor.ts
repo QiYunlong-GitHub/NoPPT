@@ -444,7 +444,12 @@ function extractImagePreference(
   const imgs = doc.querySelectorAll('img');
   // 参考用 SVG 占位/图片区（未用 <img>）时，仍视为「有图文槽位」→ 允许内容页配图，
   // 避免把参考的「右图」结构废掉（旧逻辑只数 <img> 会误判 none）。
-  if (imgs.length === 0) return hasImageSlot ? 'content-only' : 'none';
+  if (imgs.length === 0) {
+    // 参考页既无 <img> 也无图槽：这只说明「该参考页没有图片区」，
+    // 并不等于用户不要配图。返回 undefined 表示「未提取到配图偏好」，
+    // 交由用户显式设置（content-only / all …）或默认值生效，避免参考把用户偏好覆盖成 none。
+    return hasImageSlot ? 'content-only' : undefined;
+  }
   if (imgs.length === 1) return 'minimal';
   const ratio = imgs.length / Math.max(slideCount, 1);
   if (ratio >= 1.5) return 'all';

@@ -408,8 +408,27 @@ export function enforceFlexChildrenMinWidth(html: string): string {
   );
 }
 
+/**
+ * 给文本语义标签补 `overflow-wrap/word-break` 换行样式。
+ *
+ * 历史 bug（pres_mtzke4lj_ovu6r61）：正则 `<(p|li|h[1-6])` 缺少词边界，
+ * 会命中 `<path>` / `<polyline>` / `<polygon>` / `<line>` 等 SVG 子元素：
+ *  1) 往 SVG 上写文本换行样式（无意义）；
+ *  2) 命中分支会把自闭合写法 `<path .../>` 改写为 `<path .../  style="...">`，
+ *     丢掉 `/` 后变成开标签，再经 JSDOM 序列化就形成 `<path><path></path></path>` 嵌套，
+ *     图标/装饰严重变形。
+ *
+ * 修复：加词边界 `(?=[\s>/])`，并把整个 `<svg>...</svg>` 段先掩码保护，处理完再还原。
+ */
 export function enforceTextWrapping(html: string): string {
-  return html.replace(/<(p|li|h[1-6])([^>]*)>/gi, (match, tag, attrs) => {
+  if (!html) return html;
+  const svgBlocks: string[] = [];
+  const MASK = (i: number) => `\u0000NOPPT_SVG_${i}\u0000`;
+  const masked = html.replace(/<svg\b[\s\S]*?<\/svg>/gi, (block) => {
+    svgBlocks.push(block);
+    return MASK(svgBlocks.length - 1);
+  });
+  const processed = masked.replace(/<(p|li|pre|h[1-6])(?=[\s>/])([^>]*)>/gi, (match, tag, attrs) => {
     if (/style="[^"]*"/i.test(match)) {
       return match.replace(/style="([^"]*)"/i, (_s: string, style: string) => {
         let newStyle = style;
@@ -420,6 +439,10 @@ export function enforceTextWrapping(html: string): string {
     }
     return `<${tag}${attrs} style="overflow-wrap:break-word;word-break:break-word;">`;
   });
+  if (svgBlocks.length === 0) return processed;
+  return processed.replace(/\u0000NOPPT_SVG_(\d+)\u0000/g, (_m: string, i: string) =>
+    svgBlocks[Number(i)] ?? '',
+  );
 }
 
 export function enforceFlatStructure(html: string): string {

@@ -11,6 +11,11 @@ build/
 .env.*.local
 server.env
 *.local
+# 疑似密钥/凭证文件（保险网：宁可误伤也不漏网）
+*.pem
+*.key
+*.secret
+id_rsa*
 
 # ===== 构建产物 / 日志 =====
 *.log
@@ -53,7 +58,9 @@ tests/
 offline-wheels/
 *.lnk
 noppt-config-*.json
+# 含明文 API Key 的 Hermes 项目级约定（切勿入库；clone 者请按 README 自建 Key）
 AGENTS.md
+**/AGENTS.md
 
 # ===== 个人 / 临时文件（清单第三节） =====
 AI生成演示全流程.txt

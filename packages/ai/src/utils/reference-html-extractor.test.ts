@@ -87,7 +87,11 @@ describe('Task2 · extractReferenceHtmlAttributes 9 风格 (TR-2.1~2.11)', () =>
         .imagePreference,
     ).toBe('all');
     expect(extractReferenceHtmlAttributes(`<img src="a">`).style.imagePreference).toBe('minimal');
-    expect(extractReferenceHtmlAttributes(`<p>no img</p>`).style.imagePreference).toBe('none');
+    // 无 img 且无图槽 → 不再判为 none：这只是「参考页没有图片区」，不等于用户不要配图，
+    // 返回 undefined 表示「未提取」，让用户显式设置/默认值生效。
+    expect(
+      extractReferenceHtmlAttributes(`<p>no img</p>`).style.imagePreference,
+    ).toBeUndefined();
   });
 
   it('TR-2.6 风格推断', () => {

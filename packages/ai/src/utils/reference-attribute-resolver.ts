@@ -64,10 +64,15 @@ export function resolveDensity(
   return ref ?? user ?? def;
 }
 
+/**
+ * 配图偏好三级解析：ref > user > default。
+ * 默认值取 'content-only'（与前端默认一致：仅内容页配图，封面/目录/总结不放图）。
+ * 注意：参考解析器在「参考页无图槽」时会返回 undefined（未提取），不得因此把偏好降级为 none。
+ */
 export function resolveImagePreference(
   ref?: ReferenceStyleAttrs['imagePreference'],
   user?: ReferenceStyleAttrs['imagePreference'],
-  def: NonNullable<ReferenceStyleAttrs['imagePreference']> = 'all',
+  def: NonNullable<ReferenceStyleAttrs['imagePreference']> = 'content-only',
 ): NonNullable<ReferenceStyleAttrs['imagePreference']> {
   return ref ?? user ?? def;
 }

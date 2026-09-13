@@ -241,9 +241,11 @@ export const PRESENTATION_PLANNING_PROMPT = `你是一个专业的演示文稿�
 
 ## 图片规则
 
-> 【覆盖规则 · 优先级高于本段默认】**如果上方「用户显式指令」中的「图文搭配」说明是「每页都配图（包括封面/总结）」（即 imagePreference=all），则本段中所有的"needsImage 必须为 false / 一般为 false"都失效**，改为：cover / toc / summary / content-cards / content-compare / content-timeline / content-table 这些原本默认无图的页类型，**全部 needsImage=true 并填写 imagePrompt / imageRatio**。pageType 本身保留即可（cover 仍写 cover、cards 仍写 cards，排版风格不变），配图作为背景/大图/装饰图存在。
+> 【硬约束 · 最高优先级】**cover / toc / summary 三个结构页在任何情况下（含 imagePreference=all）needsImage 必须为 false，且页面 HTML 中不得出现任何 &lt;img&gt;（含占位符）**——封面/目录/总结一律用纯色/渐变背景 + 几何装饰 + 文字排版实现，与参考模板保持一致。
+>
+> 【覆盖规则】**如果上方「用户显式指令」中的「图文搭配」说明是「每页都配图（封面/目录/总结除外）」（即 imagePreference=all），则本段中内容页的"needsImage 一般为 false"失效**，改为：content-cards / content-compare / content-timeline / content-table 等内容页类型 **needsImage=true 并填写 imagePrompt / imageRatio**（配图作为大图/装饰图存在，pageType 与排版风格不变）。
 
-- cover（封面）、toc（目录）、summary（总结）页：默认 needsImage 为 false（仅当用户图文搭配≠每页都配图时生效）
+- cover（封面）、toc（目录）、summary（总结）页：**needsImage 恒为 false（含 imagePreference=all，不得出现 &lt;img&gt;）**
 - content-image-* 类型：needsImage 必须为 true，并提供精准的 imagePrompt 和 imageRatio
 - content-no-image、content-table：默认 needsImage 为 false（仅当用户图文搭配≠每页都配图时生效）
 - content-cards：默认不需要图片，一般 needsImage 为 false（仅当用户图文搭配≠每页都配图时生效）
@@ -368,7 +370,8 @@ export const PRESENTATION_PLANNING_PROMPT = `你是一个专业的演示文稿�
    - 如果用户说「不生成目录页」或「不要目录」，无论多少页都不要目录
    - 如果用户说「不生成总结页」或「不要总结」或「不要结束页」，则跳过总结
 4. **图文搭配**：内容页中约60%-70%使用带图布局，30%-40%使用纯文字/卡片/表格。
-   - 【覆盖图文搭配默认分布】如果用户显式选择「每页都配图（包括封面/总结）」，则图文搭配分布全部为 100% 带图，**不要生成 content-no-image 页类型**（除非完全没有内容可配图的纯数据表格页）。
+   - 【结构页硬约束】封面 / 目录 / 总结页永远不配图（needsImage=false，HTML 中不得出现 &lt;img&gt;，含占位符）。
+   - 【覆盖图文搭配默认分布】如果用户显式选择「每页都配图（封面/目录/总结除外）」，则内容页图文搭配分布全部为 100% 带图，**不要生成 content-no-image 页类型**（除非完全没有内容可配图的纯数据表格页）。
 5. **内容优先于版式**：先确定每页的断言标题和信息密度要点，再根据 contentCategory 选择 pageType，最后考虑视觉样式。
 
 ## 上图下文布局的特殊约束（必须遵守）
@@ -1062,11 +1065,12 @@ filled 与 line 风格不得在同一页面混用——所有 li 卡片图标风
 
 ## 图片规范 · 强制遵守（红线 · 必须遵守，否则返工）
 
-- **只要页面类型是 content-image-left / content-image-right / content-image-top，或任何"需要配图"的页面，HTML 中必须出现且只出现 1 处 &lt;img&gt; 占位符**
+- **只要页面类型是 content-image-left / content-image-right / content-image-top，或任何"需要配图"的页面（本页 needsImage=true），HTML 中必须出现且只出现 1 处 &lt;img&gt; 占位符**
   - img 的 src 必须精确为："https://NOPPT_IMAGE_PLACEHOLDER"（前后加双引号、不要加任何前缀后缀、不要改成别的字符串）
   - 必须添加 data-image-ratio="{{IMAGE_RATIO}}" 属性
   - img 样式必须写：width:100%;height:100%;object-fit:cover;border-radius:16px;display:block;
   - img 的外层容器必须写：overflow:hidden;display:flex;align-items:stretch;
+- **【本页 needsImage=false 或 pageType 为 cover/toc/summary 时，本红线整体不适用】禁止出现任何 &lt;img&gt; 标签（包括 NOPPT 占位符）；封面/目录/总结页恒不配图。**
 - **禁止**：把占位符写在注释里、写成 src="data:image/..." 代替占位符、遗漏占位符、占位符写 2 个及以上
 
 ## 语义化标签 · 强制红线（必须遵守，否则返工）

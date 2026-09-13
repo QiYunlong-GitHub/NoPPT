@@ -485,7 +485,12 @@ function hasVisualStyle(styleStr: string): boolean {
   return false;
 }
 
-function cleanupEmptyInlineTags(html: string): string {
+/**
+ * 清理没有视觉样式的空 <p></p> / <span></span>（幂等）。
+ * 导出供各端后处理链路的**最后一步**调用：后处理拆解/重建过程中容易残留空段落，
+ * 若清理发生在重建之前就会漏掉（pres_mtzke4lj slide-02 末尾残留 <p></p> 即此类）。
+ */
+export function cleanupEmptyInlineTags(html: string): string {
   let result = html;
   for (let i = 0; i < 5; i++) {
     const before = result;

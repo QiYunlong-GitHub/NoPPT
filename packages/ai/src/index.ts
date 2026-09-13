@@ -11,6 +11,7 @@ export * from './agents';
 export * from './templates';
 export * from './utils/logger';
 export * from './utils/model-name-parser';
+export * from './utils/image-plan-guard';
 export * from './utils/llm-tracer';
 export {
   styleViolationSignal,

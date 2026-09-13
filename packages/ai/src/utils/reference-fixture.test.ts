@@ -81,6 +81,8 @@ describe('FR-参考克隆 · 孟菲斯封面 / 左文右图内容 / 孟菲斯总
       expect.arrayContaining(['#ffc93c', '#06d6a0', '#118ab2', '#073b4c']),
     );
     expect(r.structure!.hasImageSlot).toBe(false);
+    // 无图槽参考不得把配图偏好推导成 none（否则会以「参考优先」覆盖用户设置）
+    expect(r.style.imagePreference).toBeUndefined();
     expect(r.referenceHtml).toBeTruthy();
     expect(r.referenceHtml!.toLowerCase()).toContain('squiggle'); // 骨架含波浪线装饰
   });

@@ -1,0 +1,51 @@
+<div style="width:100%;height:100%;overflow:hidden;position:relative;box-sizing:border-box;padding:48px 64px;display:flex;flex-direction:column;background-color:#f7f8fa;font-family:system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', '微软雅黑', 'Noto Sans SC', 'Segoe UI', Roboto, sans-serif;">
+  <!-- 几何装饰：左上角色块（撞色 #5C6B7A） -->
+  <div style="position:absolute;top:24px;left:24px;width:72px;height:72px;border-radius:16px;background:#5C6B7A;opacity:0.2;transform:rotate(15deg);pointer-events:none;"></div>
+  <!-- 几何装饰：右下圆点阵（撞色 #27AE60） -->
+  <div style="position:absolute;bottom:40px;right:40px;width:80px;height:80px;border-radius:50%;background:#27AE60;opacity:0.15;pointer-events:none;"></div>
+  <!-- 几何装饰：右上小色块（撞色 #F5C6C6） -->
+  <div style="position:absolute;top:60px;right:80px;width:48px;height:48px;border-radius:12px;background:#F5C6C6;opacity:0.5;transform:rotate(-8deg);pointer-events:none;"></div>
+  <!-- 几何装饰：左下波浪粗描边（撞色 #BCE3CD） -->
+  <div style="position:absolute;left:48px;bottom:48px;width:120px;height:6px;border-radius:3px;background:#BCE3CD;opacity:0.6;pointer-events:none;"></div>
+  
+  <!-- 标题区域：左对齐 -->
+  <div style="display:flex;flex-direction:column;align-items:flex-start;min-width:0;margin-bottom:32px;position:relative;z-index:1;">
+    <h2 style="font-size:50px;font-weight:700;margin:0 0 16px 0;line-height:1.25;letter-spacing:-0.01em;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,#e94560,#ba374d);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">厄尔尼诺是赤道中东太平洋海温异常升高的气候现象</h2>
+    <!-- 标题装饰条：主色渐变，圆角 -->
+    <div style="width:120px;height:6px;background:linear-gradient(90deg,#e94560,#ba374d);border-radius:4px;box-shadow:0 2px 12px #e9456035;"></div>
+  </div>
+
+  <!-- 列表区域：左对齐，垂直居中 -->
+  <div style="flex:1;display:flex;flex-direction:column;gap:24px;min-height:0;min-width:0;overflow:hidden;justify-content:center;position:relative;z-index:1;">
+    <ul style="font-size:19px;color:#1a1a2e;margin:0;padding:0;list-style:none;min-width:0;display:flex;flex-direction:column;gap:24px;">
+      <!-- 要点1：定义 -->
+      <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;padding:16px 24px;border-radius:16px;background:#ffffff;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);border-left:5px solid #e94560;">
+        <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:28px;height:28px;border-radius:8px;background:#e9456010;color:#e94560;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e94560" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+        </span>
+        <span style="line-height:1.7;flex:1;font-weight:500;">定义：赤道中东太平洋海表温度持续异常偏高</span>
+      </li>
+      <!-- 要点2：成因 -->
+      <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;padding:16px 24px;border-radius:16px;background:#ffffff;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);border-left:5px solid #e94560;">
+        <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:28px;height:28px;border-radius:8px;background:#e9456010;color:#e94560;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e94560" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        </span>
+        <span style="line-height:1.7;flex:1;font-weight:500;">成因：信风减弱，暖水东流，改变大气环流</span>
+      </li>
+      <!-- 要点3：周期 -->
+      <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;padding:16px 24px;border-radius:16px;background:#ffffff;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);border-left:5px solid #e94560;">
+        <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:28px;height:28px;border-radius:8px;background:#e9456010;color:#e94560;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e94560" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </span>
+        <span style="line-height:1.7;flex:1;font-weight:500;">周期：平均每2-7年发生一次，持续9-12个月</span>
+      </li>
+      <!-- 要点4：命名 -->
+      <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;padding:16px 24px;border-radius:16px;background:#ffffff;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);border-left:5px solid #e94560;">
+        <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:28px;height:28px;border-radius:8px;background:#e9456010;color:#e94560;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e94560" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;flex-shrink:0;"><path d="M9 12h6"/><path d="M15 12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3"/><path d="M12 6V2"/><path d="M12 22v-4"/></svg>
+        </span>
+        <span style="line-height:1.7;flex:1;font-weight:500;">命名：西班牙语“圣婴”，因圣诞节前后出现高温</span>
+      </li>
+    </ul>
+  </div>
+</div>

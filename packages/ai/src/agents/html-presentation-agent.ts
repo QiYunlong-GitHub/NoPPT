@@ -71,6 +71,12 @@ import {
   hasReferenceImage,
   resolveHeroImageForPage,
 } from '../utils/reference-attribute-resolver';
+import {
+  isStructurePage,
+  resolveSlideImageDecision,
+  stripImagePlaceholders,
+} from '../utils/image-plan-guard';
+import { JSDOM } from 'jsdom';
 import { applyMasterToSlideHtml } from '../utils/apply-master-to-slide-html';
 import { l0ValidateSlide } from '../utils/l0-validation';
 import {
@@ -90,6 +96,7 @@ import {
   isEffectiveClipText,
   fixGradientTextDeclarationOrder,
   applyCompositionGuard,
+  cleanupEmptyInlineTags,
   type ReferenceComposition,
 } from '@noppt/core';
 
@@ -123,6 +130,10 @@ export interface HTMLSlide {
   imageRatio?: ImageRatio;
   pageType?: SlidePageType;
   elements?: SlideElement[];
+  /** 逐页配图偏好（规划阶段归一化后的落盘值，可能区别于全局 imagePreference） */
+  imagePreference?: ImagePreference;
+  /** 该页在 plan.slides 中的原始下标，用于回查 slidePlan */
+  _originalIdx?: number;
   critique?: {
     score: number;
     passed: boolean;
@@ -1295,7 +1306,7 @@ export class HTMLPresentationAgent {
       spacious: '宽松（留白充足，字号较大，重点突出）',
     };
     const imagePrefText: Record<ImagePreference, string> = {
-      all: '每页都配图（包括封面/总结）',
+      all: '每页都配图（封面/目录/总结除外）',
       'content-only': '仅内容页配图，封面/目录/总结不放图（推荐）',
       minimal: '尽量少配图，主要使用文字和卡片',
       none: '不生成任何图片，纯文字/卡片布局',
@@ -1760,12 +1771,28 @@ export class HTMLPresentationAgent {
         return { ...s, referenceHeroImage: hero, referenceLockedImage: true };
       }
       // 内容页：强制 AI 生图（img2img seed 复用上传的参考原图）
-      return {
-        ...s,
-        needsImage: true,
-        referenceLockedImage: true,
-        imagePrompt: s.imagePrompt || `${s.title || '内容'}（参考素材风格，沿用上传参考图）`,
-      };
+      // 例外：9 种高级精致版式保留大纲自主决策，避免为对比表/时间线等本就不需要图的版式凑图
+      // （这些版式由 NEVER_UPGRADE_FOR_IMAGE 统一保护，规划/升级/占位符注入/孤儿救援均不强制带图）。
+      const NEVER_UPGRADE_FOR_IMAGE: ReadonlySet<string> = new Set([
+        'comparison-deep-dive',
+        'content-value-showcase',
+        'content-stats-highlight',
+        'content-image-background',
+        'content-zigzag',
+        'content-cards',
+        'content-compare',
+        'content-timeline',
+        'content-table',
+      ]);
+      if (!NEVER_UPGRADE_FOR_IMAGE.has(s.pageType ?? '')) {
+        return {
+          ...s,
+          needsImage: true,
+          referenceLockedImage: true,
+          imagePrompt: s.imagePrompt || `${s.title || '内容'}（参考素材风格，沿用上传参考图）`,
+        };
+      }
+      return s; // 9 种高级版式：不强制生图，沿用大纲自主决策
     });
   }
 
@@ -1928,7 +1955,7 @@ export class HTMLPresentationAgent {
       spacious: '宽松（留白充足，字号较大，重点突出）',
     };
     const imagePrefText: Record<ImagePreference, string> = {
-      all: '每页都配图（包括封面/总结）',
+      all: '每页都配图（封面/目录/总结除外）',
       'content-only': '仅内容页配图，封面/目录/总结不放图（推荐）',
       minimal: '尽量少配图，主要使用文字和卡片',
       none: '不生成任何图片，纯文字/卡片布局',
@@ -2049,6 +2076,41 @@ export class HTMLPresentationAgent {
     return { titleColor, bodyColor };
   }
 
+  /**
+   * 配图指令（S-6 · 硬约束版）。
+   *
+   * 缺陷复盘：旧文案「<偏好描述>。本页如果是 needsImage=true 就严格配图；needsImage=false 就不要插入 <img>」
+   * 既没有给出本页 needsImage 的真值，又与「图片规范红线（任何需要配图的页面必须出现占位符）」互相矛盾，
+   * 导致 LLM 随机发挥：封面/总结/部分内容页自发写了占位符，真正 needsImage=true 的内容页反而漏写。
+   * 现改为按本页计划给出唯一、明确、可执行的指令。
+   */
+  private buildImageRequirementHint(plan: SlidePlan, imagePreference: ImagePreference): string {
+    const prefText: Record<ImagePreference, string> = {
+      all: '每页都配图（封面/目录/总结除外）',
+      'content-only': '仅内容页配图，封面/目录/总结不放图',
+      minimal: '尽量少配图，主要使用文字和卡片',
+      none: '不生成任何图片，纯文字/卡片布局',
+    };
+    const head = `【配图偏好（S-6）】：${prefText[imagePreference]}。`;
+    if (isStructurePage(plan.pageType)) {
+      return (
+        `${head}【本页硬约束 · pageType=${plan.pageType}】本页是封面/目录/总结页：` +
+        `**绝对禁止出现任何 <img> 标签（包括 src="${IMAGE_PLACEHOLDER}" 占位符）** —— ` +
+        `一律用纯色/渐变背景 + 几何装饰 + 文字排版实现；下方「图片规范红线」对本页不适用。`
+      );
+    }
+    if (plan.needsImage) {
+      return (
+        `${head}【本页硬约束 · pageType=${plan.pageType}】本页 needsImage=true：` +
+        `必须出现且只出现 1 处 <img> 占位符，src 精确为 "${IMAGE_PLACEHOLDER}"，并带 data-image-ratio。`
+      );
+    }
+    return (
+      `${head}【本页硬约束 · pageType=${plan.pageType}】本页 needsImage=false：` +
+      `**禁止插入任何 <img>（含占位符）**，用纯文字/卡片/图标布局。`
+    );
+  }
+
   private buildSlideHtmlPrompt(
     plan: SlidePlan,
     primaryColor: string,
@@ -2142,13 +2204,7 @@ export class HTMLPresentationAgent {
     };
     const iconStyleHint = `【列表图标风格（S-7）】：${iconStyleHintText[iconStyle]}。PAGE_TEMPLATES 中已包含该风格的完整 CSS，你直接选用匹配的 layout 即可，不要自己凭空重新设计。`;
     const fontFamilyHint = `【字体风格（S-11）】：${getFontFamilyDescription(fontFamily)}。PAGE_TEMPLATES 中最外层 <div style="...font-family:XXX"> 已预置正确的 font-family 栈，你**不要在自己的代码里再修改全局 font-family**（会冲突）；局部标题若想放大加粗可以保留 font-weight / font-size。`;
-    const imagePrefText: Record<ImagePreference, string> = {
-      all: '每页都配图（包括封面/总结）',
-      'content-only': '仅内容页配图，封面/目录/总结不放图',
-      minimal: '尽量少配图，主要使用文字和卡片',
-      none: '不生成任何图片，纯文字/卡片布局',
-    };
-    const imagePreferenceHint = `【配图偏好（S-6）】：${imagePrefText[imagePreference]}。本页如果是 needsImage=true 就严格配图；本页 needsImage=false 就不要插入 <img>。`;
+    const imagePreferenceHint = this.buildImageRequirementHint(plan, imagePreference);
     const backgroundEnabledHint = `【自动背景图（S-3）】：${backgroundEnabled ? '开启（PAGE_TEMPLATES 中 cover / content / summary 等 layout 已预置背景 CSS，你直接套用即可）' : '关闭（不要写额外的背景大图 <img>，用纯色 / 浅色渐变背景即可）'}`;
 
     // ===== L1/L1.5 字段注入：把 Planning 阶段产出的 layoutParams/styleTheme/metricValues 等传给内容生成阶段 =====
@@ -4057,6 +4113,42 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
         };
       });
 
+      // ========== 兜底 0：结构页 / 无图页占位符剥离（配图决策单一真源）==========
+      // 结构页（cover/toc/summary）在 content-only 下 plan.needsImage=false，但 LLM 可能自发写入
+      // 占位符；旧逻辑「看到占位符就生图」会因此给参考本身无图槽的封面/总结配上图。
+      // 这里先按 image-plan-guard 的决策剥离，后续生图/升级步骤都基于剥离后的 HTML。
+      if (imageEnabled) {
+        for (const s of slides) {
+          const originalIdx = s._originalIdx as number;
+          const slidePlan = plan.slides[originalIdx];
+          const slideImgPref: ImagePreference = s.imagePreference || imagePreference;
+          const hasPlaceholder = s.html.includes(IMAGE_PLACEHOLDER);
+          const decision = resolveSlideImageDecision({
+            pageType: s.pageType,
+            planNeedsImage: slidePlan?.needsImage,
+            imagePreference: slideImgPref,
+            imageEnabled,
+            hasPlaceholder,
+          });
+          if (!decision.stripPlaceholder || !hasPlaceholder) continue;
+          const cleaned = stripImagePlaceholders(s.html, {
+            collapseLayout: isStructurePage(s.pageType),
+          });
+          if (cleaned === s.html) continue;
+          console.log(
+            `[${formatBeijingTime()}] [IMAGE-GUARD] Slide ${originalIdx + 1} "${s.title}" 剥离占位符（reason=${decision.reason}, pageType=${s.pageType}）`,
+          );
+          s.html = cleaned;
+          s.imageRatio = undefined;
+          s.imagePrompt = undefined;
+          if (slidePlan) {
+            slidePlan.needsImage = false;
+            slidePlan.imageRatio = undefined;
+            slidePlan.imagePrompt = undefined;
+          }
+        }
+      }
+
       // ========== 兜底 1：当用户明确偏好配图时，将"纯文字/非带图类型 slide"升级为带图布局 ==========
       if (imageEnabled && (imagePreference === 'content-only' || imagePreference === 'all')) {
         for (const s of slides) {
@@ -4069,14 +4161,12 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
             pt === 'content-image-left' ||
             pt === 'content-image-right' ||
             pt === 'content-image-top';
-          const isStructure = pt === 'cover' || pt === 'toc' || pt === 'summary';
+          const isStructure = isStructurePage(pt);
           const slideImgPref: ImagePreference = (s as any).imagePreference || imagePreference;
-          let shouldUpgrade = false;
-          if (slideImgPref === 'all') {
-            shouldUpgrade = !isImageType;
-          } else {
-            shouldUpgrade = !isStructure && !isImageType;
-          }
+          // 结构页恒不升级（与参考模板一致）；pref=none 的页面也不升级。
+          // 内容页保持既有策略：非带图版式 → 升级为带图布局。
+          if (isStructure || slideImgPref === 'none') continue;
+          const shouldUpgrade = !isImageType;
           if (!shouldUpgrade) continue;
           // ——— FR-1 (fix-slide-comparison-image-disaster)：L1 高级版式（含 cards/compare/timeline）一律不升级为带图布局 ———
           const NEVER_UPGRADE_FOR_IMAGE: ReadonlySet<string> = new Set([
@@ -4113,15 +4203,10 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
             : this.slideHasMeaningfulBody(s.html);
           if (!meaningfulBody) continue;
 
+          // 结构页（cover/toc/summary）已在上方硬短路，走到这里的只可能是内容页 → 一律升级为左图右文
           let layoutPageType: 'content-image-left' | 'content-image-top' = 'content-image-left';
           let targetImageRatio: '4:3' | '16:9' = '4:3';
-          if (pt === 'cover' || pt === 'summary') {
-            layoutPageType = 'content-image-top';
-            targetImageRatio = '16:9';
-          } else if (pt === 'toc') {
-            layoutPageType = 'content-image-top';
-            targetImageRatio = '16:9';
-          } else {
+          {
             // ——— FR-1 双锁：保护版式本不该进这里，再判一次避免被绕过 ———
             const NEVER_UPGRADE_FOR_IMAGE2: ReadonlySet<string> = new Set([
               'comparison-deep-dive',
@@ -4165,19 +4250,22 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
         for (const s of slides) {
           const originalIdx = (s as any)._originalIdx as number;
           const sp = plan.slides[originalIdx];
-          const needsPerPlan =
-            sp?.needsImage && sp?.pageType && PAGE_TYPE_DEFAULT_IMAGE_RATIO[sp.pageType] !== null;
           const hasImageInHtml = /<img\b/i.test(s.html);
           const hasPlaceholder = s.html.includes(IMAGE_PLACEHOLDER);
-          // 参考逐页 imagePreference='none' 的页面不应被强制注入占位符
           const slideImgPref2: ImagePreference = (s as any).imagePreference || imagePreference;
-          if (
-            needsPerPlan &&
-            slideImgPref2 !== 'none' &&
-            !hasImageInHtml &&
-            !hasPlaceholder &&
-            sp?.pageType
-          ) {
+          // 配图决策单一真源：结构页恒不配图 → 绝不注入；内容页按 plan.needsImage
+          const decision = resolveSlideImageDecision({
+            pageType: s.pageType || sp?.pageType,
+            planNeedsImage: sp?.needsImage,
+            imagePreference: slideImgPref2,
+            imageEnabled,
+            hasPlaceholder,
+          });
+          const needsPerPlan =
+            decision.needsImage &&
+            sp?.pageType &&
+            PAGE_TYPE_DEFAULT_IMAGE_RATIO[sp.pageType] !== null;
+          if (needsPerPlan && !hasImageInHtml && !hasPlaceholder && sp?.pageType) {
             const injected = this.injectImagePlaceholderForContentSlide(
               s.html,
               sp.pageType,
@@ -4620,11 +4708,34 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
           slides.map((slide, idx) =>
             imgLimit(async () => {
               const slidePlan = plan.slides[idx];
-              const needsImagePerPlan =
-                slidePlan?.needsImage &&
-                slidePlan.pageType &&
-                PAGE_TYPE_DEFAULT_IMAGE_RATIO[slidePlan.pageType] !== null;
+              const slidePageType = slide.pageType || slidePlan?.pageType;
+              const slideImgPref: ImagePreference = slide.imagePreference || imagePreference;
               let hasPlaceholder = slide.html.includes(IMAGE_PLACEHOLDER);
+              // 配图决策单一真源：结构页（cover/toc/summary）恒不配图 —— 即便 HTML 里带着占位符也先剥离，
+              // 杜绝「参考封面/总结本无图槽却被 LLM 自发占位符带出图片」。
+              const decision = resolveSlideImageDecision({
+                pageType: slidePageType,
+                planNeedsImage: slidePlan?.needsImage,
+                imagePreference: slideImgPref,
+                imageEnabled,
+                hasPlaceholder,
+              });
+              if (decision.stripPlaceholder && hasPlaceholder) {
+                const cleaned = stripImagePlaceholders(slide.html, {
+                  collapseLayout: isStructurePage(slidePageType),
+                });
+                if (cleaned !== slide.html) {
+                  console.log(
+                    `[${formatBeijingTime()}] [IMAGE-GUARD] Slide ${idx + 1} "${slide.title}" 生图前剥离占位符（reason=${decision.reason}）`,
+                  );
+                  slide.html = cleaned;
+                  hasPlaceholder = false;
+                }
+              }
+              const needsImagePerPlan =
+                decision.needsImage &&
+                slidePlan?.pageType &&
+                PAGE_TYPE_DEFAULT_IMAGE_RATIO[slidePlan.pageType] !== null;
               // 兜底 A：计划明确说要配图，但 LLM 生成 HTML 时漏写占位符 → 现在注入后继续生成
               if (needsImagePerPlan && !hasPlaceholder && slidePlan?.pageType) {
                 const injected = this.injectImagePlaceholderForContentSlide(
@@ -4640,8 +4751,9 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
                   hasPlaceholder = true;
                 }
               }
-              // 兜底 B：即便计划没说要，但 HTML 里已经有了占位符（来自升级逻辑或 LLM 自发）→ 也生成
-              const shouldGenerate = (needsImagePerPlan || hasPlaceholder) && hasPlaceholder;
+              // 兜底 B：content-only/all 偏好下，内容页即便 plan 未标 needsImage，只要 HTML 含占位符也生成；
+              // 结构页已被上面的 decision.needsImage=false 拦截，不再生成。
+              const shouldGenerate = decision.needsImage && hasPlaceholder;
               if (!shouldGenerate) {
                 onProgress?.({
                   phase: 'images',
@@ -4849,15 +4961,8 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
             'content-dashboard',
           ]);
           if (pt && NEVER_UPGRADE_FOR_IMAGE.has(pt)) return null;
-          if (imagePreference === 'all') {
-            // all → 封面/总结/目录用 top；其余默认 left
-            return pt === 'cover' || pt === 'summary' || pt === 'toc'
-              ? 'content-image-top'
-              : 'content-image-left';
-          }
-          // content-only → 非结构页
-          const isStructure = pt === 'cover' || pt === 'toc' || pt === 'summary';
-          if (isStructure) return null;
+          // 结构页（cover/toc/summary）在任何偏好（含 all）下都不补图 —— 与参考模板保持一致
+          if (isStructurePage(pt)) return null;
           return 'content-image-left';
         };
         for (let i = 0; i < slides.length; i++) {
@@ -5758,56 +5863,17 @@ ${tail}`;
   }
 
   /**
-   * 将 h2 后的混合内容规整：把每行裸文本（非空、非纯注释、非已有块级标签包裹）包装成
-   * 带样式的 <p> 段落，保证左图右文布局下文字整齐可读（与 server 端 normalizeBodyLinesToParagraphs 对齐）
-   */
-  private normalizeBodyLinesToParagraphs(raw: string): string {
-    if (!raw) return '';
-    const cleaned = raw.replace(/<!--[\s\S]*?-->/g, '');
-    const BLOCK_TAG_RE = /^\s*<(p|ul|ol|div|h[3-6]|table|blockquote|pre|section|article)\b/i;
-    // 图标/圆标行识别：整行是单独 <span...>...</span>，含 inline-flex|flex + 宽高（图标容器），不包 <p>
-    const ICON_SPAN_RE =
-      /^\s*<span\b(?=[^>]*\bdisplay\s*:\s*(?:-webkit-)?inline-flex\b|[^>]*\bdisplay\s*:\s*flex\b)(?=[^>]*\bwidth\s*:)[^>]*\bheight\s*:[^>]*>[\s\S]*?<\/span>\s*$/i;
-    const lines = cleaned.split(/\r?\n/);
-    const parts: string[] = [];
-    let bufferLines: string[] = [];
-    const flushBuffer = () => {
-      if (bufferLines.length === 0) return;
-      const joined = bufferLines.join(' ').trim();
-      if (joined) {
-        parts.push(
-          `<p style="font-size:24px;color:#374151;margin:0;font-weight:600;line-height:1.5;overflow-wrap:break-word;word-break:break-word;">${joined}</p>`,
-        );
-      }
-      bufferLines = [];
-    };
-    for (const line of lines) {
-      const t = line.trim();
-      if (!t) {
-        flushBuffer();
-        continue;
-      }
-      if (BLOCK_TAG_RE.test(t) || ICON_SPAN_RE.test(t)) {
-        flushBuffer();
-        parts.push(line);
-      } else {
-        const strippedLine = t.replace(/^<p(\s[^>]*)?>\s*<\/p>$/i, '').trim();
-        if (strippedLine) bufferLines.push(strippedLine);
-      }
-    }
-    flushBuffer();
-    return parts.join('\n');
-  }
-
-  /**
-   * 兜底：将"纯文字内容页"重构为左图右文 / 右图左文的带图布局，并注入 IMAGE_PLACEHOLDER。
+   * 兜底：把"纯文字内容页"改为带图布局并注入 IMAGE_PLACEHOLDER（左图右文 / 右图左文 / 上图下文）。
+   *
    * 场景：
-   *  1) LLM 规划阶段把本该配图的页标成 content-no-image（过度保守）
+   *  1) 规划阶段把本该配图的页标成 content-no-image（过度保守）
    *  2) LLM 生成 HTML 时，对 content-image-* 页漏写占位符
-   * 策略：
-   *  - 保留原有的标题 <h2>
-   *  - 把原有的正文内容（列表/段落/裸文本）提取出来作为右/左侧的文字区（裸文本会自动包装成 <p> 保证可读性）
-   *  - 在另一侧插入 45% 宽度的图片容器 + 占位符
+   *
+   * 实现约束（pres_mtzke4lj_ovu6r61 复盘）：
+   *  - **绝不重建页面**：h2 之前的装饰与标题容器、以及正文节点的原始标签/样式一律原样保留；
+   *  - 只做「插入图片列 + 把原正文容器整体搬进文字列」这一最小侵入 DOM 移动；
+   *  - 无法安全识别正文容器（版式不规则）时 fail-safe 返回原 HTML ——
+   *    宁可不配图，也不产出「列表被挤出内容列、文字全部不可见」的坏页。
    */
   private injectImagePlaceholderForContentSlide(
     html: string,
@@ -5833,53 +5899,106 @@ ${tail}`;
     ) {
       return html;
     }
-    // 取最外层 <div ... > 到末尾闭合的 </div>
-    const outerOpen = html.match(/^(<div[^>]*>)/i);
-    if (!outerOpen) return html;
-    const closeIdx = html.lastIndexOf('</div>');
-    if (closeIdx < outerOpen[1].length) return html;
-    const innerRaw = html.substring(outerOpen[1].length, closeIdx);
-    // 提取标题
-    const h2Match = innerRaw.match(/<h2\b[^>]*>[\s\S]*?<\/h2>/i);
-    const h2Part = h2Match ? h2Match[0] : '';
-    const afterH2 = h2Match ? innerRaw.substring(h2Match.index! + h2Match[0].length) : innerRaw;
-    // 正文内容（裸文本 → <p> 段落）
-    let contentRaw = afterH2.trim();
-    if (contentRaw) {
-      contentRaw = this.normalizeBodyLinesToParagraphs(contentRaw);
+
+    const dom = new JSDOM(
+      `<!doctype html><html><body><div id="__noppt_inject_root">${html}</div></body></html>`,
+    );
+    const doc = dom.window.document;
+    const wrap = doc.getElementById('__noppt_inject_root');
+    const outer = wrap?.firstElementChild as HTMLElement | null;
+    if (!wrap || !outer) return html;
+    // 行布局根容器（flex-direction:row）不适合再追加分栏行，避免把正文挤成 0 宽
+    const outerStyle = outer.getAttribute('style') || '';
+    if (/flex-direction\s*:\s*row/i.test(outerStyle) && !/flex-direction\s*:\s*column/i.test(outerStyle)) {
+      return html;
     }
-    if (!contentRaw) return html;
+    const h2 = outer.querySelector('h2');
+    if (!h2) return html;
 
-    const imageOnLeft = pageType !== 'content-image-right';
-    const ratio = pageType === 'content-image-top' ? '21:9' : '4:3';
+    // 正文容器：优先取 h2 的后续同级节点；否则取「包含 h2 的直接子元素」之后的直接子元素
+    const isMeaningful = (el: HTMLElement): boolean => {
+      if (el.matches('ul,ol,p,table,section,article')) return true;
+      if (el.querySelector('ul,ol,p,table,li')) return true;
+      return (el.textContent || '').trim().length >= 20;
+    };
+    let body: HTMLElement | undefined;
+    const h2Siblings = Array.from(h2.parentElement?.children ?? []) as HTMLElement[];
+    const h2Idx = h2Siblings.indexOf(h2);
+    if (h2Idx >= 0) body = h2Siblings.slice(h2Idx + 1).find(isMeaningful);
+    if (!body) {
+      const children = Array.from(outer.children) as HTMLElement[];
+      const anchorIdx = children.findIndex((c) => c === h2 || c.contains(h2));
+      if (anchorIdx >= 0) body = children.slice(anchorIdx + 1).find(isMeaningful);
+    }
+    if (!body) return html;
 
-    let row: string;
+    const ratio: ImageRatio = pageType === 'content-image-top' ? '21:9' : '4:3';
+    const makeImg = (): HTMLElement => {
+      const img = doc.createElement('img');
+      img.setAttribute('src', IMAGE_PLACEHOLDER);
+      img.setAttribute('data-image-ratio', ratio);
+      img.setAttribute(
+        'style',
+        'width:100%;height:100%;object-fit:cover;border-radius:16px;display:block;',
+      );
+      return img;
+    };
+    const makeDiv = (style: string): HTMLElement => {
+      const div = doc.createElement('div');
+      div.setAttribute('style', style);
+      return div;
+    };
+
+    const row = makeDiv(
+      pageType === 'content-image-top'
+        ? 'flex:1;display:flex;flex-direction:column;gap:24px;align-items:stretch;min-height:0;min-width:0;'
+        : 'flex:1;display:flex;gap:40px;align-items:stretch;min-height:0;min-width:0;',
+    );
     if (pageType === 'content-image-top') {
-      // ===== 顶部横幅图布局（三段式 column：h2 → 横幅图 → 正文100%宽度保留） =====
-      // 横幅图：16:9 横向铺满，最大高度 200px（避免占太多垂直空间挤掉正文）
-      const bannerWrap = `<div style="width:100%;max-height:200px;min-height:0;display:flex;overflow:hidden;border-radius:16px;"><img src="${IMAGE_PLACEHOLDER}" data-image-ratio="${ratio}" style="width:100%;height:100%;min-height:120px;object-fit:cover;border-radius:16px;display:block;flex-shrink:0;"></div>`;
-      // 正文容器：保留 100% 宽度（不压缩！），只加 gap 和可拉伸属性
-      const contentWrap = `<div style="flex:1;display:flex;flex-direction:column;gap:16px;min-height:0;min-width:0;justify-content:space-evenly;overflow:hidden;">${contentRaw}</div>`;
-      // 整体 column：h2Part 在 row 外部已经单独放置，这里只放 图 + 正文（h2 之外的全部内容）
-      row = `<div style="flex:1;display:flex;flex-direction:column;gap:24px;align-items:stretch;min-height:0;min-width:0;">${bannerWrap}${contentWrap}</div>`;
+      const banner = makeDiv(
+        'width:100%;max-height:200px;min-height:0;display:flex;overflow:hidden;border-radius:16px;',
+      );
+      banner.appendChild(makeImg());
+      const contentWrap = makeDiv(
+        'flex:1;display:flex;flex-direction:column;gap:16px;min-height:0;min-width:0;justify-content:space-evenly;overflow:hidden;',
+      );
+      contentWrap.appendChild(body); // DOM append 即自动从原位置「移动」整段正文节点
+      row.appendChild(banner);
+      row.appendChild(contentWrap);
     } else {
-      // ===== 左右分栏布局（image-left / image-right，原逻辑保留） =====
-      const imageCol = `<div style="flex:0 0 45%;display:flex;align-items:stretch;min-height:0;min-width:0;overflow:hidden;border-radius:16px;"><img src="${IMAGE_PLACEHOLDER}" data-image-ratio="${ratio}" style="width:100%;height:100%;object-fit:cover;border-radius:16px;display:block;"></div>`;
-      // 正文容器：统一包装成可拉伸、最小高度为0的 flex 列，并且增加 gap 让 <p> 之间更舒服
-      const contentCol = `<div style="flex:0 0 55%;display:flex;flex-direction:column;gap:16px;min-height:0;min-width:0;overflow:hidden;justify-content:space-evenly;">${contentRaw}</div>`;
-      row = imageOnLeft
-        ? `<div style="flex:1;display:flex;gap:40px;align-items:stretch;min-height:0;min-width:0;">${imageCol}${contentCol}</div>`
-        : `<div style="flex:1;display:flex;gap:40px;align-items:stretch;min-height:0;min-width:0;">${contentCol}${imageCol}</div>`;
+      const imageCol = makeDiv(
+        'flex:0 0 45%;display:flex;align-items:stretch;min-height:0;min-width:0;overflow:hidden;border-radius:16px;',
+      );
+      imageCol.appendChild(makeImg());
+      const contentCol = makeDiv(
+        'flex:0 0 55%;display:flex;flex-direction:column;gap:16px;min-height:0;min-width:0;overflow:hidden;justify-content:space-evenly;',
+      );
+      contentCol.appendChild(body);
+      if (pageType === 'content-image-right') {
+        row.appendChild(contentCol);
+        row.appendChild(imageCol);
+      } else {
+        row.appendChild(imageCol);
+        row.appendChild(contentCol);
+      }
     }
+    outer.appendChild(row);
 
-    // 重建：外层容器 + 标题 + 新行 + 闭合
-    const left = outerOpen[1];
-    const right = '</div>';
-    const rebuilt = `${left}${h2Part}${row}${right}`;
-
-    // 简单校验：占位符确实注入了才返回重建值，否则返回原 HTML 避免破坏
+    const rebuilt = wrap.innerHTML;
+    // 不变量校验：占位符已注入，且可见文本一个字都没丢，否则 fail-safe 回退原 HTML
     if (!rebuilt.includes(IMAGE_PLACEHOLDER)) return html;
+    if (this.visibleTextLength(rebuilt) < this.visibleTextLength(html)) return html;
     return rebuilt;
+  }
+
+  /** 可见文本长度（去标签/去注释/去空白），用于后处理「文本不许丢失」不变量校验 */
+  private visibleTextLength(html: string): number {
+    return html
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/\s+/g, '').length;
   }
 
   private injectBackgroundPlaceholder(html: string): string {
@@ -6895,6 +7014,8 @@ ${tail}`;
     // 构图护栏：参考为左对齐（或内容页被误居中）时移除根容器居中三件套
     result = applyCompositionGuard(result, composition);
     result = this.cleanupEmptyContainers(result);
+    // 终局清理：上面各步重建/移动节点后可能残留空 <p></p>（幂等；只删无视觉样式的空标签）
+    result = cleanupEmptyInlineTags(result);
     // B1：这里不再重复调用 wrapTextNodes / flattenMeaninglessNesting / ensureSemanticWrapping
     // 因为外层 sanitizeSlideHtml 的 L1412-L1415 已经在 postProcessLayout 前后分别跑了一遍
     // 重复调用会导致 style 属性字符串被多次重建、flex 等默认值反复打架
@@ -8845,6 +8966,24 @@ ${tail}`;
           (c) => /0\s+0\s+55%/.test(c.flex) || c.childDir === 'column',
         );
         const hasChild45 = childFlexes.some((c) => /0\s+0\s+45%/.test(c.flex));
+
+        // —— 不变量校验（pres_mtzke4lj_ovu6r61 复盘）——
+        // 正文容器若被挤出列（横排 wrapper 出现「45% 图列 + 55% 文列 + 游离 ul 列」三个子项），
+        // 继续强制 45/55 会把游离列压成 0 宽 → 整页文字不可见。
+        // 检测到异常分栏时直接跳过本次纠偏（保守优先于"看起来更像左右分栏"）。
+        const flexPercentSum = childFlexes.reduce((sum, c) => {
+          const m = c.flex.match(/0\s+0\s+(\d+)%/);
+          return sum + (m ? Number(m[1]) : 0);
+        }, 0);
+        const ulColumnCount = directChildren.filter(
+          (c) => c.tagName === 'div' && /<(ul|ol)[\s>]/i.test(c.innerPreview || ''),
+        ).length;
+        if (flexPercentSum > 100 || ulColumnCount >= 2) {
+          console.warn(
+            `[${formatBeijingTime()}] [AGENT] enforceLeftRight5545AndCardBar: 分栏结构异常（固定列合计=${flexPercentSum}%，含列表的列=${ulColumnCount}），跳过 45/55 纠偏以避免文字被压成 0 宽`,
+          );
+          return _m;
+        }
 
         // ========== 外层横排父容器（左右两列布局的 wrapper）→ flex:1 1 0% 占满 H2 下方剩余宽度 ==========
         const isRowWrapper =
