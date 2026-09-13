@@ -908,6 +908,7 @@ export class AiService {
       iconStyle,
       fontFamily,
       referenceHtml,
+      referenceText,
       slideWidth,
       slideHeight,
       presentationId,
@@ -1059,6 +1060,9 @@ export class AiService {
         referenceHtmlBrief,
         imageConfig?.enabled ?? false,
         referenceVisualAttributes,
+        // 第 17 参：RAG 文本素材（referenceText）。透传给 buildPlanningPrompt 注入「权威素材」段。
+        // 与 HTML/视觉那路的 referenceHtmlBrief / referenceVisualAttributes 相互独立、互不影响。
+        referenceText || '',
       );
 
       if (consoleDetailedLocal) {
