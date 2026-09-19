@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { AIModelProvider } from '../providers/base';
 import { HTMLPresentationAgent } from './html-presentation-agent';
 import type { PresentationPlan, RenderedSlide } from '../types';
+import * as renderMod from './html-presentation/stages/render';
 
 const DUMMY_PLAN: PresentationPlan = {
   title: '测试主题',
@@ -63,7 +64,7 @@ describe('generateDesignProposals proposalCount（F-1~F-4 + AC-6）', () => {
     const { agent, planningProvider } = buildAgent();
     mockReturnJson(planningProvider, buildProposalsArray(1));
 
-    const renderSpy = vi.spyOn(agent as any, 'renderSlides').mockResolvedValue([FAKE_FIRST_SLIDE]);
+    const renderSpy = vi.spyOn(renderMod as any, 'renderSlides').mockResolvedValue([FAKE_FIRST_SLIDE]);
 
     const out = await (agent as any).generateDesignProposals(
       't',
@@ -86,7 +87,7 @@ describe('generateDesignProposals proposalCount（F-1~F-4 + AC-6）', () => {
     const { agent, planningProvider } = buildAgent();
     mockReturnJson(planningProvider, buildProposalsArray(3));
 
-    const renderSpy = vi.spyOn(agent as any, 'renderSlides').mockResolvedValue([FAKE_FIRST_SLIDE]);
+    const renderSpy = vi.spyOn(renderMod as any, 'renderSlides').mockResolvedValue([FAKE_FIRST_SLIDE]);
 
     const out = await (agent as any).generateDesignProposals('t', DUMMY_PLAN, {}, undefined);
     const prompt = (planningProvider.chat as any).mock.calls[0][0][0].content as string;
@@ -105,7 +106,7 @@ describe('generateDesignProposals proposalCount（F-1~F-4 + AC-6）', () => {
       mockReturnJson(planningProvider, buildProposalsArray(3));
 
       const renderSpy = vi
-        .spyOn(agent as any, 'renderSlides')
+        .spyOn(renderMod as any, 'renderSlides')
         .mockResolvedValue([FAKE_FIRST_SLIDE]);
 
       const out = await (agent as any).generateDesignProposals(
@@ -123,7 +124,7 @@ describe('generateDesignProposals proposalCount（F-1~F-4 + AC-6）', () => {
     const { agent, planningProvider } = buildAgent();
     (planningProvider.chat as any).mockRejectedValue(new Error('boom'));
 
-    const renderSpy = vi.spyOn(agent as any, 'renderSlides').mockResolvedValue([FAKE_FIRST_SLIDE]);
+    const renderSpy = vi.spyOn(renderMod as any, 'renderSlides').mockResolvedValue([FAKE_FIRST_SLIDE]);
 
     const out1 = await (agent as any).generateDesignProposals(
       't',
@@ -176,7 +177,7 @@ describe('generateDesignProposals proposalCount（F-1~F-4 + AC-6）', () => {
     const { agent, planningProvider } = buildAgent();
     mockReturnJson(planningProvider, buildProposalsArray(30));
 
-    const renderSpy = vi.spyOn(agent as any, 'renderSlides').mockResolvedValue([FAKE_FIRST_SLIDE]);
+    const renderSpy = vi.spyOn(renderMod as any, 'renderSlides').mockResolvedValue([FAKE_FIRST_SLIDE]);
 
     const out = await (agent as any).generateDesignProposals(
       't',

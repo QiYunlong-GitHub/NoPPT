@@ -4,6 +4,7 @@ import type {
   ReferenceVisualAttributes,
   CategoryReference,
 } from '../utils/reference-attribute-resolver';
+import * as refAttr from '../utils/reference-attribute-resolver';
 
 function buildAgent(): HTMLPresentationAgent {
   const dummy = {
@@ -11,7 +12,7 @@ function buildAgent(): HTMLPresentationAgent {
     config: {},
     supportsStreaming: false,
     chat: async () => ({
-      content: '',
+      content: '<main class="slide"><h1>再生页</h1></main>',
       usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
     }),
   } as any;
@@ -31,13 +32,19 @@ function makeRva(globalHtml: string): ReferenceVisualAttributes {
 describe('regenerateSingleSlide 透传 pageIndexInCategory（防重生成路径静默回退到 0）', () => {
   it('重生成第 2 张内容页时，generateSlideHtml 末位实参为真实分类内序号 1（而非默认 0）', async () => {
     const agent = buildAgent();
-    // 截获私有 generateSlideHtml，避免真实 LLM 调用，仅校验接线参数
+    // 截获翻页序号的接线点：regenerateSingleSlide → generateSlideHtml 末位实参 pageIndexInCategory
+    // 会透传给 formatReferenceOverrideForPage(refViz, pageType, pageIndexInCategory)。
+    // 跨模块函数可被 vi.spyOn 稳定拦截（模块内同名调用会被打包器内联，改在跨模块边界断言）。
     const spy = vi
-      .spyOn(agent as any, 'generateSlideHtml')
-      .mockImplementation(async () => '<div>stub</div>');
+      .spyOn(refAttr as any, 'formatReferenceOverrideForPage')
+      .mockReturnValue('');
 
     const plan: any = {
-      slides: [{ pageType: 'cover' }, { pageType: 'content-cards' }, { pageType: 'content-cards' }],
+      slides: [
+        { pageType: 'cover' },
+        { pageType: 'content-cards', keyPoints: ['要点一', '要点二'] },
+        { pageType: 'content-cards', keyPoints: ['要点A', '要点B'] },
+      ],
     };
     const design: any = {
       density: 'normal',
@@ -59,9 +66,7 @@ describe('regenerateSingleSlide 透传 pageIndexInCategory（防重生成路径�
     );
 
     expect(spy).toHaveBeenCalled();
-    const lastCall = spy.mock.calls[spy.mock.calls.length - 1];
-    const lastArg = lastCall[lastCall.length - 1];
     // 第 3 页（索引 2）是所属 content 分类内的第 2 页 → 序号应为 1，绝不是默认 0
-    expect(lastArg).toBe(1);
+    expect(spy.mock.calls[0][2]).toBe(1);
   });
 });

@@ -1,0 +1,771 @@
+
+### cover（封面页 · 海报级艺术字版本）
+```html
+<div style="width:100%;height:100%;overflow:hidden;position:relative;box-sizing:border-box;padding:48px 64px;display:flex;flex-direction:column;background-color:{{CANVAS_BG_COLOR}};font-family:system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', '微软雅黑', 'Noto Sans SC', 'Segoe UI', Roboto, sans-serif;justify-content:center;align-items:center;text-align:center;overflow:hidden;">
+  <!-- 装饰渐变形状1：右上角光晕椭圆 -->
+  <div style="position:absolute;top:-80px;right:-120px;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle,{{PRIMARY_COLOR}}35 0%,{{PRIMARY_COLOR}}10 45%,transparent 75%);pointer-events:none;"></div>
+  <!-- 装饰渐变形状2：左下角渐变斜切 -->
+  <div style="position:absolute;left:-160px;bottom:-120px;width:480px;height:400px;background:linear-gradient(135deg,{{PRIMARY_COLOR}}18,{{PRIMARY_COLOR_DARKER}}10);clip-path:polygon(0 30%,40% 0,80% 60%,30% 100%);pointer-events:none;"></div>
+  <!-- 装饰细线：左侧渐变竖线 -->
+  <div style="position:absolute;left:80px;top:20%;bottom:20%;width:3px;background:linear-gradient(180deg,transparent,{{PRIMARY_COLOR}},transparent);border-radius:2px;pointer-events:none;"></div>
+  <!-- 加粗渐变装饰下划线/分隔线（在标题下方） -->
+  <h1 style="font-size:92px;font-weight:900;margin:0 0 32px 0;line-height:1.1;letter-spacing:0.01em;width:100%;text-align:center;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;-webkit-text-stroke:1.5px {{PRIMARY_COLOR}}80;text-shadow:0 4px 30px {{PRIMARY_COLOR}}50, 0 0 70px {{PRIMARY_COLOR}}30, 0 0 140px {{PRIMARY_COLOR}}15;">主标题文字</h1>
+  <div style="width:180px;height:8px;background:linear-gradient(90deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});border-radius:4px;margin:0 0 32px 0;box-shadow:0 4px 20px {{PRIMARY_COLOR}}45;"></div>
+  <!-- 副标题分层：第1行加粗+主色渐变，第2~3行深灰，最后胶囊badge -->
+  <p style="font-size:32px;font-weight:700;line-height:1.4;margin:0 0 16px 0;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">副标题·核心定位（加粗渐变大字）</p>
+  <p style="font-size:24px;color:#1F2937;font-weight:600;margin:0 0 8px 0;line-height:1.5;overflow-wrap:break-word;word-break:break-word;">副标题第二行·亮点描述</p>
+  <p style="font-size:24px;color:#1F2937;font-weight:600;margin:0 0 32px 0;line-height:1.5;overflow-wrap:break-word;word-break:break-word;">副标题第三行·延伸信息</p>
+  <!-- 胶囊 badge -->
+  <div style="display:inline-flex;align-items:center;padding:8px 24px;border-radius:999px;background:{{PRIMARY_COLOR}}12;color:{{PRIMARY_COLOR}};font-size:18px;font-weight:600;letter-spacing:0.02em;box-shadow:0 2px 8px {{PRIMARY_COLOR}}20;overflow-wrap:break-word;word-break:break-word;">作者 / 公司 / 出品信息</div>
+</div>
+```
+
+### cover-left（封面页 · 左对齐构图版本 · 当参考为左对齐构图时使用）
+**当上方「参考版式结构指引 / 覆盖指令」标注左对齐构图时，使用本模板而非上面的居中封面；内容列左对齐、垂直居中，禁止居中三件套。**
+```html
+<div style="width:100%;height:100%;overflow:hidden;position:relative;box-sizing:border-box;padding:48px 64px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;text-align:left;background-color:{{CANVAS_BG_COLOR}};font-family:system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', '微软雅黑', 'Noto Sans SC', 'Segoe UI', Roboto, sans-serif">
+  <!-- 装饰：左上角几何色块（参考孟菲斯撞色风格） -->
+  <div style="position:absolute;top:48px;left:48px;width:120px;height:120px;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});border-radius:24px;transform:rotate(12deg);opacity:0.9;pointer-events:none;"></div>
+  <div style="position:absolute;bottom:-60px;right:-60px;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,{{PRIMARY_COLOR}}30 0%,{{PRIMARY_COLOR}}10 45%,transparent 75%);pointer-events:none;"></div>
+  <!-- 内容列左对齐，占 ~58% 宽 -->
+  <div style="position:relative;max-width:58%;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:24px;">
+    <h1 style="font-size:80px;font-weight:900;line-height:1.1;margin:0;letter-spacing:-0.01em;color:{{TITLE_TEXT_COLOR}};overflow-wrap:break-word;word-break:break-word;">主标题文字</h1>
+    <div style="width:160px;height:8px;background:linear-gradient(90deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});border-radius:4px;box-shadow:0 4px 20px {{PRIMARY_COLOR}}45;"></div>
+    <p style="font-size:28px;font-weight:700;line-height:1.4;margin:0;color:{{TITLE_TEXT_COLOR}};overflow-wrap:break-word;word-break:break-word;">核心定位副标题</p>
+    <p style="font-size:22px;color:#5c5c72;font-weight:600;margin:0;line-height:1.5;overflow-wrap:break-word;word-break:break-word;">延伸说明副标题</p>
+    <div style="display:inline-flex;align-items:center;padding:8px 24px;border-radius:999px;background:{{PRIMARY_COLOR}}12;color:{{PRIMARY_COLOR}};font-size:18px;font-weight:600;letter-spacing:0.02em;box-shadow:0 2px 8px {{PRIMARY_COLOR}}20;">作者 / 公司 / 出品信息</div>
+  </div>
+</div>
+```
+
+### toc（目录页）
+```html
+<div style="width:100%;height:100%;overflow:hidden;position:relative;box-sizing:border-box;padding:48px 64px;display:flex;flex-direction:column;background-color:{{CANVAS_BG_COLOR}};font-family:system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', '微软雅黑', 'Noto Sans SC', 'Segoe UI', Roboto, sans-serif;">
+  <h2 style="font-size:50px;font-weight:700;margin:0 0 32px 0;line-height:1.25;letter-spacing:-0.01em;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">目录</h2>
+  <div style="flex:1;display:flex;flex-direction:column;gap:24px;justify-content:center;min-height:0;">
+    <div style="display:flex;align-items:center;gap:24px;padding:24px 32px;background:{{PRIMARY_COLOR}}08;border-radius:12px;min-width:0;">
+      <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:44px;height:44px;border-radius:12px;background:{{PRIMARY_COLOR}}14;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><circle cx="12" cy="12" r="10" />
+  <circle cx="12" cy="12" r="6" />
+  <circle cx="12" cy="12" r="2" /></svg></span>
+      <span style="font-size:20px;color:#374151;font-weight:600;overflow-wrap:break-word;word-break:break-word;">条目一</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:24px;padding:24px 32px;background:{{PRIMARY_COLOR}}08;border-radius:12px;min-width:0;">
+      <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:44px;height:44px;border-radius:12px;background:{{PRIMARY_COLOR}}14;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><path d="m16 18 6-6-6-6" />
+  <path d="m8 6-6 6 6 6" /></svg></span>
+      <span style="font-size:20px;color:#374151;font-weight:600;overflow-wrap:break-word;word-break:break-word;">条目二</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:24px;padding:24px 32px;background:{{PRIMARY_COLOR}}08;border-radius:12px;min-width:0;">
+      <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:44px;height:44px;border-radius:12px;background:{{PRIMARY_COLOR}}14;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><path d="M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z" /></svg></span>
+      <span style="font-size:20px;color:#374151;font-weight:600;overflow-wrap:break-word;word-break:break-word;">条目三</span>
+    </div>
+  </div>
+</div>
+```
+
+### content-image-left（左图右文 · 55:45比例 · 卡片条化）
+**本模板为最终版式准绳：图片容器 flex:0 0 45% 且绝对不得有 margin；文字列 flex:0 0 55%；除替换文字内容外，不要改动结构与尺寸比例。**
+```html
+<div style="width:100%;height:100%;overflow:hidden;position:relative;box-sizing:border-box;padding:48px 64px;display:flex;flex-direction:column;background-color:{{CANVAS_BG_COLOR}};font-family:system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', '微软雅黑', 'Noto Sans SC', 'Segoe UI', Roboto, sans-serif;">
+  <h2 style="font-size:50px;font-weight:700;margin:0 0 32px 0;line-height:1.25;letter-spacing:-0.01em;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">页面标题</h2>
+  <div style="flex:1;display:flex;gap:40px;align-items:stretch;min-height:0;min-width:0;">
+    <div style="flex:0 0 45%;display:flex;align-items:stretch;min-height:0;min-width:0;overflow:hidden;border-radius:16px;">
+      <img src="https://NOPPT_IMAGE_PLACEHOLDER" data-image-ratio="4:3" style="width:100%;height:100%;object-fit:cover;border-radius:16px;display:block;">
+    </div>
+    <div style="flex:0 0 55%;display:flex;flex-direction:column;gap:0;min-height:0;min-width:0;overflow:hidden;justify-content:space-evenly;">
+      <ul style="margin:0;padding:0;list-style:none;min-width:0;display:flex;flex-direction:column;gap:24px;flex:1;min-height:0;">
+        <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;padding:24px 24px;border-radius:16px;background:linear-gradient(135deg,{{PRIMARY_COLOR}}08,{{PRIMARY_COLOR}}10);border-left:5px solid {{PRIMARY_COLOR}};box-shadow:0 4px 16px {{PRIMARY_COLOR}}15;min-width:0;">
+          <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:40px;height:40px;border-radius:12px;background:{{PRIMARY_COLOR}}14;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><circle cx="12" cy="12" r="10" />
+  <circle cx="12" cy="12" r="6" />
+  <circle cx="12" cy="12" r="2" /></svg></span>
+          <span style="font-size:20px;font-weight:600;color:#111827;line-height:1.4;flex:1;min-width:0;overflow-wrap:break-word;word-break:break-word;">核心要点一</span>
+        </li>
+        <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;padding:24px 24px;border-radius:16px;background:linear-gradient(135deg,{{PRIMARY_COLOR}}08,{{PRIMARY_COLOR}}10);border-left:5px solid {{PRIMARY_COLOR}};box-shadow:0 4px 16px {{PRIMARY_COLOR}}15;min-width:0;">
+          <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:40px;height:40px;border-radius:12px;background:{{PRIMARY_COLOR}}14;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><path d="m16 18 6-6-6-6" />
+  <path d="m8 6-6 6 6 6" /></svg></span>
+          <span style="font-size:20px;font-weight:600;color:#111827;line-height:1.4;flex:1;min-width:0;overflow-wrap:break-word;word-break:break-word;">核心要点二</span>
+        </li>
+        <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;padding:24px 24px;border-radius:16px;background:linear-gradient(135deg,{{PRIMARY_COLOR}}08,{{PRIMARY_COLOR}}10);border-left:5px solid {{PRIMARY_COLOR}};box-shadow:0 4px 16px {{PRIMARY_COLOR}}15;min-width:0;">
+          <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:40px;height:40px;border-radius:12px;background:{{PRIMARY_COLOR}}14;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><path d="M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z" /></svg></span>
+          <span style="font-size:20px;font-weight:600;color:#111827;line-height:1.4;flex:1;min-width:0;overflow-wrap:break-word;word-break:break-word;">核心要点三</span>
+        </li>
+        <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;padding:24px 24px;border-radius:16px;background:linear-gradient(135deg,{{PRIMARY_COLOR}}08,{{PRIMARY_COLOR}}10);border-left:5px solid {{PRIMARY_COLOR}};box-shadow:0 4px 16px {{PRIMARY_COLOR}}15;min-width:0;">
+          <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:40px;height:40px;border-radius:12px;background:{{PRIMARY_COLOR}}14;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+  <path d="m9 12 2 2 4-4" /></svg></span>
+          <span style="font-size:20px;font-weight:600;color:#111827;line-height:1.4;flex:1;min-width:0;overflow-wrap:break-word;word-break:break-word;">核心要点四</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+```
+
+### content-image-right（右图左文 · 55:45比例 · 卡片条化）
+**本模板为最终版式准绳：图片容器 flex:0 0 45% 且绝对不得有 margin；文字列 flex:0 0 55%；除替换文字内容外，不要改动结构与尺寸比例。**
+```html
+<div style="width:100%;height:100%;overflow:hidden;position:relative;box-sizing:border-box;padding:48px 64px;display:flex;flex-direction:column;background-color:{{CANVAS_BG_COLOR}};font-family:system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', '微软雅黑', 'Noto Sans SC', 'Segoe UI', Roboto, sans-serif;">
+  <h2 style="font-size:50px;font-weight:700;margin:0 0 32px 0;line-height:1.25;letter-spacing:-0.01em;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">页面标题</h2>
+  <div style="flex:1;display:flex;gap:40px;align-items:stretch;min-height:0;min-width:0;">
+    <div style="flex:0 0 55%;display:flex;flex-direction:column;gap:0;min-height:0;min-width:0;overflow:hidden;justify-content:space-evenly;">
+      <ul style="margin:0;padding:0;list-style:none;min-width:0;display:flex;flex-direction:column;gap:24px;flex:1;min-height:0;">
+        <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;padding:24px 24px;border-radius:16px;background:linear-gradient(135deg,{{PRIMARY_COLOR}}08,{{PRIMARY_COLOR}}10);border-left:5px solid {{PRIMARY_COLOR}};box-shadow:0 4px 16px {{PRIMARY_COLOR}}15;min-width:0;">
+          <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:40px;height:40px;border-radius:12px;background:{{PRIMARY_COLOR}}14;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><circle cx="12" cy="12" r="10" />
+  <circle cx="12" cy="12" r="6" />
+  <circle cx="12" cy="12" r="2" /></svg></span>
+          <span style="font-size:20px;font-weight:600;color:#111827;line-height:1.4;flex:1;min-width:0;overflow-wrap:break-word;word-break:break-word;">核心要点一</span>
+        </li>
+        <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;padding:24px 24px;border-radius:16px;background:linear-gradient(135deg,{{PRIMARY_COLOR}}08,{{PRIMARY_COLOR}}10);border-left:5px solid {{PRIMARY_COLOR}};box-shadow:0 4px 16px {{PRIMARY_COLOR}}15;min-width:0;">
+          <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:40px;height:40px;border-radius:12px;background:{{PRIMARY_COLOR}}14;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><path d="m16 18 6-6-6-6" />
+  <path d="m8 6-6 6 6 6" /></svg></span>
+          <span style="font-size:20px;font-weight:600;color:#111827;line-height:1.4;flex:1;min-width:0;overflow-wrap:break-word;word-break:break-word;">核心要点二</span>
+        </li>
+        <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;padding:24px 24px;border-radius:16px;background:linear-gradient(135deg,{{PRIMARY_COLOR}}08,{{PRIMARY_COLOR}}10);border-left:5px solid {{PRIMARY_COLOR}};box-shadow:0 4px 16px {{PRIMARY_COLOR}}15;min-width:0;">
+          <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:40px;height:40px;border-radius:12px;background:{{PRIMARY_COLOR}}14;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><path d="M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z" /></svg></span>
+          <span style="font-size:20px;font-weight:600;color:#111827;line-height:1.4;flex:1;min-width:0;overflow-wrap:break-word;word-break:break-word;">核心要点三</span>
+        </li>
+        <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;padding:24px 24px;border-radius:16px;background:linear-gradient(135deg,{{PRIMARY_COLOR}}08,{{PRIMARY_COLOR}}10);border-left:5px solid {{PRIMARY_COLOR}};box-shadow:0 4px 16px {{PRIMARY_COLOR}}15;min-width:0;">
+          <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:40px;height:40px;border-radius:12px;background:{{PRIMARY_COLOR}}14;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+  <path d="m9 12 2 2 4-4" /></svg></span>
+          <span style="font-size:20px;font-weight:600;color:#111827;line-height:1.4;flex:1;min-width:0;overflow-wrap:break-word;word-break:break-word;">核心要点四</span>
+        </li>
+      </ul>
+    </div>
+    <div style="flex:0 0 45%;display:flex;align-items:stretch;min-height:0;min-width:0;overflow:hidden;border-radius:16px;">
+      <img src="https://NOPPT_IMAGE_PLACEHOLDER" data-image-ratio="4:3" style="width:100%;height:100%;object-fit:cover;border-radius:16px;display:block;">
+    </div>
+  </div>
+</div>
+```
+
+### content-image-top（上图下文 · 要点 ≤ 3 → 单列）
+```html
+<div style="width:100%;height:100%;overflow:hidden;position:relative;box-sizing:border-box;padding:48px 64px;display:flex;flex-direction:column;background-color:{{CANVAS_BG_COLOR}};font-family:system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', '微软雅黑', 'Noto Sans SC', 'Segoe UI', Roboto, sans-serif;">
+  <h2 style="font-size:50px;font-weight:700;margin:0 0 32px 0;line-height:1.25;letter-spacing:-0.01em;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">页面标题</h2>
+  <div style="flex:0 0 40%;display:flex;align-items:stretch;min-height:0;min-width:0;overflow:hidden;border-radius:16px;margin-bottom:20px;">
+    <img src="https://NOPPT_IMAGE_PLACEHOLDER" data-image-ratio="21:9" style="width:100%;height:100%;object-fit:cover;border-radius:16px;display:block;">
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:0;min-height:0;min-width:0;overflow:hidden;justify-content:center;">
+    <ul style="font-size:19px;color:#374151;margin:0;padding:0;list-style:none;min-width:0;display:flex;flex-direction:column;gap:16px;">
+      <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;"><span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:28px;height:28px;border-radius:8px;background:{{PRIMARY_COLOR}}10;color:{{PRIMARY_COLOR}};"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><circle cx="12" cy="12" r="10" />
+  <circle cx="12" cy="12" r="6" />
+  <circle cx="12" cy="12" r="2" /></svg></span><span style="line-height:1.4;flex:1;">核心要点一</span></li>
+      <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;"><span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:28px;height:28px;border-radius:8px;background:{{PRIMARY_COLOR}}10;color:{{PRIMARY_COLOR}};"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><path d="m16 18 6-6-6-6" />
+  <path d="m8 6-6 6 6 6" /></svg></span><span style="line-height:1.4;flex:1;">核心要点二</span></li>
+      <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;"><span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:28px;height:28px;border-radius:8px;background:{{PRIMARY_COLOR}}10;color:{{PRIMARY_COLOR}};"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><path d="M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z" /></svg></span><span style="line-height:1.4;flex:1;">核心要点三</span></li>
+    </ul>
+  </div>
+</div>
+```
+
+### content-image-top（上图下文 · 要点 ≥ 4 → 双列 Grid）
+要点数 ≥ 4 时必须用以下双列 Grid 版本（图片更扁 21:9 + 图片更矮 33% + li padding/字号/icon 更紧凑）：
+```html
+<div style="width:100%;height:100%;overflow:hidden;position:relative;box-sizing:border-box;padding:48px 64px;display:flex;flex-direction:column;background-color:{{CANVAS_BG_COLOR}};font-family:system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', '微软雅黑', 'Noto Sans SC', 'Segoe UI', Roboto, sans-serif;">
+  <h2 style="font-size:50px;font-weight:700;margin:0 0 32px 0;line-height:1.25;letter-spacing:-0.01em;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">页面标题</h2>
+  <div style="flex:0 0 33%;display:flex;align-items:stretch;min-height:0;min-width:0;overflow:hidden;border-radius:16px;margin-bottom:16px;">
+    <img src="https://NOPPT_IMAGE_PLACEHOLDER" data-image-ratio="21:9" style="width:100%;height:100%;object-fit:cover;border-radius:16px;display:block;">
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:0;min-height:0;min-width:0;overflow:hidden;justify-content:center;">
+    <ul style="font-size:19px;color:#374151;margin:0;padding:0;list-style:none;min-width:0;display:grid;grid-template-columns:repeat(2,1fr);gap:16px 24px;">
+      <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;padding:16px 24px;border-radius:12px;background:linear-gradient(135deg,{{PRIMARY_COLOR}}08,{{PRIMARY_COLOR}}12);border-left:5px solid {{PRIMARY_COLOR}};box-shadow:0 4px 16px {{PRIMARY_COLOR}}15;min-width:0;list-style:none;">
+        <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:36px;height:36px;border-radius:12px;background:{{PRIMARY_COLOR}}14;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><circle cx="12" cy="12" r="10" />
+  <circle cx="12" cy="12" r="6" />
+  <circle cx="12" cy="12" r="2" /></svg></span>
+        <span style="font-size:19px;font-weight:600;color:#111827;line-height:1.4;flex:1;min-width:0;overflow-wrap:break-word;word-break:break-word;">核心要点一</span>
+      </li>
+      <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;padding:16px 24px;border-radius:12px;background:linear-gradient(135deg,{{PRIMARY_COLOR}}08,{{PRIMARY_COLOR}}12);border-left:5px solid {{PRIMARY_COLOR}};box-shadow:0 4px 16px {{PRIMARY_COLOR}}15;min-width:0;list-style:none;">
+        <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:36px;height:36px;border-radius:12px;background:{{PRIMARY_COLOR}}14;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><path d="m16 18 6-6-6-6" />
+  <path d="m8 6-6 6 6 6" /></svg></span>
+        <span style="font-size:19px;font-weight:600;color:#111827;line-height:1.4;flex:1;min-width:0;overflow-wrap:break-word;word-break:break-word;">核心要点二</span>
+      </li>
+      <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;padding:16px 24px;border-radius:12px;background:linear-gradient(135deg,{{PRIMARY_COLOR}}08,{{PRIMARY_COLOR}}12);border-left:5px solid {{PRIMARY_COLOR}};box-shadow:0 4px 16px {{PRIMARY_COLOR}}15;min-width:0;list-style:none;">
+        <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:36px;height:36px;border-radius:12px;background:{{PRIMARY_COLOR}}14;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><path d="M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z" /></svg></span>
+        <span style="font-size:19px;font-weight:600;color:#111827;line-height:1.4;flex:1;min-width:0;overflow-wrap:break-word;word-break:break-word;">核心要点三</span>
+      </li>
+      <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;padding:16px 24px;border-radius:12px;background:linear-gradient(135deg,{{PRIMARY_COLOR}}08,{{PRIMARY_COLOR}}12);border-left:5px solid {{PRIMARY_COLOR}};box-shadow:0 4px 16px {{PRIMARY_COLOR}}15;min-width:0;list-style:none;">
+        <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:36px;height:36px;border-radius:12px;background:{{PRIMARY_COLOR}}14;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+  <path d="m9 12 2 2 4-4" /></svg></span>
+        <span style="font-size:19px;font-weight:600;color:#111827;line-height:1.4;flex:1;min-width:0;overflow-wrap:break-word;word-break:break-word;">核心要点四</span>
+      </li>
+    </ul>
+  </div>
+</div>
+```
+
+### content-no-image（纯文字内容页）
+```html
+<div style="width:100%;height:100%;overflow:hidden;position:relative;box-sizing:border-box;padding:48px 64px;display:flex;flex-direction:column;background-color:{{CANVAS_BG_COLOR}};font-family:system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', '微软雅黑', 'Noto Sans SC', 'Segoe UI', Roboto, sans-serif;">
+  <h2 style="font-size:50px;font-weight:700;margin:0 0 32px 0;line-height:1.25;letter-spacing:-0.01em;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">页面标题</h2>
+  <div style="flex:1;display:flex;flex-direction:column;gap:16px;min-height:0;min-width:0;overflow:hidden;justify-content:center;">
+    <ul style="font-size:20px;color:#374151;margin:0;padding:0;list-style:none;min-width:0;display:flex;flex-direction:column;gap:24px;">
+      <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;"><span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:28px;height:28px;border-radius:8px;background:{{PRIMARY_COLOR}}10;color:{{PRIMARY_COLOR}};"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><circle cx="12" cy="12" r="10" />
+  <circle cx="12" cy="12" r="6" />
+  <circle cx="12" cy="12" r="2" /></svg></span><span style="line-height:1.4;flex:1;">核心要点一</span></li>
+      <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;"><span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:28px;height:28px;border-radius:8px;background:{{PRIMARY_COLOR}}10;color:{{PRIMARY_COLOR}};"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><path d="m16 18 6-6-6-6" />
+  <path d="m8 6-6 6 6 6" /></svg></span><span style="line-height:1.4;flex:1;">核心要点二</span></li>
+      <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;"><span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:28px;height:28px;border-radius:8px;background:{{PRIMARY_COLOR}}10;color:{{PRIMARY_COLOR}};"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><path d="M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z" /></svg></span><span style="line-height:1.4;flex:1;">核心要点三</span></li>
+      <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;"><span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:28px;height:28px;border-radius:8px;background:{{PRIMARY_COLOR}}10;color:{{PRIMARY_COLOR}};"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+  <path d="m9 12 2 2 4-4" /></svg></span><span style="line-height:1.4;flex:1;">核心要点四</span></li>
+      <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;"><span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:28px;height:28px;border-radius:8px;background:{{PRIMARY_COLOR}}10;color:{{PRIMARY_COLOR}};"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" />
+  <path d="M9 18h6" />
+  <path d="M10 22h4" /></svg></span><span style="line-height:1.4;flex:1;">核心要点五</span></li>
+    </ul>
+  </div>
+</div>
+```
+
+### content-cards（卡片网格页，4个卡片）
+```html
+<div style="width:100%;height:100%;overflow:hidden;position:relative;box-sizing:border-box;padding:48px 64px;display:flex;flex-direction:column;background-color:{{CANVAS_BG_COLOR}};font-family:system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', '微软雅黑', 'Noto Sans SC', 'Segoe UI', Roboto, sans-serif;">
+  <h2 style="font-size:50px;font-weight:700;margin:0 0 32px 0;line-height:1.25;letter-spacing:-0.01em;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">页面标题</h2>
+  <div style="flex:1;display:grid;grid-template-columns:repeat(2,1fr);gap:24px;min-height:0;align-content:center;min-width:0;">
+    <div style="padding:32px 32px 32px 32px;background:#F9FAFB;border-radius:16px;border:1px solid #E5E7EB;border-left:5px solid {{PRIMARY_COLOR}};box-shadow:0 4px 6px -1px rgba(0,0,0,0.06);display:flex;flex-direction:column;gap:16px;min-height:0;min-width:0;align-items:flex-start;justify-content:center;">
+      <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:48px;height:48px;border-radius:12px;background:{{PRIMARY_COLOR}}14;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><circle cx="12" cy="12" r="10" />
+  <circle cx="12" cy="12" r="6" />
+  <circle cx="12" cy="12" r="2" /></svg></span>
+      <h3 style="font-size:28px;font-weight:800;margin:0;line-height:1.35;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">卡片标题一</h3>
+      <p style="font-size:20px;line-height:1.5;color:#374151;margin:0;font-weight:500;overflow-wrap:break-word;word-break:break-word;">简短描述概括核心价值</p>
+      <ul style="margin:4px 0 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;min-width:0;">
+        <li style="display:flex;align-items:flex-start;gap:8px;font-size:17px;color:#4B5563;line-height:1.5;">
+          <span style="width:6px;height:6px;border-radius:50%;background:{{PRIMARY_COLOR}};flex-shrink:0;margin-top:7px"></span>
+          <span style="overflow-wrap:break-word;word-break:break-word;">要点一的具体说明</span>
+        </li>
+        <li style="display:flex;align-items:flex-start;gap:8px;font-size:17px;color:#4B5563;line-height:1.5;">
+          <span style="width:6px;height:6px;border-radius:50%;background:{{PRIMARY_COLOR}};flex-shrink:0;margin-top:7px"></span>
+          <span style="overflow-wrap:break-word;word-break:break-word;">要点二的具体说明</span>
+        </li>
+      </ul>
+    </div>
+    <div style="padding:32px 32px 32px 32px;background:#F9FAFB;border-radius:16px;border:1px solid #E5E7EB;border-left:5px solid {{PRIMARY_COLOR}};box-shadow:0 4px 6px -1px rgba(0,0,0,0.06);display:flex;flex-direction:column;gap:16px;min-height:0;min-width:0;align-items:flex-start;justify-content:center;">
+      <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:48px;height:48px;border-radius:12px;background:{{PRIMARY_COLOR}}14;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><path d="m16 18 6-6-6-6" />
+  <path d="m8 6-6 6 6 6" /></svg></span>
+      <h3 style="font-size:28px;font-weight:800;margin:0;line-height:1.35;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">卡片标题二</h3>
+      <p style="font-size:20px;line-height:1.5;color:#374151;margin:0;font-weight:500;overflow-wrap:break-word;word-break:break-word;">简短描述概括核心价值</p>
+      <ul style="margin:4px 0 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;min-width:0;">
+        <li style="display:flex;align-items:flex-start;gap:8px;font-size:17px;color:#4B5563;line-height:1.5;">
+          <span style="width:6px;height:6px;border-radius:50%;background:{{PRIMARY_COLOR}};flex-shrink:0;margin-top:7px"></span>
+          <span style="overflow-wrap:break-word;word-break:break-word;">要点一的具体说明</span>
+        </li>
+        <li style="display:flex;align-items:flex-start;gap:8px;font-size:17px;color:#4B5563;line-height:1.5;">
+          <span style="width:6px;height:6px;border-radius:50%;background:{{PRIMARY_COLOR}};flex-shrink:0;margin-top:7px"></span>
+          <span style="overflow-wrap:break-word;word-break:break-word;">要点二的具体说明</span>
+        </li>
+      </ul>
+    </div>
+    <div style="padding:32px 32px 32px 32px;background:#F9FAFB;border-radius:16px;border:1px solid #E5E7EB;border-left:5px solid {{PRIMARY_COLOR}};box-shadow:0 4px 6px -1px rgba(0,0,0,0.06);display:flex;flex-direction:column;gap:16px;min-height:0;min-width:0;align-items:flex-start;justify-content:center;">
+      <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:48px;height:48px;border-radius:12px;background:{{PRIMARY_COLOR}}14;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><path d="M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z" /></svg></span>
+      <h3 style="font-size:28px;font-weight:800;margin:0;line-height:1.35;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">卡片标题三</h3>
+      <p style="font-size:20px;line-height:1.5;color:#374151;margin:0;font-weight:500;overflow-wrap:break-word;word-break:break-word;">简短描述概括核心价值</p>
+      <ul style="margin:4px 0 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;min-width:0;">
+        <li style="display:flex;align-items:flex-start;gap:8px;font-size:17px;color:#4B5563;line-height:1.5;">
+          <span style="width:6px;height:6px;border-radius:50%;background:{{PRIMARY_COLOR}};flex-shrink:0;margin-top:7px"></span>
+          <span style="overflow-wrap:break-word;word-break:break-word;">要点一的具体说明</span>
+        </li>
+        <li style="display:flex;align-items:flex-start;gap:8px;font-size:17px;color:#4B5563;line-height:1.5;">
+          <span style="width:6px;height:6px;border-radius:50%;background:{{PRIMARY_COLOR}};flex-shrink:0;margin-top:7px"></span>
+          <span style="overflow-wrap:break-word;word-break:break-word;">要点二的具体说明</span>
+        </li>
+      </ul>
+    </div>
+    <div style="padding:32px 32px 32px 32px;background:#F9FAFB;border-radius:16px;border:1px solid #E5E7EB;border-left:5px solid {{PRIMARY_COLOR}};box-shadow:0 4px 6px -1px rgba(0,0,0,0.06);display:flex;flex-direction:column;gap:16px;min-height:0;min-width:0;align-items:flex-start;justify-content:center;">
+      <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:48px;height:48px;border-radius:12px;background:{{PRIMARY_COLOR}}14;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+  <path d="m9 12 2 2 4-4" /></svg></span>
+      <h3 style="font-size:28px;font-weight:800;margin:0;line-height:1.35;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">卡片标题四</h3>
+      <p style="font-size:20px;line-height:1.5;color:#374151;margin:0;font-weight:500;overflow-wrap:break-word;word-break:break-word;">简短描述概括核心价值</p>
+      <ul style="margin:4px 0 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;min-width:0;">
+        <li style="display:flex;align-items:flex-start;gap:8px;font-size:17px;color:#4B5563;line-height:1.5;">
+          <span style="width:6px;height:6px;border-radius:50%;background:{{PRIMARY_COLOR}};flex-shrink:0;margin-top:7px"></span>
+          <span style="overflow-wrap:break-word;word-break:break-word;">要点一的具体说明</span>
+        </li>
+        <li style="display:flex;align-items:flex-start;gap:8px;font-size:17px;color:#4B5563;line-height:1.5;">
+          <span style="width:6px;height:6px;border-radius:50%;background:{{PRIMARY_COLOR}};flex-shrink:0;margin-top:7px"></span>
+          <span style="overflow-wrap:break-word;word-break:break-word;">要点二的具体说明</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+```
+如果是3个卡片，用grid-template-columns:repeat(3,1fr)。
+
+### content-cards（卡片网格页，3个卡片）
+```html
+<div style="width:100%;height:100%;overflow:hidden;position:relative;box-sizing:border-box;padding:48px 64px;display:flex;flex-direction:column;background-color:{{CANVAS_BG_COLOR}};font-family:system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', '微软雅黑', 'Noto Sans SC', 'Segoe UI', Roboto, sans-serif;">
+  <h2 style="font-size:50px;font-weight:700;margin:0 0 32px 0;line-height:1.25;letter-spacing:-0.01em;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">页面标题</h2>
+  <div style="flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:24px;min-height:0;align-content:center;min-width:0;">
+    <div style="padding:32px 32px 32px 32px;background:#F9FAFB;border-radius:16px;border:1px solid #E5E7EB;border-left:5px solid {{PRIMARY_COLOR}};box-shadow:0 4px 6px -1px rgba(0,0,0,0.06);display:flex;flex-direction:column;gap:16px;min-height:0;min-width:0;align-items:flex-start;justify-content:center;">
+      <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:48px;height:48px;border-radius:12px;background:{{PRIMARY_COLOR}}14;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><circle cx="12" cy="12" r="10" />
+  <circle cx="12" cy="12" r="6" />
+  <circle cx="12" cy="12" r="2" /></svg></span>
+      <h3 style="font-size:28px;font-weight:800;margin:0;line-height:1.35;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">卡片标题一</h3>
+      <p style="font-size:20px;line-height:1.5;color:#374151;margin:0;font-weight:500;overflow-wrap:break-word;word-break:break-word;">简短描述概括核心价值</p>
+      <ul style="margin:4px 0 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;min-width:0;">
+        <li style="display:flex;align-items:flex-start;gap:8px;font-size:17px;color:#4B5563;line-height:1.5;">
+          <span style="width:6px;height:6px;border-radius:50%;background:{{PRIMARY_COLOR}};flex-shrink:0;margin-top:7px"></span>
+          <span style="overflow-wrap:break-word;word-break:break-word;">要点一的具体说明</span>
+        </li>
+        <li style="display:flex;align-items:flex-start;gap:8px;font-size:17px;color:#4B5563;line-height:1.5;">
+          <span style="width:6px;height:6px;border-radius:50%;background:{{PRIMARY_COLOR}};flex-shrink:0;margin-top:7px"></span>
+          <span style="overflow-wrap:break-word;word-break:break-word;">要点二的具体说明</span>
+        </li>
+        <li style="display:flex;align-items:flex-start;gap:8px;font-size:17px;color:#4B5563;line-height:1.5;">
+          <span style="width:6px;height:6px;border-radius:50%;background:{{PRIMARY_COLOR}};flex-shrink:0;margin-top:7px"></span>
+          <span style="overflow-wrap:break-word;word-break:break-word;">要点三的具体说明</span>
+        </li>
+      </ul>
+    </div>
+    <div style="padding:32px 32px 32px 32px;background:#F9FAFB;border-radius:16px;border:1px solid #E5E7EB;border-left:5px solid {{PRIMARY_COLOR}};box-shadow:0 4px 6px -1px rgba(0,0,0,0.06);display:flex;flex-direction:column;gap:16px;min-height:0;min-width:0;align-items:flex-start;justify-content:center;">
+      <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:48px;height:48px;border-radius:12px;background:{{PRIMARY_COLOR}}14;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><path d="m16 18 6-6-6-6" />
+  <path d="m8 6-6 6 6 6" /></svg></span>
+      <h3 style="font-size:28px;font-weight:800;margin:0;line-height:1.35;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">卡片标题二</h3>
+      <p style="font-size:20px;line-height:1.5;color:#374151;margin:0;font-weight:500;overflow-wrap:break-word;word-break:break-word;">简短描述概括核心价值</p>
+      <ul style="margin:4px 0 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;min-width:0;">
+        <li style="display:flex;align-items:flex-start;gap:8px;font-size:17px;color:#4B5563;line-height:1.5;">
+          <span style="width:6px;height:6px;border-radius:50%;background:{{PRIMARY_COLOR}};flex-shrink:0;margin-top:7px"></span>
+          <span style="overflow-wrap:break-word;word-break:break-word;">要点一的具体说明</span>
+        </li>
+        <li style="display:flex;align-items:flex-start;gap:8px;font-size:17px;color:#4B5563;line-height:1.5;">
+          <span style="width:6px;height:6px;border-radius:50%;background:{{PRIMARY_COLOR}};flex-shrink:0;margin-top:7px"></span>
+          <span style="overflow-wrap:break-word;word-break:break-word;">要点二的具体说明</span>
+        </li>
+        <li style="display:flex;align-items:flex-start;gap:8px;font-size:17px;color:#4B5563;line-height:1.5;">
+          <span style="width:6px;height:6px;border-radius:50%;background:{{PRIMARY_COLOR}};flex-shrink:0;margin-top:7px"></span>
+          <span style="overflow-wrap:break-word;word-break:break-word;">要点三的具体说明</span>
+        </li>
+      </ul>
+    </div>
+    <div style="padding:32px 32px 32px 32px;background:#F9FAFB;border-radius:16px;border:1px solid #E5E7EB;border-left:5px solid {{PRIMARY_COLOR}};box-shadow:0 4px 6px -1px rgba(0,0,0,0.06);display:flex;flex-direction:column;gap:16px;min-height:0;min-width:0;align-items:flex-start;justify-content:center;">
+      <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:48px;height:48px;border-radius:12px;background:{{PRIMARY_COLOR}}14;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><path d="M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z" /></svg></span>
+      <h3 style="font-size:28px;font-weight:800;margin:0;line-height:1.35;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">卡片标题三</h3>
+      <p style="font-size:20px;line-height:1.5;color:#374151;margin:0;font-weight:500;overflow-wrap:break-word;word-break:break-word;">简短描述概括核心价值</p>
+      <ul style="margin:4px 0 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;min-width:0;">
+        <li style="display:flex;align-items:flex-start;gap:8px;font-size:17px;color:#4B5563;line-height:1.5;">
+          <span style="width:6px;height:6px;border-radius:50%;background:{{PRIMARY_COLOR}};flex-shrink:0;margin-top:7px"></span>
+          <span style="overflow-wrap:break-word;word-break:break-word;">要点一的具体说明</span>
+        </li>
+        <li style="display:flex;align-items:flex-start;gap:8px;font-size:17px;color:#4B5563;line-height:1.5;">
+          <span style="width:6px;height:6px;border-radius:50%;background:{{PRIMARY_COLOR}};flex-shrink:0;margin-top:7px"></span>
+          <span style="overflow-wrap:break-word;word-break:break-word;">要点二的具体说明</span>
+        </li>
+        <li style="display:flex;align-items:flex-start;gap:8px;font-size:17px;color:#4B5563;line-height:1.5;">
+          <span style="width:6px;height:6px;border-radius:50%;background:{{PRIMARY_COLOR}};flex-shrink:0;margin-top:7px"></span>
+          <span style="overflow-wrap:break-word;word-break:break-word;">要点三的具体说明</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+```
+
+### content-compare（两栏对比 · 右栏浅底禁白字，强制主色字）
+```html
+<div style="width:100%;height:100%;overflow:hidden;position:relative;box-sizing:border-box;padding:48px 64px;display:flex;flex-direction:column;background-color:{{CANVAS_BG_COLOR}};font-family:system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', '微软雅黑', 'Noto Sans SC', 'Segoe UI', Roboto, sans-serif;">
+  <h2 style="font-size:50px;font-weight:700;margin:0 0 32px 0;line-height:1.25;letter-spacing:-0.01em;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">页面标题</h2>
+  <div style="flex:1;display:flex;gap:32px;min-height:0;min-width:0;align-items:stretch;">
+    <div style="flex:1;padding:32px;border-radius:16px;border:2px solid #E5E7EB;display:flex;flex-direction:column;gap:24px;min-width:0;min-height:0;">
+      <h3 style="font-size:28px;font-weight:700;color:#374151;margin:0;text-align:center;padding-bottom:16px;border-bottom:2px solid #E5E7EB;overflow-wrap:break-word;word-break:break-word;">左栏标题</h3>
+      <ul style="font-size:22px;color:#374151;margin:0;padding:0;list-style:none;flex:1;min-width:0;display:flex;flex-direction:column;gap:16px;">
+        <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;"><span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:20px;height:20px;border-radius:50%;background:#E5E7EB;"><svg width="10" height="10" viewBox="0 0 10 10"><rect x="2" y="4.5" width="6" height="1.5" rx="0.75" fill="#9CA3AF"/></svg></span><span style="line-height:1.4;flex:1;">对比项一</span></li>
+        <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;"><span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:20px;height:20px;border-radius:50%;background:#E5E7EB;"><svg width="10" height="10" viewBox="0 0 10 10"><rect x="2" y="4.5" width="6" height="1.5" rx="0.75" fill="#9CA3AF"/></svg></span><span style="line-height:1.4;flex:1;">对比项二</span></li>
+        <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;"><span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:20px;height:20px;border-radius:50%;background:#E5E7EB;"><svg width="10" height="10" viewBox="0 0 10 10"><rect x="2" y="4.5" width="6" height="1.5" rx="0.75" fill="#9CA3AF"/></svg></span><span style="line-height:1.4;flex:1;">对比项三</span></li>
+      </ul>
+    </div>
+    <div style="flex:1;padding:32px;border-radius:16px;background:{{PRIMARY_COLOR}}08;border:2px solid {{PRIMARY_COLOR}};display:flex;flex-direction:column;gap:24px;min-width:0;min-height:0;">
+      <h3 style="font-size:28px;font-weight:800;margin:0;text-align:center;padding-bottom:16px;border-bottom:2px solid {{PRIMARY_COLOR}}30;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">右栏标题</h3>
+      <ul style="font-size:22px;color:#374151;margin:0;padding:0;list-style:none;flex:1;min-width:0;display:flex;flex-direction:column;gap:16px;">
+        <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;"><span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});box-shadow:0 2px 8px {{PRIMARY_COLOR}}40;"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M13 4L6.5 10.5L3 7" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span style="line-height:1.4;flex:1;color:#111827;font-weight:600;">对比项一</span></li>
+        <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;"><span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});box-shadow:0 2px 8px {{PRIMARY_COLOR}}40;"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M13 4L6.5 10.5L3 7" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span style="line-height:1.4;flex:1;color:#111827;font-weight:600;">对比项二</span></li>
+        <li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;"><span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});box-shadow:0 2px 8px {{PRIMARY_COLOR}}40;"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M13 4L6.5 10.5L3 7" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span style="line-height:1.4;flex:1;color:#111827;font-weight:600;">对比项三</span></li>
+      </ul>
+    </div>
+  </div>
+</div>
+```
+
+### content-timeline（时间轴页）
+```html
+<div style="width:100%;height:100%;overflow:hidden;position:relative;box-sizing:border-box;padding:48px 64px;display:flex;flex-direction:column;background-color:{{CANVAS_BG_COLOR}};font-family:system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', '微软雅黑', 'Noto Sans SC', 'Segoe UI', Roboto, sans-serif;">
+  <h2 style="font-size:50px;font-weight:700;margin:0 0 32px 0;line-height:1.25;letter-spacing:-0.01em;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">页面标题</h2>
+  <div style="flex:1;display:flex;flex-direction:column;gap:0;min-height:0;overflow:hidden;justify-content:center;position:relative;padding-left:56px;">
+    <div style="position:absolute;left:27px;top:16px;bottom:16px;width:4px;background:{{PRIMARY_COLOR}}20;border-radius:2px;"></div>
+    <div style="display:flex;gap:24px;align-items:center;min-width:0;">
+      <div style="flex-shrink:0;margin-left:-56px;z-index:1;position:relative;"><span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:40px;height:40px;border-radius:12px;background:{{PRIMARY_COLOR}}14;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><circle cx="12" cy="12" r="10" />
+  <circle cx="12" cy="12" r="6" />
+  <circle cx="12" cy="12" r="2" /></svg></span></div>
+      <div style="flex:1;padding-bottom:24px;min-width:0;">
+        <h3 style="font-size:22px;font-weight:700;color:{{PRIMARY_COLOR}};margin:0 0 8px 0;line-height:1.4;overflow-wrap:break-word;word-break:break-word;">第一阶段标题</h3>
+        <p style="font-size:18px;line-height:1.7;color:#6B7280;margin:0;overflow-wrap:break-word;word-break:break-word;">简要描述</p>
+      </div>
+    </div>
+    <div style="display:flex;gap:24px;align-items:center;min-width:0;">
+      <div style="flex-shrink:0;margin-left:-56px;z-index:1;position:relative;"><span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:40px;height:40px;border-radius:12px;background:{{PRIMARY_COLOR}}14;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><path d="m16 18 6-6-6-6" />
+  <path d="m8 6-6 6 6 6" /></svg></span></div>
+      <div style="flex:1;padding-bottom:24px;min-width:0;">
+        <h3 style="font-size:22px;font-weight:700;color:{{PRIMARY_COLOR}};margin:0 0 8px 0;line-height:1.4;overflow-wrap:break-word;word-break:break-word;">第二阶段标题</h3>
+        <p style="font-size:18px;line-height:1.7;color:#6B7280;margin:0;overflow-wrap:break-word;word-break:break-word;">简要描述</p>
+      </div>
+    </div>
+    <div style="display:flex;gap:24px;align-items:center;min-width:0;">
+      <div style="flex-shrink:0;margin-left:-56px;z-index:1;position:relative;"><span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:40px;height:40px;border-radius:12px;background:{{PRIMARY_COLOR}}14;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><path d="M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z" /></svg></span></div>
+      <div style="flex:1;padding-bottom:0;min-width:0;">
+        <h3 style="font-size:22px;font-weight:700;color:{{PRIMARY_COLOR}};margin:0 0 8px 0;line-height:1.4;overflow-wrap:break-word;word-break:break-word;">第三阶段标题</h3>
+        <p style="font-size:18px;line-height:1.7;color:#6B7280;margin:0;overflow-wrap:break-word;word-break:break-word;">简要描述</p>
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+### content-table（数据表格页）
+```html
+<div style="width:100%;height:100%;overflow:hidden;position:relative;box-sizing:border-box;padding:48px 64px;display:flex;flex-direction:column;background-color:{{CANVAS_BG_COLOR}};font-family:system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', '微软雅黑', 'Noto Sans SC', 'Segoe UI', Roboto, sans-serif;">
+  <h2 style="font-size:50px;font-weight:700;margin:0 0 32px 0;line-height:1.25;letter-spacing:-0.01em;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">页面标题</h2>
+  <div style="flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;border-radius:12px;border:1px solid #E5E7EB;">
+    <table style="width:100%;border-collapse:collapse;font-size:18px;">
+      <thead>
+        <tr style="background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});">
+          <th style="padding:16px 24px;text-align:left;color:#fff;font-weight:600;font-size:18px;border-right:1px solid rgba(255,255,255,0.2);overflow-wrap:break-word;word-break:break-word;">列标题一</th>
+          <th style="padding:16px 24px;text-align:left;color:#fff;font-weight:600;font-size:18px;border-right:1px solid rgba(255,255,255,0.2);overflow-wrap:break-word;word-break:break-word;">列标题二</th>
+          <th style="padding:16px 24px;text-align:left;color:#fff;font-weight:600;font-size:18px;overflow-wrap:break-word;word-break:break-word;">列标题三</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="background:#fff;">
+          <td style="padding:16px 24px;border-bottom:1px solid #E5E7EB;border-right:1px solid #E5E7EB;color:#374151;font-size:18px;overflow-wrap:break-word;word-break:break-word;">数据一</td>
+          <td style="padding:16px 24px;border-bottom:1px solid #E5E7EB;border-right:1px solid #E5E7EB;color:#374151;font-size:18px;overflow-wrap:break-word;word-break:break-word;">数据二</td>
+          <td style="padding:16px 24px;border-bottom:1px solid #E5E7EB;color:#374151;font-size:18px;overflow-wrap:break-word;word-break:break-word;">数据三</td>
+        </tr>
+        <tr style="background:#F9FAFB;">
+          <td style="padding:16px 24px;border-bottom:1px solid #E5E7EB;border-right:1px solid #E5E7EB;color:#374151;font-size:18px;overflow-wrap:break-word;word-break:break-word;">数据四</td>
+          <td style="padding:16px 24px;border-bottom:1px solid #E5E7EB;border-right:1px solid #E5E7EB;color:#374151;font-size:18px;overflow-wrap:break-word;word-break:break-word;">数据五</td>
+          <td style="padding:16px 24px;border-bottom:1px solid #E5E7EB;color:#374151;font-size:18px;overflow-wrap:break-word;word-break:break-word;">数据六</td>
+        </tr>
+        <tr style="background:#fff;">
+          <td style="padding:16px 24px;border-right:1px solid #E5E7EB;color:#374151;font-size:18px;overflow-wrap:break-word;word-break:break-word;">数据七</td>
+          <td style="padding:16px 24px;border-right:1px solid #E5E7EB;color:#374151;font-size:18px;overflow-wrap:break-word;word-break:break-word;">数据八</td>
+          <td style="padding:16px 24px;color:#374151;font-size:18px;overflow-wrap:break-word;word-break:break-word;">数据九</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+```
+
+### comparison-deep-dive（双栏深度对比报告 · L1高级版式 · 进度条+徽章）
+⚠️ 图例说明（放在模板顶部，生成页面时也默认生成这一行便于阅读）：
+  ▢ 灰色外框卡片 = 基准方案 / 现有方案　　▢ 主色外框卡片 = 升级方案 / 优势方案
+  ✓ 绿色对勾图标 + 绿色"胜出"徽章 = 该维度右栏优势项（对应 advantageIndices）
+```html
+<div style="width:100%;height:100%;overflow:hidden;position:relative;box-sizing:border-box;padding:48px 64px;display:flex;flex-direction:column;background-color:{{CANVAS_BG_COLOR}};font-family:system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', '微软雅黑', 'Noto Sans SC', 'Segoe UI', Roboto, sans-serif;" data-layout="comparison-deep-dive">
+  <h2 style="font-size:50px;font-weight:700;margin:0 0 32px 0;line-height:1.25;letter-spacing:-0.01em;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">页面标题（深度对比）</h2>
+  <!-- 顶部图例栏（3 个图例胶囊，点击选中整个图例容器）-->
+  <div style="pointer-events:none;display:flex;gap:24px;align-items:center;justify-content:center;margin-bottom:24px;min-width:0;">
+    <div style="display:inline-flex;align-items:center;gap:10px;padding:8px 18px;border-radius:999px;background:#F9FAFB;border:1px solid #E5E7EB;">
+      <span style="display:inline-block;width:16px;height:16px;border-radius:4px;border:2px solid #E5E7EB;background:#fff;"></span>
+      <span style="font-size:18px;color:#4B5563;font-weight:600;">基准方案</span>
+    </div>
+    <div style="display:inline-flex;align-items:center;gap:10px;padding:8px 18px;border-radius:999px;background:{{PRIMARY_COLOR}}10;border:1px solid {{PRIMARY_COLOR}}35;">
+      <span style="display:inline-block;width:16px;height:16px;border-radius:4px;border:2px solid {{PRIMARY_COLOR}};background:{{PRIMARY_COLOR}}05;"></span>
+      <span style="font-size:18px;color:{{PRIMARY_COLOR_DARKER}};font-weight:700;">升级方案</span>
+    </div>
+    <div style="display:inline-flex;align-items:center;gap:10px;padding:8px 18px;border-radius:999px;background:#10b98112;border:1px solid #10b98135;">
+      <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});color:#fff;font-size:11px;font-weight:900;">✓</span>
+      <span style="font-size:18px;color:#059669;font-weight:700;">右栏胜出维度</span>
+    </div>
+  </div>
+  <div style="flex:1;display:flex;gap:28px;min-height:0;min-width:0;align-items:stretch;">
+    <!-- 左栏：基准方案（灰色、普通项）-->
+    <div style="flex:1;padding:28px 24px;border-radius:16px;border:2px solid #E5E7EB;background:#F9FAFB;display:flex;flex-direction:column;gap:16px;min-width:0;min-height:0;">
+      <h3 style="font-size:28px;font-weight:700;color:#4B5563;margin:0;text-align:center;padding-bottom:14px;border-bottom:2px solid #E5E7EB;overflow-wrap:break-word;word-break:break-word;">基准方案 / 现有方案</h3>
+      <ul style="margin:0;padding:0;list-style:none;flex:1;min-width:0;display:flex;flex-direction:column;gap:16px;min-height:0;">
+        <li style="display:flex;flex-direction:column;gap:8px;padding:16px 24px;border-radius:12px;background:#FFFFFF;border:1px solid #E5E7EB;min-width:0;overflow-wrap:break-word;word-break:break-word;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:22px;height:22px;border-radius:50%;background:#E5E7EB;">
+              <svg width="10" height="10" viewBox="0 0 10 10"><rect x="2" y="4.5" width="6" height="1.5" rx="0.75" fill="#9CA3AF"/></svg>
+            </span>
+            <span style="font-size:19px;font-weight:600;color:#374151;line-height:1.4;flex:1;min-width:0;">对比维度一</span>
+          </div>
+          <div style="width:100%;height:8px;border-radius:999px;background:#E5E7EB;overflow:hidden;">
+            <div style="pointer-events:none;width:55%;height:100%;border-radius:999px;background:linear-gradient(135deg,#9CA3AF,#6B7280);"></div>
+          </div>
+        </li>
+        <li style="display:flex;flex-direction:column;gap:8px;padding:16px 24px;border-radius:12px;background:#FFFFFF;border:1px solid #E5E7EB;min-width:0;overflow-wrap:break-word;word-break:break-word;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:22px;height:22px;border-radius:50%;background:#E5E7EB;">
+              <svg width="10" height="10" viewBox="0 0 10 10"><rect x="2" y="4.5" width="6" height="1.5" rx="0.75" fill="#9CA3AF"/></svg>
+            </span>
+            <span style="font-size:19px;font-weight:600;color:#374151;line-height:1.4;flex:1;min-width:0;">对比维度二</span>
+          </div>
+          <div style="width:100%;height:8px;border-radius:999px;background:#E5E7EB;overflow:hidden;">
+            <div style="pointer-events:none;width:62%;height:100%;border-radius:999px;background:linear-gradient(135deg,#9CA3AF,#6B7280);"></div>
+          </div>
+        </li>
+        <li style="display:flex;flex-direction:column;gap:8px;padding:16px 24px;border-radius:12px;background:#FFFFFF;border:1px solid #E5E7EB;min-width:0;overflow-wrap:break-word;word-break:break-word;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:22px;height:22px;border-radius:50%;background:#E5E7EB;">
+              <svg width="10" height="10" viewBox="0 0 10 10"><rect x="2" y="4.5" width="6" height="1.5" rx="0.75" fill="#9CA3AF"/></svg>
+            </span>
+            <span style="font-size:19px;font-weight:600;color:#374151;line-height:1.4;flex:1;min-width:0;">对比维度三</span>
+          </div>
+          <div style="width:100%;height:8px;border-radius:999px;background:#E5E7EB;overflow:hidden;">
+            <div style="pointer-events:none;width:48%;height:100%;border-radius:999px;background:linear-gradient(135deg,#9CA3AF,#6B7280);"></div>
+          </div>
+        </li>
+        <li style="display:flex;flex-direction:column;gap:8px;padding:16px 24px;border-radius:12px;background:#FFFFFF;border:1px solid #E5E7EB;min-width:0;overflow-wrap:break-word;word-break:break-word;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:22px;height:22px;border-radius:50%;background:#E5E7EB;">
+              <svg width="10" height="10" viewBox="0 0 10 10"><rect x="2" y="4.5" width="6" height="1.5" rx="0.75" fill="#9CA3AF"/></svg>
+            </span>
+            <span style="font-size:19px;font-weight:600;color:#374151;line-height:1.4;flex:1;min-width:0;">对比维度四</span>
+          </div>
+          <div style="width:100%;height:8px;border-radius:999px;background:#E5E7EB;overflow:hidden;">
+            <div style="pointer-events:none;width:40%;height:100%;border-radius:999px;background:linear-gradient(135deg,#9CA3AF,#6B7280);"></div>
+          </div>
+        </li>
+      </ul>
+    </div>
+    <!-- 右栏：新方案/优势方案（主色、进度条、徽章、高亮）—— 示例：advantageIndices=[0,2,3]（第1/3/4项胜出），metricValues=[92,70,95,88] -->
+    <div style="flex:1;padding:28px 24px;border-radius:16px;background:linear-gradient(135deg,{{PRIMARY_COLOR}}06,{{PRIMARY_COLOR}}0A);display:flex;flex-direction:column;gap:16px;min-width:0;min-height:0;box-shadow:0 8px 28px {{PRIMARY_COLOR}}18;">
+      <h3 style="font-size:28px;font-weight:800;margin:0;text-align:center;padding-bottom:14px;border-bottom:2px solid {{PRIMARY_COLOR}}35;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">升级方案 / 优势方案</h3>
+      <ul style="margin:0;padding:0;list-style:none;flex:1;min-width:0;display:flex;flex-direction:column;gap:16px;min-height:0;">
+        <!-- 右栏第 1 项：advantageIndices 包含（✅ 胜出 → 绿色三件套 + 深渐变）-->
+        <li style="display:flex;flex-direction:column;gap:10px;padding:18px 22px;border-radius:14px;background:#FFFFFF;border-left:5px solid #10b981;box-shadow:0 4px 16px {{PRIMARY_COLOR}}18;min-width:0;overflow-wrap:break-word;word-break:break-word;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});box-shadow:0 2px 8px #10b98140;">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M13 4L6.5 10.5L3 7" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span style="font-size:24px;font-weight:700;color:#111827;line-height:1.4;flex:1;min-width:0;">对比维度一（优势）</span>
+            <!-- 绿色胜出徽章（+92% 胜出）-->
+            <span style="pointer-events:none;display:inline-flex;align-items:center;gap:6px;padding:4px 14px;border-radius:999px;background:#10b98118;color:#059669;font-size:16px;font-weight:800;white-space:nowrap;border:1px solid #10b98130;">+92% 胜出</span>
+          </div>
+          <!-- 进度条：主色系深一档渐变（比非优势项深，颜色用 primary/darker，不用绿色）-->
+          <div style="width:100%;height:12px;border-radius:999px;background:{{PRIMARY_COLOR}}20;overflow:hidden;">
+            <div style="pointer-events:none;width:92%;height:100%;border-radius:999px;background:linear-gradient(135deg,{{PRIMARY_COLOR}} 0%,{{PRIMARY_COLOR_DARKER}} 45%,{{PRIMARY_COLOR_DARKER}} 100%);box-shadow:inset 0 1px 2px rgba(255,255,255,0.45),inset 0 -1px 2px rgba(0,0,0,0.12);"></div>
+          </div>
+        </li>
+        <!-- 右栏第 2 项：非 advantageIndices（普通项 → 主色蓝色三件套，渐变主色）-->
+        <li style="display:flex;flex-direction:column;gap:10px;padding:18px 22px;border-radius:14px;background:#FFFFFF;border-left:5px solid {{PRIMARY_COLOR}};box-shadow:0 4px 16px {{PRIMARY_COLOR}}18;min-width:0;overflow-wrap:break-word;word-break:break-word;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});box-shadow:0 2px 8px {{PRIMARY_COLOR}}40;">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M13 4L6.5 10.5L3 7" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span style="font-size:24px;font-weight:700;color:#111827;line-height:1.4;flex:1;min-width:0;">对比维度二（普通）</span>
+            <span style="pointer-events:none;display:inline-flex;align-items:center;padding:4px 12px;border-radius:999px;background:{{PRIMARY_COLOR}}20;color:{{PRIMARY_COLOR_DARKER}};font-size:16px;font-weight:800;white-space:nowrap;">+70%</span>
+          </div>
+          <div style="width:100%;height:12px;border-radius:999px;background:{{PRIMARY_COLOR}}20;overflow:hidden;">
+            <div style="pointer-events:none;width:70%;height:100%;border-radius:999px;background:linear-gradient(135deg,{{PRIMARY_COLOR_LIGHTER}} 0%,{{PRIMARY_COLOR}} 45%,{{PRIMARY_COLOR_DARKER}} 100%);box-shadow:inset 0 1px 2px rgba(255,255,255,0.45),inset 0 -1px 2px rgba(0,0,0,0.12);"></div>
+          </div>
+        </li>
+        <!-- 右栏第 3 项：advantageIndices 包含（✅ 胜出 → 绿色三件套 + 深渐变）-->
+        <li style="display:flex;flex-direction:column;gap:10px;padding:18px 22px;border-radius:14px;background:#FFFFFF;border-left:5px solid #10b981;box-shadow:0 4px 16px {{PRIMARY_COLOR}}18;min-width:0;overflow-wrap:break-word;word-break:break-word;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});box-shadow:0 2px 8px #10b98140;">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M13 4L6.5 10.5L3 7" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span style="font-size:24px;font-weight:700;color:#111827;line-height:1.4;flex:1;min-width:0;">对比维度三（优势）</span>
+            <span style="pointer-events:none;display:inline-flex;align-items:center;gap:6px;padding:4px 14px;border-radius:999px;background:#10b98118;color:#059669;font-size:16px;font-weight:800;white-space:nowrap;border:1px solid #10b98130;">+95% 胜出</span>
+          </div>
+          <div style="width:100%;height:12px;border-radius:999px;background:{{PRIMARY_COLOR}}20;overflow:hidden;">
+            <div style="pointer-events:none;width:95%;height:100%;border-radius:999px;background:linear-gradient(135deg,{{PRIMARY_COLOR}} 0%,{{PRIMARY_COLOR_DARKER}} 45%,{{PRIMARY_COLOR_DARKER}} 100%);box-shadow:inset 0 1px 2px rgba(255,255,255,0.45),inset 0 -1px 2px rgba(0,0,0,0.12);"></div>
+          </div>
+        </li>
+        <!-- 右栏第 4 项：advantageIndices 包含（✅ 胜出 → 绿色三件套 + 深渐变）-->
+        <li style="display:flex;flex-direction:column;gap:10px;padding:18px 22px;border-radius:14px;background:#FFFFFF;border-left:5px solid #10b981;box-shadow:0 4px 16px {{PRIMARY_COLOR}}18;min-width:0;overflow-wrap:break-word;word-break:break-word;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});box-shadow:0 2px 8px #10b98140;">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M13 4L6.5 10.5L3 7" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span style="font-size:24px;font-weight:700;color:#111827;line-height:1.4;flex:1;min-width:0;">对比维度四（优势）</span>
+            <span style="pointer-events:none;display:inline-flex;align-items:center;gap:6px;padding:4px 14px;border-radius:999px;background:#10b98118;color:#059669;font-size:16px;font-weight:800;white-space:nowrap;border:1px solid #10b98130;">+88% 胜出</span>
+          </div>
+          <div style="width:100%;height:12px;border-radius:999px;background:{{PRIMARY_COLOR}}20;overflow:hidden;">
+            <div style="pointer-events:none;width:88%;height:100%;border-radius:999px;background:linear-gradient(135deg,{{PRIMARY_COLOR}} 0%,{{PRIMARY_COLOR_DARKER}} 45%,{{PRIMARY_COLOR_DARKER}} 100%);box-shadow:inset 0 1px 2px rgba(255,255,255,0.45),inset 0 -1px 2px rgba(0,0,0,0.12);"></div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+```
+
+### content-zigzag（Z字形图文交错 · L1高级版式 · 三段式）
+```html
+<div style="width:100%;height:100%;overflow:hidden;position:relative;box-sizing:border-box;padding:48px 64px;display:flex;flex-direction:column;background-color:{{CANVAS_BG_COLOR}};font-family:system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', '微软雅黑', 'Noto Sans SC', 'Segoe UI', Roboto, sans-serif;" data-layout="content-zigzag">
+  <h2 style="font-size:50px;font-weight:700;margin:0 0 32px 0;line-height:1.25;letter-spacing:-0.01em;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">页面标题（Z字三段式）</h2>
+  <div style="flex:1;display:flex;flex-direction:column;gap:16px;min-height:0;min-width:0;">
+    <!-- 第一段：图左文右 -->
+    <div style="display:flex;gap:24px;align-items:stretch;min-height:0;min-width:0;flex:1;">
+      <div style="flex:0 0 38%;display:flex;align-items:stretch;min-height:0;min-width:0;overflow:hidden;border-radius:14px;">
+        <img src="https://NOPPT_IMAGE_PLACEHOLDER" data-image-ratio="4:3" style="width:100%;height:100%;object-fit:cover;border-radius:14px;display:block;">
+      </div>
+      <div style="flex:1;display:flex;align-items:center;min-height:0;min-width:0;">
+        <div style="padding:20px 24px;border-radius:14px;background:linear-gradient(135deg,{{PRIMARY_COLOR}}08,{{PRIMARY_COLOR}}12);border-left:5px solid {{PRIMARY_COLOR}};box-shadow:0 4px 16px {{PRIMARY_COLOR}}15;min-width:0;flex:1;">
+          <h3 style="font-size:26px;font-weight:800;margin:0 0 10px 0;line-height:1.35;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">第一阶段 · 图左文右</h3>
+          <p style="font-size:22px;color:#374151;font-weight:500;line-height:1.8;margin:0;overflow-wrap:break-word;word-break:break-word;">第一部分内容描述，图文左右排列，形成 Z 字视觉流的第一段。文字放在带主色左侧竖线的渐变卡片里，清晰可读。</p>
+        </div>
+      </div>
+    </div>
+    <!-- 第二段：文左图右（方向反转）-->
+    <div style="display:flex;gap:24px;align-items:stretch;min-height:0;min-width:0;flex:1;">
+      <div style="flex:1;display:flex;align-items:center;min-height:0;min-width:0;">
+        <div style="padding:20px 24px;border-radius:14px;background:linear-gradient(135deg,{{PRIMARY_COLOR}}08,{{PRIMARY_COLOR}}12);border-right:5px solid {{PRIMARY_COLOR}};box-shadow:0 4px 16px {{PRIMARY_COLOR}}15;min-width:0;flex:1;">
+          <h3 style="font-size:26px;font-weight:800;margin:0 0 10px 0;line-height:1.35;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">第二阶段 · 文左图右</h3>
+          <p style="font-size:22px;color:#374151;font-weight:500;line-height:1.8;margin:0;overflow-wrap:break-word;word-break:break-word;">第二部分内容描述，文字在左图片在右，方向与第一段反转，形成 Z 字视觉流的中间转折。卡片改成右侧竖线保持视觉平衡。</p>
+        </div>
+      </div>
+      <div style="flex:0 0 38%;display:flex;align-items:stretch;min-height:0;min-width:0;overflow:hidden;border-radius:14px;">
+        <div style="pointer-events:none;flex:1;border-radius:14px;background:linear-gradient(135deg,{{PRIMARY_COLOR}}15,{{PRIMARY_COLOR_DARKER}}20);display:flex;align-items:center;justify-content:center;">
+          <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:64px;height:64px;border-radius:12px;background:{{PRIMARY_COLOR}}14;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><path d="M3 3v16a2 2 0 0 0 2 2h16" />
+  <path d="M18 17V9" />
+  <path d="M13 17V5" />
+  <path d="M8 17v-3" /></svg></span>
+        </div>
+      </div>
+    </div>
+    <!-- 第三段：图左文右（回到第一段方向）-->
+    <div style="display:flex;gap:24px;align-items:stretch;min-height:0;min-width:0;flex:1;">
+      <div style="flex:0 0 38%;display:flex;align-items:stretch;min-height:0;min-width:0;overflow:hidden;border-radius:14px;">
+        <div style="pointer-events:none;flex:1;border-radius:14px;background:linear-gradient(135deg,{{PRIMARY_COLOR_DARKER}}20,{{PRIMARY_COLOR}}15);display:flex;align-items:center;justify-content:center;">
+          <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:64px;height:64px;border-radius:12px;background:{{PRIMARY_COLOR}}14;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="{{PRIMARY_COLOR}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;"><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" />
+  <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09" />
+  <path d="M9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.4 22.4 0 0 1-4 2z" />
+  <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 .05 5 .05" /></svg></span>
+        </div>
+      </div>
+      <div style="flex:1;display:flex;align-items:center;min-height:0;min-width:0;">
+        <div style="padding:20px 24px;border-radius:14px;background:linear-gradient(135deg,{{PRIMARY_COLOR}}08,{{PRIMARY_COLOR}}12);border-left:5px solid {{PRIMARY_COLOR}};box-shadow:0 4px 16px {{PRIMARY_COLOR}}15;min-width:0;flex:1;">
+          <h3 style="font-size:26px;font-weight:800;margin:0 0 10px 0;line-height:1.35;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">第三阶段 · 回到图左</h3>
+          <p style="font-size:22px;color:#374151;font-weight:500;line-height:1.8;margin:0;overflow-wrap:break-word;word-break:break-word;">第三部分内容描述，图片重新回到左侧，与第一段方向一致，完成 Z 字形三段式的视觉收尾。整个页面节奏富有韵律。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+```
+⚠️ 注意：content-zigzag 中仅第一段保留真实 img 占位符（NOPPT_IMAGE_PLACEHOLDER），后两段用 emoji+渐变色块代替，避免触发"每页多图占位符"违规。
+
+### content-value-showcase（核心数值大卡展示 · L1高级版式 · badges+渐变巨字）
+```html
+<div style="width:100%;height:100%;overflow:hidden;position:relative;box-sizing:border-box;padding:48px 64px;display:flex;flex-direction:column;background-color:{{CANVAS_BG_COLOR}};font-family:system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', '微软雅黑', 'Noto Sans SC', 'Segoe UI', Roboto, sans-serif;" data-layout="content-value-showcase">
+  <h2 style="font-size:50px;font-weight:700;margin:0 0 32px 0;line-height:1.25;letter-spacing:-0.01em;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">页面标题（核心数值展示）</h2>
+  <div style="flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:24px;min-height:0;align-content:stretch;min-width:0;">
+    <!-- 数值大卡 1 -->
+    <div style="padding:32px 24px;border-radius:20px;background:linear-gradient(135deg,{{PRIMARY_COLOR}}08,{{PRIMARY_COLOR}}1C);border:1px solid {{PRIMARY_COLOR}}30;box-shadow:0 12px 32px {{PRIMARY_COLOR}}20;display:flex;flex-direction:column;gap:16px;align-items:center;justify-content:center;text-align:center;min-width:0;min-height:0;">
+      <div style="font-size:88px;font-weight:900;line-height:1;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+        <span style="pointer-events:none;">42%</span>
+      </div>
+      <h3 style="font-size:28px;font-weight:700;margin:0;color:#111827;overflow-wrap:break-word;word-break:break-word;">市场份额同比</h3>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="pointer-events:none;display:inline-flex;align-items:center;padding:6px 16px;border-radius:999px;background:#10b98118;color:#059669;font-size:20px;font-weight:800;">↗ +12.3pp</span>
+      </div>
+      <p style="pointer-events:none;font-size:18px;color:#6B7280;font-weight:500;margin:0;overflow-wrap:break-word;word-break:break-word;">2024 Q2 vs 2023 Q2</p>
+    </div>
+    <!-- 数值大卡 2 -->
+    <div style="padding:32px 24px;border-radius:20px;background:linear-gradient(135deg,#05966908,#0596691C);border:1px solid #05966930;box-shadow:0 12px 32px #05966920;display:flex;flex-direction:column;gap:16px;align-items:center;justify-content:center;text-align:center;min-width:0;min-height:0;">
+      <div style="font-size:88px;font-weight:900;line-height:1;background:linear-gradient(135deg,#059669,#047857);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+        <span style="pointer-events:none;">3.2×</span>
+      </div>
+      <h3 style="font-size:28px;font-weight:700;margin:0;color:#111827;overflow-wrap:break-word;word-break:break-word;">效率提升倍数</h3>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="pointer-events:none;display:inline-flex;align-items:center;padding:6px 16px;border-radius:999px;background:{{PRIMARY_COLOR}}18;color:{{PRIMARY_COLOR}};font-size:20px;font-weight:800;">↗ +220%</span>
+      </div>
+      <p style="pointer-events:none;font-size:18px;color:#6B7280;font-weight:500;margin:0;overflow-wrap:break-word;word-break:break-word;">自动化部署前后对比</p>
+    </div>
+    <!-- 数值大卡 3 -->
+    <div style="padding:32px 24px;border-radius:20px;background:linear-gradient(135deg,{{PRIMARY_COLOR}}08,{{PRIMARY_COLOR}}1C);border:1px solid {{PRIMARY_COLOR}}30;box-shadow:0 12px 32px {{PRIMARY_COLOR}}20;display:flex;flex-direction:column;gap:16px;align-items:center;justify-content:center;text-align:center;min-width:0;min-height:0;">
+      <div style="font-size:88px;font-weight:900;line-height:1;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+        <span style="pointer-events:none;">120万</span>
+      </div>
+      <h3 style="font-size:28px;font-weight:700;margin:0;color:#111827;overflow-wrap:break-word;word-break:break-word;">累计用户规模</h3>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="pointer-events:none;display:inline-flex;align-items:center;padding:6px 16px;border-radius:999px;background:{{PRIMARY_COLOR}}18;color:{{PRIMARY_COLOR_DARKER}};font-size:20px;font-weight:800;">↗ +41% QoQ</span>
+      </div>
+      <p style="pointer-events:none;font-size:18px;color:#6B7280;font-weight:500;margin:0;overflow-wrap:break-word;word-break:break-word;">截至 2024 年 6 月底</p>
+    </div>
+  </div>
+</div>
+```
+如果只展示 1 个核心数值，用单列 100% 宽的超大卡（font-size 放大到 120px）。2 个数值就用 grid-template-columns:repeat(2,1fr)。
+
+### content-stats-highlight（多数据指标并列 · L1高级版式 · 彩色语义卡片+进度条）
+```html
+<div style="width:100%;height:100%;overflow:hidden;position:relative;box-sizing:border-box;padding:48px 64px;display:flex;flex-direction:column;background-color:{{CANVAS_BG_COLOR}};font-family:system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', '微软雅黑', 'Noto Sans SC', 'Segoe UI', Roboto, sans-serif;" data-layout="content-stats-highlight">
+  <h2 style="font-size:50px;font-weight:700;margin:0 0 32px 0;line-height:1.25;letter-spacing:-0.01em;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">页面标题（多数据指标并列）</h2>
+  <div style="flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:24px;min-height:0;align-content:stretch;min-width:0;">
+    <!-- 蓝卡：营收 -->
+    <div style="padding:24px 20px;border-radius:16px;background:{{PRIMARY_COLOR}}12;border:1px solid {{PRIMARY_COLOR}}28;box-shadow:0 6px 20px {{PRIMARY_COLOR}}18;display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0;height:100%;">
+      <span style="pointer-events:none;font-size:56px;font-weight:900;line-height:1;color:#111827;">¥12.8M</span>
+      <h3 style="font-size:22px;font-weight:700;margin:0;color:#111827;overflow-wrap:break-word;word-break:break-word;">营收</h3>
+      <div style="width:100%;height:10px;border-radius:999px;background:{{PRIMARY_COLOR}}20;overflow:hidden;">
+        <div style="pointer-events:none;width:86%;height:100%;border-radius:999px;background:linear-gradient(90deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});"></div>
+      </div>
+      <span style="pointer-events:none;display:inline-flex;align-items:center;padding:4px 12px;border-radius:999px;background:{{PRIMARY_COLOR}}18;color:{{PRIMARY_COLOR}};font-size:16px;font-weight:700;width:fit-content;">YoY +23%</span>
+    </div>
+    <!-- 绿卡：毛利 -->
+    <div style="padding:24px 20px;border-radius:16px;background:{{PRIMARY_COLOR}}10;border:1px solid {{PRIMARY_COLOR}}24;box-shadow:0 6px 20px {{PRIMARY_COLOR}}16;display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0;height:100%;">
+      <span style="pointer-events:none;font-size:56px;font-weight:900;line-height:1;color:#111827;">¥3.2M</span>
+      <h3 style="font-size:22px;font-weight:700;margin:0;color:#111827;overflow-wrap:break-word;word-break:break-word;">毛利</h3>
+      <div style="width:100%;height:10px;border-radius:999px;background:{{PRIMARY_COLOR}}20;overflow:hidden;">
+        <div style="pointer-events:none;width:75%;height:100%;border-radius:999px;background:linear-gradient(90deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});"></div>
+      </div>
+      <span style="pointer-events:none;display:inline-flex;align-items:center;padding:4px 12px;border-radius:999px;background:{{PRIMARY_COLOR}}18;color:{{PRIMARY_COLOR}};font-size:16px;font-weight:700;width:fit-content;">margin 25%</span>
+    </div>
+    <!-- 橙卡：留存 -->
+    <div style="padding:24px 20px;border-radius:16px;background:{{PRIMARY_COLOR}}10;border:1px solid {{PRIMARY_COLOR}}24;box-shadow:0 6px 20px {{PRIMARY_COLOR}}16;display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0;height:100%;">
+      <span style="pointer-events:none;font-size:56px;font-weight:900;line-height:1;color:#111827;">86%</span>
+      <h3 style="font-size:22px;font-weight:700;margin:0;color:#111827;overflow-wrap:break-word;word-break:break-word;">客户留存</h3>
+      <div style="width:100%;height:10px;border-radius:999px;background:{{PRIMARY_COLOR}}20;overflow:hidden;">
+        <div style="pointer-events:none;width:86%;height:100%;border-radius:999px;background:linear-gradient(90deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});"></div>
+      </div>
+      <span style="pointer-events:none;display:inline-flex;align-items:center;padding:4px 12px;border-radius:999px;background:{{PRIMARY_COLOR}}18;color:{{PRIMARY_COLOR}};font-size:16px;font-weight:700;width:fit-content;">↗ +5.2pp</span>
+    </div>
+    <!-- 紫卡：DAU -->
+    <div style="padding:24px 20px;border-radius:16px;background:{{PRIMARY_COLOR}}12;border:1px solid {{PRIMARY_COLOR}}28;box-shadow:0 6px 20px {{PRIMARY_COLOR}}18;display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0;height:100%;">
+      <span style="pointer-events:none;font-size:56px;font-weight:900;line-height:1;color:#111827;">2.3M</span>
+      <h3 style="font-size:22px;font-weight:700;margin:0;color:#111827;overflow-wrap:break-word;word-break:break-word;">DAU</h3>
+      <div style="width:100%;height:10px;border-radius:999px;background:{{PRIMARY_COLOR}}20;overflow:hidden;">
+        <div style="pointer-events:none;width:72%;height:100%;border-radius:999px;background:linear-gradient(90deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});"></div>
+      </div>
+      <span style="pointer-events:none;display:inline-flex;align-items:center;padding:4px 12px;border-radius:999px;background:{{PRIMARY_COLOR}}18;color:{{PRIMARY_COLOR}};font-size:16px;font-weight:700;width:fit-content;">QoQ +41%</span>
+    </div>
+  </div>
+</div>
+```
+3 个指标就用 grid-template-columns:repeat(3,1fr)，保持卡片数量和列数一致。
+
+### content-image-background（大图背景+玻璃卡片叠层 · L1高级版式 · backdrop-filter玻璃拟态）
+```html
+<div style="width:100%;height:100%;overflow:hidden;position:relative;box-sizing:border-box;padding:48px 64px;display:flex;flex-direction:column;background-color:{{CANVAS_BG_COLOR}};font-family:system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', '微软雅黑', 'Noto Sans SC', 'Segoe UI', Roboto, sans-serif;padding:0;" data-layout="content-image-background">
+  <!-- 全屏背景图（先占位，等实际图替换）-->
+  <div style="position:absolute;inset:0;overflow:hidden;z-index:0;">
+    <img src="https://NOPPT_IMAGE_PLACEHOLDER" data-image-ratio="16:9" style="width:100%;height:100%;object-fit:cover;display:block;">
+    <!-- 背景暗化蒙版：保证文字可读性 -->
+    <div style="pointer-events:none;position:absolute;inset:0;background:linear-gradient(135deg,rgba(17,24,39,0.55),rgba(17,24,39,0.25));"></div>
+  </div>
+  <!-- 内容层：玻璃卡片叠在背景图上 -->
+  <div style="position:relative;z-index:1;width:100%;height:100%;padding:48px 64px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;min-height:0;min-width:0;">
+    <h2 style="font-size:44px;font-weight:800;margin:0 0 32px 0;line-height:1.25;letter-spacing:-0.01em;overflow-wrap:break-word;word-break:break-word;color:#FFFFFF;text-shadow:0 2px 12px rgba(0,0,0,0.4);">页面标题（叠在背景图上）</h2>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:24px;min-width:0;">
+      <!-- 玻璃卡片 1（✅ 可选中：有 background+backdrop-filter+border+border-radius+box-shadow）-->
+      <div style="padding:28px 32px;border-radius:16px;background:rgba(255,255,255,0.55);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.6);box-shadow:0 8px 32px rgba(0,0,0,0.12);display:flex;flex-direction:column;gap:12px;min-width:0;">
+        <h3 style="font-size:28px;font-weight:800;margin:0;color:{{PRIMARY_COLOR_DARKER}};overflow-wrap:break-word;word-break:break-word;">玻璃卡片标题一</h3>
+        <p style="font-size:22px;color:#111827;font-weight:600;line-height:1.8;margin:0;overflow-wrap:break-word;word-break:break-word;">正文内容文字，玻璃背景衬底清晰可读，半透明+模糊让背景图透出来但不影响阅读。</p>
+      </div>
+      <!-- 玻璃卡片 2 -->
+      <div style="padding:28px 32px;border-radius:16px;background:rgba(255,255,255,0.55);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.6);box-shadow:0 8px 32px rgba(0,0,0,0.12);display:flex;flex-direction:column;gap:12px;min-width:0;">
+        <h3 style="font-size:28px;font-weight:800;margin:0;color:{{PRIMARY_COLOR_DARKER}};overflow-wrap:break-word;word-break:break-word;">玻璃卡片标题二</h3>
+        <p style="font-size:22px;color:#111827;font-weight:600;line-height:1.8;margin:0;overflow-wrap:break-word;word-break:break-word;">正文内容文字。backdrop-filter 必须同时写标准属性 + -webkit- 前缀，确保 Safari 兼容。</p>
+      </div>
+    </div>
+  </div>
+</div>
+```
+content-image-background 只有 1 张图（全屏背景图），符合"每页一张 img 占位符"约束。文字卡片都放在玻璃容器内（✅ 可选中编辑）。
+
+### summary（总结页）
+```html
+<div style="width:100%;height:100%;overflow:hidden;position:relative;box-sizing:border-box;padding:48px 64px;display:flex;flex-direction:column;background-color:{{CANVAS_BG_COLOR}};font-family:system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', '微软雅黑', 'Noto Sans SC', 'Segoe UI', Roboto, sans-serif;justify-content:center;align-items:center;text-align:center;">
+  <div style="width:80px;height:6px;background:{{PRIMARY_COLOR}};border-radius:3px;margin-bottom:40px;"></div>
+  <h2 style="font-size:72px;font-weight:800;margin:0 0 24px 0;line-height:1.1;letter-spacing:0.01em;text-align:center;overflow-wrap:break-word;word-break:break-word;background:linear-gradient(135deg,{{PRIMARY_COLOR}},{{PRIMARY_COLOR_DARKER}});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-shadow:0 4px 24px {{PRIMARY_COLOR}}45;">感谢观看</h2>
+  <p style="font-size:24px;color:#6B7280;margin:0 0 8px 0;overflow-wrap:break-word;word-break:break-word;">Q & A</p>
+</div>
+```

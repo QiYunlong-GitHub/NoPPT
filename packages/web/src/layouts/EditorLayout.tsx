@@ -37,6 +37,9 @@ import PropertyPanel from '@/components/PropertyPanel';
 import { SelectionOverlay } from '@/components/SelectionOverlay';
 import { GuidesOverlay } from '@/components/GuidesOverlay';
 import SelectionBreadcrumb from '@/components/SelectionBreadcrumb';
+import { EditorToolbar } from './editor-sections/EditorToolbar';
+import { ContextMenu } from './editor-sections/ContextMenu';
+import { PresentationListModal } from './editor-sections/PresentationListModal';
 import { assetsApi } from '@/utils/api';
 import { sanitizeHtml } from '@/utils';
 import { useI18n } from '@/i18n';
@@ -58,6 +61,7 @@ import { useContextMenu } from '@/hooks/useContextMenu';
 import { useElementOperations } from '@/hooks/useElementOperations';
 import { useTextEditing } from '@/hooks/useTextEditing';
 import { useClipboard } from '@/hooks/useClipboard';
+import { createEditorSlideWrappers } from './editorSlideWrappers';
 import {
   getElementByPath as _getElementByPath,
   wrapTextInVisualContainers as _wrapTextInVisualContainers,
@@ -250,39 +254,14 @@ export default function EditorLayout({}: EditorLayoutProps) {
 
   const currentSlide = presentation?.slides.find((s) => s.id === selectedSlideId);
 
-  const wrapTextInVisualContainers = () => {
-    const innerDiv = slideContainerRef.current?.querySelector(
-      '[data-slide-content="true"]',
-    ) as HTMLElement | null;
-    _wrapTextInVisualContainers(innerDiv);
-  };
-
-  const normalizeWhitespaceTextNodes = () => {
-    const innerDiv = slideContainerRef.current?.querySelector(
-      '[data-slide-content="true"]',
-    ) as HTMLElement | null;
-    _normalizeWhitespaceTextNodes(innerDiv);
-  };
-
-  const ensureElementIds = () => {
-    const innerDiv = slideContainerRef.current?.querySelector(
-      '[data-slide-content="true"]',
-    ) as HTMLElement | null;
-    _ensureElementIds(innerDiv);
-  };
-
-  const isTextElement = (element: HTMLElement): boolean => _isTextElement(element);
-  const getSlideAppendTarget = (innerDiv: HTMLElement): HTMLElement =>
-    _getSlideAppendTarget(innerDiv);
-  const findSelectableElement = (
-    target: HTMLElement,
-    mode: 'inner' | 'outer' | 'deep' | 'parent' = 'inner',
-  ): HTMLElement | null => {
-    const __innerDivForSel = slideContainerRef.current?.querySelector(
-      '[data-slide-content="true"]',
-    ) as HTMLElement | null;
-    return _findSelectableElement(target, __innerDivForSel, mode);
-  };
+  const {
+    wrapTextInVisualContainers,
+    normalizeWhitespaceTextNodes,
+    ensureElementIds,
+    isTextElement,
+    getSlideAppendTarget,
+    findSelectableElement,
+  } = createEditorSlideWrappers(slideContainerRef);
 
   const saveAndRestoreSelectionRef = useRef<() => void>(() => {});
   const highlightElementRef = useRef<(el: HTMLElement, highlight: boolean) => void>(() => {});
@@ -1284,210 +1263,43 @@ export default function EditorLayout({}: EditorLayoutProps) {
 
         {/* Center - Preview Area */}
         <main className="flex-1 flex flex-col overflow-hidden">
-          {/* Top Toolbar */}
-          <div className="h-14 bg-white border-b border-slate-200 flex items-center px-4 gap-3 shrink-0">
-            <button
-              onClick={handleBack}
-              className="p-2 hover:bg-slate-100 rounded-lg transition-colors shrink-0"
-              title={t('返回')}
-            >
-              <ArrowLeft className="w-5 h-5 text-slate-600" />
-            </button>
-            <div className="w-px h-6 bg-slate-200" />
-            <div className="flex items-center gap-1 shrink-0">
-              <button
-                onClick={handleOpenPresentation}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-                title={t('打开演示')}
-              >
-                <FolderOpen className="w-5 h-5 text-slate-600" />
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={!hasUnsavedChanges}
-                className={`p-2 rounded-lg transition-all ${
-                  hasUnsavedChanges
-                    ? 'hover:bg-blue-50 text-blue-600 cursor-pointer'
-                    : 'text-slate-400 opacity-50 cursor-not-allowed'
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
-                title={t('保存 (Ctrl+S)')}
-              >
-                <Save className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => setExportModal(true)}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-                title={t('导出')}
-              >
-                <Download className="w-5 h-5 text-slate-600" />
-              </button>
-            </div>
-            <div className="w-px h-6 bg-slate-200" />
-
-            <div className="relative flex items-center" ref={iconStyleMenuRef}>
-              <button
-                onClick={() => setIconStyleMenuOpen(!iconStyleMenuOpen)}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors flex items-center gap-1"
-                title={t('图标风格')}
-              >
-                <Hash className="w-5 h-5 text-slate-600" />
-              </button>
-              {iconStyleMenuOpen && (
-                <div className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50 w-52">
-                  <div className="px-3 py-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-700 mb-1">
-                    {t('全局应用到所有页')}
-                  </div>
-                  {iconStyleOptions.map((opt) => {
-                    const IconComp = opt.icon;
-                    return (
-                      <button
-                        key={opt.id}
-                        onClick={() => handleApplyIconStyle(opt.id)}
-                        className="w-full px-3 py-2 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left"
-                      >
-                        <IconComp className="w-4 h-4 text-slate-500 dark:text-slate-400 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                            {t(opt.name)}
-                          </p>
-                          <p className="text-xs text-slate-400 dark:text-slate-500">
-                            {t(opt.desc)}
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                  <div className="h-px bg-slate-200 dark:bg-slate-700 my-1" />
-                  <button
-                    onClick={() => {
-                      setIconStyleMenuOpen(false);
-                      handleApplyIconStyleToCurrentSlide('auto');
-                    }}
-                    className="w-full px-3 py-2 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left"
-                  >
-                    <Sparkles className="w-4 h-4 text-slate-500 dark:text-slate-400 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                        {t('仅当前页智能匹配')}
-                      </p>
-                    </div>
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div className="w-px h-6 bg-slate-200" />
-
-            <div className="flex-1" />
-
-            <div className="flex items-center gap-1 shrink-0">
-              <button
-                onClick={undo}
-                disabled={!canUndo}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-30"
-                title={t('撤销 (Ctrl+Z)')}
-              >
-                <Undo2 className="w-5 h-5 text-slate-600" />
-              </button>
-              <button
-                onClick={redo}
-                disabled={!canRedo}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-30"
-                title={t('重做 (Ctrl+Y)')}
-              >
-                <Redo2 className="w-5 h-5 text-slate-600" />
-              </button>
-              <button
-                onClick={handleUnbindElements}
-                disabled={
-                  selectedElements.length === 0 ||
-                  !selectedElements.some((el) => el.getAttribute('data-element-type') === 'group')
-                }
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-30"
-                title={t('解绑 (Ctrl+Shift+G)')}
-              >
-                <UngroupIcon className="w-5 h-5 text-slate-600" />
-              </button>
-              <button
-                onClick={handleBindElements}
-                disabled={selectedElements.length < 2}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-30"
-                title={t('绑定 (Ctrl+G)')}
-              >
-                <GroupIcon className="w-5 h-5 text-slate-600" />
-              </button>
-              <div className="w-px h-6 bg-slate-200 mx-1" />
-              <button
-                onClick={() => setShowTableDialog(true)}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-                title={t('插入表格')}
-              >
-                <Table className="w-5 h-5 text-slate-600" />
-              </button>
-              <button
-                onClick={handleInsertImage}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-                title={t('插入图片')}
-              >
-                <ImageIcon className="w-5 h-5 text-slate-600" />
-              </button>
-              <button
-                onClick={handleInsertVideo}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-                title={t('插入视频')}
-              >
-                <Video className="w-5 h-5 text-slate-600" />
-              </button>
-              <div className="w-px h-6 bg-slate-200 mx-1" />
-              <button
-                onClick={handlePreview}
-                className="inline-flex items-center gap-2 px-3 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors text-sm font-medium"
-                title={t('演示')}
-              >
-                <Play className="w-4 h-4" />
-                {t('演示')}
-              </button>
-              <div className="w-px h-6 bg-slate-200 mx-1" />
-              <button
-                onClick={() => {
-                  userZoomOverrideRef.current = true;
-                  setZoom(zoom - 0.1);
-                }}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-                title={t('缩小')}
-              >
-                <ZoomOut className="w-5 h-5 text-slate-600" />
-              </button>
-              <input
-                type="range"
-                min="0.25"
-                max="2"
-                step="0.05"
-                value={zoom}
-                onChange={(e) => {
-                  userZoomOverrideRef.current = true;
-                  setZoom(parseFloat(e.target.value));
-                }}
-                onPointerDown={() => {
-                  userZoomOverrideRef.current = true;
-                }}
-                className="w-28 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-              />
-              <button
-                onClick={() => {
-                  userZoomOverrideRef.current = true;
-                  setZoom(zoom + 0.1);
-                }}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-                title={t('放大')}
-              >
-                <ZoomIn className="w-5 h-5 text-slate-600" />
-              </button>
-              <span className="text-sm text-slate-600 min-w-[56px] text-center">
-                {Math.round(zoom * 100)}%
-              </span>
-            </div>
-          </div>
+          <EditorToolbar
+            onBack={handleBack}
+            onOpenPresentation={handleOpenPresentation}
+            hasUnsavedChanges={hasUnsavedChanges}
+            onSave={handleSave}
+            onExport={() => setExportModal(true)}
+            iconStyleMenuOpen={iconStyleMenuOpen}
+            onToggleIconStyleMenu={setIconStyleMenuOpen}
+            iconStyleOptions={iconStyleOptions}
+            onApplyIconStyle={handleApplyIconStyle}
+            onApplyIconStyleToCurrentSlide={handleApplyIconStyleToCurrentSlide}
+            onUndo={undo}
+            canUndo={canUndo}
+            onRedo={redo}
+            canRedo={canRedo}
+            onUnbind={handleUnbindElements}
+            selectedElements={selectedElements}
+            onBind={handleBindElements}
+            onInsertTable={() => setShowTableDialog(true)}
+            onInsertImage={handleInsertImage}
+            onInsertVideo={handleInsertVideo}
+            onPreview={handlePreview}
+            onZoomIn={() => {
+              userZoomOverrideRef.current = true;
+              setZoom(zoom + 0.1);
+            }}
+            onZoomOut={() => {
+              userZoomOverrideRef.current = true;
+              setZoom(zoom - 0.1);
+            }}
+            onZoomChange={(z) => {
+              userZoomOverrideRef.current = true;
+              setZoom(z);
+            }}
+            zoom={zoom}
+            iconStyleMenuRef={iconStyleMenuRef}
+          />
 
           {/* Slide Preview */}
           <div
@@ -1711,259 +1523,28 @@ export default function EditorLayout({}: EditorLayoutProps) {
         </div>
       )}
 
-      {showPresentationList && (
-        <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-          onClick={() => setShowPresentationList(false)}
-        >
-          <div
-            className="bg-white rounded-xl shadow-2xl w-[500px] max-h-[70vh] flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between p-5 border-b border-slate-200">
-              <h3 className="text-base font-semibold text-slate-800">{t('打开演示')}</h3>
-              <button
-                onClick={() => setShowPresentationList(false)}
-                className="p-1 hover:bg-slate-100 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5 text-slate-500" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-3">
-              {presentations.length === 0 ? (
-                <div className="text-center py-8 text-slate-400 text-sm">{t('暂无演示文稿')}</div>
-              ) : (
-                <div className="space-y-2">
-                  {presentations.map((item) => (
-                    <button
-                      key={item.id}
-                      onClick={() => handleSelectPresentation(item.id)}
-                      className={`w-full text-left p-3 rounded-lg transition-colors flex items-center gap-3 ${
-                        item.id === presentation?.id
-                          ? 'bg-blue-50 border border-blue-200'
-                          : 'hover:bg-slate-50 border border-transparent'
-                      }`}
-                    >
-                      <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center shrink-0">
-                        <Settings className="w-6 h-6 text-slate-400" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-slate-800 truncate">{item.title}</div>
-                        <div className="text-xs text-slate-400 mt-0.5">
-                          {item.slideCount} {t('页')} ·{' '}
-                          {new Date(item.updatedAt).toLocaleDateString()}
-                        </div>
-                      </div>
-                      {item.id === presentation?.id && (
-                        <span className="text-xs text-blue-600 font-medium shrink-0">
-                          {t('当前')}
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {contextMenu && (
-        <div
-          ref={contextMenuRef}
-          className="fixed z-50 bg-white rounded-lg shadow-xl border border-slate-200 py-1 min-w-[160px]"
-          style={{
-            left: `${contextMenu.x}px`,
-            top: `${contextMenu.y}px`,
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {contextMenu.type === 'element' && (
-            <>
-              <button
-                onClick={handleCutFromMenu}
-                className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
-              >
-                <Scissors className="w-4 h-4" />
-                {t('剪切')}
-              </button>
-              <button
-                onClick={handleCopyFromMenu}
-                className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
-              >
-                <Copy className="w-4 h-4" />
-                {t('复制')}
-              </button>
-              {contextMenu.hasElementClipboard && (
-                <button
-                  onClick={handlePasteFromMenu}
-                  className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
-                >
-                  <ClipboardPaste className="w-4 h-4" />
-                  {t('粘贴元素')}
-                </button>
-              )}
-              {contextMenu.hasElementClipboard && (
-                <button
-                  onClick={() => handlePasteAsImage(contextMenu.x, contextMenu.y)}
-                  className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
-                >
-                  <ImageIcon className="w-4 h-4" />
-                  {t('粘贴为绑定对象')}
-                </button>
-              )}
-              {contextMenu.hasSlideClipboard && (
-                <button
-                  onClick={() => handlePasteSlideAsImage(contextMenu.x, contextMenu.y)}
-                  className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
-                >
-                  <ImageIcon className="w-4 h-4" />
-                  {t('粘贴幻灯片为绑定对象')}
-                </button>
-              )}
-              {contextMenu.hasTextClipboard &&
-                !contextMenu.hasElementClipboard &&
-                !contextMenu.hasSlideClipboard && (
-                  <button
-                    onClick={() => handlePasteText(contextMenu.x, contextMenu.y)}
-                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
-                  >
-                    <Type className="w-4 h-4" />
-                    {t('粘贴为文本')}
-                  </button>
-                )}
-              {contextMenu.hasHtmlClipboard &&
-                !contextMenu.hasElementClipboard &&
-                !contextMenu.hasSlideClipboard && (
-                  <button
-                    onClick={() => handlePasteHtml(contextMenu.x, contextMenu.y)}
-                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
-                  >
-                    <Table2 className="w-4 h-4" />
-                    {t('粘贴为表格')}
-                  </button>
-                )}
-              {contextMenu.hasImageClipboard &&
-                !contextMenu.hasElementClipboard &&
-                !contextMenu.hasSlideClipboard && (
-                  <button
-                    onClick={() => handlePasteImage(contextMenu.x, contextMenu.y)}
-                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
-                  >
-                    <ImageIcon className="w-4 h-4" />
-                    {t('粘贴图片')}
-                  </button>
-                )}
-              <div className="h-px bg-slate-200 my-1" />
-              <button
-                onClick={handleDeleteElementFromMenu}
-                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-              >
-                <Trash2 className="w-4 h-4" />
-                {t('删除')}
-              </button>
-            </>
-          )}
-          {contextMenu.type === 'slide' && (
-            <>
-              {contextMenu.hasElementClipboard && (
-                <button
-                  onClick={handlePasteFromMenu}
-                  className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
-                >
-                  <ClipboardPaste className="w-4 h-4" />
-                  {t('粘贴元素')}
-                </button>
-              )}
-              {contextMenu.hasElementClipboard && (
-                <button
-                  onClick={() => handlePasteAsImage(contextMenu.x, contextMenu.y)}
-                  className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
-                >
-                  <ImageIcon className="w-4 h-4" />
-                  {t('粘贴为绑定对象')}
-                </button>
-              )}
-              {contextMenu.hasSlideClipboard && (
-                <button
-                  onClick={() => handlePasteSlideAsImage(contextMenu.x, contextMenu.y)}
-                  className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
-                >
-                  <ImageIcon className="w-4 h-4" />
-                  {t('粘贴幻灯片为绑定对象')}
-                </button>
-              )}
-              {contextMenu.hasTextClipboard &&
-                !contextMenu.hasElementClipboard &&
-                !contextMenu.hasSlideClipboard && (
-                  <button
-                    onClick={() => handlePasteText(contextMenu.x, contextMenu.y)}
-                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
-                  >
-                    <Type className="w-4 h-4" />
-                    {t('粘贴为文本')}
-                  </button>
-                )}
-              {contextMenu.hasHtmlClipboard &&
-                !contextMenu.hasElementClipboard &&
-                !contextMenu.hasSlideClipboard && (
-                  <button
-                    onClick={() => handlePasteHtml(contextMenu.x, contextMenu.y)}
-                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
-                  >
-                    <Table2 className="w-4 h-4" />
-                    {t('粘贴为表格')}
-                  </button>
-                )}
-              {contextMenu.hasImageClipboard &&
-                !contextMenu.hasElementClipboard &&
-                !contextMenu.hasSlideClipboard && (
-                  <button
-                    onClick={() => handlePasteImage(contextMenu.x, contextMenu.y)}
-                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
-                  >
-                    <ImageIcon className="w-4 h-4" />
-                    {t('粘贴图片')}
-                  </button>
-                )}
-              <div className="h-px bg-slate-200 my-1" />
-              <div className="px-2 py-1">
-                <p className="px-2 py-1 text-xs font-medium text-slate-400 uppercase tracking-wider">
-                  {t('图标风格（当前页）')}
-                </p>
-                {iconStyleOptions.map((opt) => {
-                  const IconComp = opt.icon;
-                  return (
-                    <button
-                      key={opt.id}
-                      onClick={() => handleApplyIconStyleToCurrentSlide(opt.id as IconStyle)}
-                      className="w-full px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2 rounded"
-                    >
-                      <IconComp className="w-4 h-4 text-slate-500" />
-                      <span>{t(opt.name)}</span>
-                      <span className="text-xs text-slate-400 ml-auto">{t(opt.desc)}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              {!contextMenu.hasElementClipboard &&
-                !contextMenu.hasSlideClipboard &&
-                !contextMenu.hasTextClipboard &&
-                !contextMenu.hasHtmlClipboard &&
-                !contextMenu.hasImageClipboard && <div className="h-px bg-slate-200 my-1" />}
-              {!contextMenu.hasElementClipboard &&
-                !contextMenu.hasSlideClipboard &&
-                !contextMenu.hasTextClipboard &&
-                !contextMenu.hasHtmlClipboard &&
-                !contextMenu.hasImageClipboard && (
-                  <div className="px-4 py-2 text-sm text-slate-400 text-center">
-                    {t('剪贴板为空')}
-                  </div>
-                )}
-            </>
-          )}
-        </div>
-      )}
+      <PresentationListModal
+        open={showPresentationList}
+        presentations={presentations}
+        currentId={presentation?.id}
+        onSelect={handleSelectPresentation}
+        onClose={() => setShowPresentationList(false)}
+      />
+      <ContextMenu
+        contextMenu={contextMenu}
+        contextMenuRef={contextMenuRef}
+        iconStyleOptions={iconStyleOptions}
+        onCut={handleCutFromMenu}
+        onCopy={handleCopyFromMenu}
+        onPaste={handlePasteFromMenu}
+        onPasteAsImage={handlePasteAsImage}
+        onPasteSlideAsImage={handlePasteSlideAsImage}
+        onPasteText={handlePasteText}
+        onPasteHtml={handlePasteHtml}
+        onPasteImage={handlePasteImage}
+        onDeleteElement={handleDeleteElementFromMenu}
+        onApplyIconStyleToCurrentSlide={handleApplyIconStyleToCurrentSlide}
+      />
 
       <input
         ref={imageInputRef}

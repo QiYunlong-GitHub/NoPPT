@@ -19,6 +19,10 @@ import { safeHtml } from '@/utils';
 import { presentationApi } from '@/utils/api';
 import type { Slide } from '@noppt/core';
 import { useI18n, t } from '@/i18n';
+import { getRangeSelection } from './slideListUtils';
+import { SlideThumbnailItem } from './slide-list/SlideThumbnailItem';
+import { SlideContextMenu } from './slide-list/SlideContextMenu';
+import { BlankAreaContextMenu } from './slide-list/BlankAreaContextMenu';
 export default function SlideListPanel() {
   const { t } = useI18n();
   const presentation = usePresentationStore((s) => s.presentation);
@@ -427,13 +431,7 @@ export default function SlideListPanel() {
     panelRef.current?.focus();
     if (e.shiftKey) {
       e.preventDefault();
-      const start = Math.min(lastSelectedIndex, index);
-      const end = Math.max(lastSelectedIndex, index);
-      const newSelected = new Set<string>();
-      for (let i = start; i <= end; i++) {
-        newSelected.add(presentation.slides[i].id);
-      }
-      setSelectedSlideIds(newSelected);
+      setSelectedSlideIds(getRangeSelection(presentation.slides, lastSelectedIndex, index));
     } else if (e.ctrlKey || e.metaKey) {
       e.preventDefault();
       const newSelected = new Set(selectedSlideIds);
@@ -737,235 +735,73 @@ export default function SlideListPanel() {
         onContextMenu={handleBlankAreaContextMenu}
       >
         {presentation.slides.map((slide, index) => (
-          <div
+          <SlideThumbnailItem
             key={slide.id}
-            className={cn(
-              'group relative rounded-lg overflow-hidden cursor-pointer border-2 transition-all',
-              selectedSlideIds.has(slide.id)
-                ? 'border-blue-500 shadow-sm bg-blue-50/30'
-                : 'border-transparent hover:border-slate-300',
-              draggedIds?.has(slide.id) && 'opacity-50',
-              dragOverId === slide.id &&
-                dragPosition === 'before' &&
-                'border-t-2 border-t-blue-500',
-              dragOverId === slide.id && dragPosition === 'after' && 'border-b-2 border-b-blue-500',
-            )}
-            onClick={(e) => handleSlideClick(e, slide.id, index)}
-            onContextMenu={(e) => handleContextMenu(e, slide.id, index)}
-            draggable={!editingId}
-            onDragStart={(e) => handleDragStart(e, slide.id)}
-            onDragOver={(e) => handleDragOver(e, slide.id)}
+            slide={slide}
+            index={index}
+            isSelected={selectedSlideIds.has(slide.id)}
+            isDragged={draggedIds?.has(slide.id) ?? false}
+            dragOverPosition={dragOverId === slide.id ? dragPosition : null}
+            isEditing={editingId === slide.id}
+            editTitle={editTitle}
+            slideWidth={slideWidth}
+            slideHeight={slideHeight}
+            thumbnailScale={thumbnailScale}
+            measureRef={index === 0 ? thumbnailMeasureRef : null}
+            canRemove={presentation.slides.length > 1}
+            onSlideClick={handleSlideClick}
+            onContextMenu={handleContextMenu}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            onDrop={(e) => handleDrop(e, slide.id)}
+            onDrop={handleDrop}
             onDragEnd={handleDragEnd}
-          >
-            <div className="absolute left-1 top-1/2 -translate-y-1/2 z-10 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab">
-              <GripVertical className="w-3 h-3 text-slate-400" />
-            </div>
-
-            <div className="absolute left-0 top-0 h-full w-5 bg-gradient-to-r from-black/5 to-transparent flex items-start justify-center pt-2">
-              <span className="text-[10px] font-medium text-slate-500">{index + 1}</span>
-            </div>
-
-            <div
-              ref={index === 0 ? thumbnailMeasureRef : null}
-              className="ml-5 w-full overflow-hidden bg-white"
-              style={{ aspectRatio: `${slideWidth} / ${slideHeight}` }}
-            >
-              <div
-                className="origin-top-left bg-white relative"
-                style={{
-                  width: `${slideWidth}px`,
-                  height: `${slideHeight}px`,
-                  transform: `scale(${thumbnailScale})`,
-                  transformOrigin: 'top left',
-                }}
-                dangerouslySetInnerHTML={safeHtml(slide.html)}
-              />
-            </div>
-
-            <div className="absolute right-1 top-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  duplicateSlide(slide.id);
-                }}
-                className="p-1 bg-white/90 rounded hover:bg-slate-100"
-                title={t('复制')}
-              >
-                <Copy className="w-3 h-3 text-slate-500" />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (presentation.slides.length > 1) {
-                    removeSlide(slide.id);
-                  }
-                }}
-                className="p-1 bg-white/90 rounded hover:bg-red-50"
-                title={t('删除')}
-                disabled={presentation.slides.length <= 1}
-              >
-                <Trash2 className="w-3 h-3 text-red-500" />
-              </button>
-            </div>
-
-            <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] px-2 py-1 truncate">
-              {editingId === slide.id ? (
-                <input
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  onBlur={handleSaveRename}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSaveRename();
-                    if (e.key === 'Escape') setEditingId(null);
-                  }}
-                  autoFocus
-                  onClick={(e) => e.stopPropagation()}
-                  className="w-full bg-white/20 border border-white/40 rounded px-1 py-0.5 text-white text-[10px] outline-none"
-                />
-              ) : (
-                slide.title
-              )}
-            </div>
-          </div>
+            onEditTitleChange={setEditTitle}
+            onSaveRename={handleSaveRename}
+            onCancelEdit={() => setEditingId(null)}
+            onDuplicate={duplicateSlide}
+            onRemove={removeSlide}
+          />
         ))}
       </div>
 
       {contextMenu && (
-        <div
-          ref={menuRef}
-          className="fixed bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50 min-w-[140px]"
-          style={{ left: contextMenu.x, top: contextMenu.y }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            onClick={handleOpenInNewTab}
-            className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-          >
-            <ExternalLink className="w-4 h-4" />
-            {t('在新标签页打开')}
-          </button>
-          <div className="border-t border-slate-100 my-1" />
-          <button
-            onClick={handleCutClick}
-            className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-          >
-            <Scissors className="w-4 h-4" />
-            {t('剪切')}
-            <span className="ml-auto text-xs text-slate-400">Ctrl+X</span>
-          </button>
-          <button
-            onClick={handleCopyClick}
-            className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-          >
-            <Copy className="w-4 h-4" />
-            {t('复制')}
-            <span className="ml-auto text-xs text-slate-400">Ctrl+C</span>
-          </button>
-          <button
-            onClick={handlePasteClick}
-            disabled={!canPasteSlide}
-            className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Clipboard className="w-4 h-4" />
-            {t('粘贴')}
-            <span className="ml-auto text-xs text-slate-400">Ctrl+V</span>
-          </button>
-          <div className="border-t border-slate-100 my-1" />
-          <button
-            onClick={handleSetSingleBg}
-            className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-          >
-            <ImageIcon className="w-4 h-4" />
-            {t('设置本页背景图')}
-          </button>
-          <button
-            onClick={handleRemoveSingleBg}
-            className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-          >
-            <ImageOff className="w-4 h-4" />
-            {t('移除本页背景图')}
-          </button>
-          <div className="border-t border-slate-100 my-1" />
-          <button
-            onClick={handleSetAllBg}
-            className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-          >
-            <ImageIcon className="w-4 h-4" />
-            {t('一键设置所有背景图')}
-          </button>
-          <button
-            onClick={handleRemoveAllBg}
-            className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-          >
-            <ImageOff className="w-4 h-4" />
-            {t('一键移除所有背景图')}
-          </button>
-          <div className="border-t border-slate-100 my-1" />
-          <button
-            onClick={handleStartRename}
-            className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-          >
-            <Edit3 className="w-4 h-4" />
-            {t('重命名')}
-          </button>
-          <button
-            onClick={handleDelete}
-            disabled={
-              presentation.slides.length <= 1 || selectedSlideIds.size >= presentation.slides.length
-            }
-            className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Trash2 className="w-4 h-4" />
-            {t('删除')}
-            <span className="ml-auto text-xs text-red-300">Delete</span>
-          </button>
-        </div>
+        <SlideContextMenu
+          menuRef={menuRef}
+          x={contextMenu.x}
+          y={contextMenu.y}
+          canPaste={canPasteSlide}
+          deleteDisabled={
+            presentation.slides.length <= 1 || selectedSlideIds.size >= presentation.slides.length
+          }
+          onOpenInNewTab={handleOpenInNewTab}
+          onCut={handleCutClick}
+          onCopy={handleCopyClick}
+          onPaste={handlePasteClick}
+          onSetSingleBg={handleSetSingleBg}
+          onRemoveSingleBg={handleRemoveSingleBg}
+          onSetAllBg={handleSetAllBg}
+          onRemoveAllBg={handleRemoveAllBg}
+          onStartRename={handleStartRename}
+          onDelete={handleDelete}
+        />
       )}
 
       {blankAreaContextMenu && (
-        <div
-          ref={blankMenuRef}
-          className="fixed bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50 min-w-[160px]"
-          style={{ left: blankAreaContextMenu.x, top: blankAreaContextMenu.y }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            onClick={() => handlePasteSlides(presentation.slides.length)}
-            disabled={!canPasteSlide}
-            className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Clipboard className="w-4 h-4" />
-            {canPasteSlide ? t('粘贴') : t('剪贴板为空')}
-            <span className="ml-auto text-xs text-slate-400">Ctrl+V</span>
-          </button>
-          <div className="border-t border-slate-100 my-1" />
-          <button
-            onClick={handleSetAllBg}
-            className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-          >
-            <ImageIcon className="w-4 h-4" />
-            {t('一键设置所有背景图')}
-          </button>
-          <button
-            onClick={handleRemoveAllBg}
-            className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-          >
-            <ImageOff className="w-4 h-4" />
-            {t('一键移除所有背景图')}
-          </button>
-          <button
-            onClick={() => {
-              addSlide();
-              setBlankAreaContextMenu(null);
-            }}
-            className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            {t('新增幻灯片')}
-          </button>
-        </div>
+        <BlankAreaContextMenu
+          menuRef={blankMenuRef}
+          x={blankAreaContextMenu.x}
+          y={blankAreaContextMenu.y}
+          canPaste={canPasteSlide}
+          slidesCount={presentation.slides.length}
+          onPaste={handlePasteSlides}
+          onSetAllBg={handleSetAllBg}
+          onRemoveAllBg={handleRemoveAllBg}
+          onAddSlide={() => {
+            addSlide();
+            setBlankAreaContextMenu(null);
+          }}
+        />
       )}
 
       <input

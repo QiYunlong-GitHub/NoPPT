@@ -1,5 +1,21 @@
+import type {
+  CollabMode,
+  ColorTheme,
+  Density,
+  FontFamily,
+  ImagePref,
+  PipelineStage,
+  SlideCountMode,
+} from './ai-generate/types';
+import { COLOR_THEME_IDS, ICON_STYLE_IDS, audienceOptions, fontFamilyOptions, colorThemeOptions } from './ai-generate/options';
+import { useGenerateState } from './ai-generate/useGenerateState';
+import { Stepper } from './ai-generate/preview';
+import { ConfigPanel } from './ai-generate/ConfigPanel';
+import { OutlineEditor } from './ai-generate/OutlineEditor';
+import { DesignProposals } from './ai-generate/DesignProposals';
+import { RenderedSlides } from './ai-generate/RenderedSlides';
 import { t } from '@/i18n';
-import { useState, useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import {
   X,
   Sparkles,
@@ -36,206 +52,6 @@ import type {
   RenderedSlide,
   IconStyle,
 } from '@noppt/ai';
-type Density = 'compact' | 'normal' | 'spacious';
-type ImagePref = 'all' | 'content-only' | 'minimal' | 'none';
-type ColorTheme = 'blue' | 'purple' | 'green' | 'orange' | 'teal' | 'gray';
-type SlideCountMode = 'auto' | 'exact' | 'range';
-type FontFamily = 'sans' | 'serif' | 'mono';
-type PipelineStage = 'config' | 'outline' | 'design' | 'layout-preview' | 'generating' | 'done';
-type CollabMode = 'auto' | 'guided' | 'collaborative';
-/** 预填参数白名单：草稿里带过来的枚举值需在前端合法才落位。 */
-const COLOR_THEME_IDS = ['blue', 'purple', 'green', 'orange', 'teal', 'gray'] as const;
-const ICON_STYLE_IDS = [
-  'auto',
-  'line',
-  'filled',
-  'numbered',
-  'bullet',
-  'lettered',
-  'emoji',
-  'none',
-] as const;
-const audienceOptions: {
-  id: string;
-  name: string;
-  desc: string;
-}[] = [
-  { id: '通用商务受众', name: '通用商务', desc: t('跨行业通用') },
-  { id: '技术研发团队 / 工程师', name: '技术人员', desc: t('工程师/研发') },
-  { id: '公司管理层 / 决策者', name: '管理层', desc: t('老板/总监') },
-  { id: '投资人 / 股东', name: '投资人', desc: t('融资/路演') },
-  { id: '学生 / 教育场景', name: '学生/教育', desc: t('课堂/作业') },
-  { id: '销售市场团队 / 客户', name: '销售市场', desc: t('营销/提案') },
-];
-const fontFamilyOptions: {
-  id: FontFamily;
-  name: string;
-  desc: string;
-}[] = [
-  { id: 'sans', name: '无衬线体', desc: t('现代商务风（推荐）') },
-  { id: 'serif', name: '衬线体', desc: t('典雅学术风') },
-  { id: 'mono', name: '等宽体', desc: t('技术极客风') },
-];
-const colorThemeOptions: {
-  id: ColorTheme;
-  name: string;
-  color: string;
-}[] = [
-  { id: 'blue', name: '商务蓝', color: '#2563eb' },
-  { id: 'purple', name: '创意紫', color: '#7c3aed' },
-  { id: 'teal', name: '科技青', color: '#0891b2' },
-  { id: 'green', name: '自然绿', color: '#059669' },
-  { id: 'orange', name: '活力橙', color: '#ea580c' },
-  { id: 'gray', name: '极简灰', color: '#4b5563' },
-];
-const iconStyleOptions: {
-  id: IconStyle;
-  name: string;
-  desc: string;
-}[] = [
-  { id: 'auto', name: '智能匹配', desc: t('默认线性，专业简约') },
-  { id: 'line', name: '线性图标', desc: t('描边风格，B端/技术首选') },
-  { id: 'filled', name: '面性图标', desc: t('实心填充，重点/封面') },
-  { id: 'numbered', name: '数字序号', desc: '1 2 3 4' },
-  { id: 'bullet', name: '对勾/圆点', desc: '✓ ● ✓ ●' },
-  { id: 'lettered', name: '字母分类', desc: 'A B C D' },
-  { id: 'emoji', name: 'Emoji', desc: t('🎯 📊 ⚡ 💡') },
-  { id: 'none', name: '无图标', desc: t('纯文字') },
-];
-function getPageTypeLabel(pageType: string): string {
-  if (pageType === 'cover') return t('封面');
-  if (pageType === 'toc') return t('目录');
-  if (pageType.startsWith('content-')) return t('内容');
-  if (pageType === 'summary' || pageType === 'conclusion') return t('总结');
-  return t('页面');
-}
-const modeOptions: {
-  id: CollabMode;
-  icon: React.ReactNode;
-  title: string;
-  desc: string;
-  badge?: string;
-}[] = [
-  {
-    id: 'auto',
-    icon: <Zap className="w-5 h-5" />,
-    title: t('全自动'),
-    desc: t('一键生成，最快出稿'),
-  },
-  {
-    id: 'guided',
-    icon: <Target className="w-5 h-5" />,
-    title: t('引导式'),
-    desc: t('关键节点确认，防返工'),
-    badge: '推荐',
-  },
-  {
-    id: 'collaborative',
-    icon: <Users className="w-5 h-5" />,
-    title: t('协作式'),
-    desc: t('逐页审核，精雕细琢'),
-  },
-];
-function Stepper({ currentStage }: { currentStage: PipelineStage }) {
-  const steps = [
-    { key: 'outline', label: t('大纲') },
-    { key: 'design', label: t('设计方案') },
-    { key: 'layout-preview', label: t('页面预览') },
-    { key: 'generating', label: t('生成') },
-  ];
-  const stageOrder: PipelineStage[] = ['outline', 'design', 'layout-preview', 'generating', 'done'];
-  const currentIdx = stageOrder.indexOf(currentStage);
-  return (
-    <div className="flex items-center justify-center gap-1 sm:gap-2 mb-4">
-      {steps.map((s, i) => {
-        const stepIdx = stageOrder.indexOf(s.key as PipelineStage);
-        const isDone = currentIdx > stepIdx || currentStage === 'done';
-        const isCurrent = currentStage === s.key;
-        return (
-          <div key={s.key} className="flex items-center gap-1 sm:gap-2">
-            <div
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
-                isDone
-                  ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
-                  : isCurrent
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
-                    : 'bg-slate-100 text-slate-400 dark:bg-slate-700/50 dark:text-slate-500'
-              }`}
-            >
-              <span
-                className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${
-                  isDone
-                    ? 'bg-green-500 text-white'
-                    : isCurrent
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-slate-300 dark:bg-slate-600 text-white'
-                }`}
-              >
-                {isDone ? <Check className="w-3 h-3" /> : i + 1}
-              </span>
-              <span className="hidden sm:inline">{s.label}</span>
-            </div>
-            {i < steps.length - 1 && (
-              <div
-                className={`w-4 sm:w-8 h-0.5 rounded ${isDone ? 'bg-green-400' : 'bg-slate-200 dark:bg-slate-700'}`}
-              />
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-function HtmlPreview({
-  html,
-  scale,
-  width = 1280,
-  height = 720,
-  fit = false,
-}: {
-  html: string;
-  scale?: number;
-  width?: number;
-  height?: number;
-  fit?: boolean;
-}) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [autoScale, setAutoScale] = useState(0.25);
-  useEffect(() => {
-    if (!fit || !containerRef.current) return;
-    const el = containerRef.current;
-    const update = () => {
-      const w = el.clientWidth;
-      if (w > 0) setAutoScale(w / width);
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [fit, width]);
-  const effectiveScale = fit ? autoScale : (scale ?? 0.25);
-  return (
-    <div
-      ref={containerRef}
-      className="overflow-hidden relative bg-white"
-      style={
-        fit
-          ? { width: '100%', aspectRatio: `${width} / ${height}` }
-          : { width: width * effectiveScale, height: height * effectiveScale }
-      }
-    >
-      <div
-        style={{
-          width,
-          height,
-          transform: `scale(${effectiveScale})`,
-          transformOrigin: 'top left',
-        }}
-        dangerouslySetInnerHTML={safeHtml(html)}
-      />
-    </div>
-  );
-}
 export default function AIGenerateModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const showToast = useUIStore((s) => s.showToast);
   const consumeAIPrefill = useUIStore((s) => s.consumeAIPrefill);
@@ -244,96 +60,143 @@ export default function AIGenerateModal({ open, onClose }: { open: boolean; onCl
   const setPresentation = usePresentationStore((s) => s.setPresentation);
   const savePresentation = usePresentationStore((s) => s.savePresentation);
   const addChatMessage = usePresentationStore((s) => s.addChatMessage);
-  const [topic, setTopic] = useState('');
-  const [style, setStyle] = useState<'business' | 'creative' | 'simple' | 'academic'>('business');
-  const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState({ current: 0, total: 0, message: '' });
-  const [referenceHtml, setReferenceHtml] = useState<string | null>(null);
-  const [referenceHtmlName, setReferenceHtmlName] = useState('');
-  const [referenceImage, setReferenceImage] = useState<string | null>(null);
-  const [referenceImageName, setReferenceImageName] = useState('');
-  // 分类参考（封面 / 内容 / 总结）：每组含 HTML + 图片 + 原图副本（Q7）
-  const [referenceHtmlCover, setReferenceHtmlCover] = useState<string | null>(null);
-  const [referenceHtmlCoverName, setReferenceHtmlCoverName] = useState('');
-  const [referenceImageCover, setReferenceImageCover] = useState<string | null>(null);
-  const [referenceImageCoverName, setReferenceImageCoverName] = useState('');
-  const [referenceImageCoverOriginal, setReferenceImageCoverOriginal] = useState<string | null>(
-    null,
-  );
-  const [referenceHtmlContent, setReferenceHtmlContent] = useState<string | null>(null);
-  const [referenceHtmlContentName, setReferenceHtmlContentName] = useState('');
-  const [referenceImageContent, setReferenceImageContent] = useState<string | null>(null);
-  const [referenceImageContentName, setReferenceImageContentName] = useState('');
-  const [referenceImageContentOriginal, setReferenceImageContentOriginal] = useState<string | null>(
-    null,
-  );
-  const [referenceHtmlSummary, setReferenceHtmlSummary] = useState<string | null>(null);
-  const [referenceHtmlSummaryName, setReferenceHtmlSummaryName] = useState('');
-  const [referenceImageSummary, setReferenceImageSummary] = useState<string | null>(null);
-  const [referenceImageSummaryName, setReferenceImageSummaryName] = useState('');
-  const [referenceImageSummaryOriginal, setReferenceImageSummaryOriginal] = useState<string | null>(
-    null,
-  );
-  // 跨步骤参考属性缓存版本号（由 plan 步骤返回，后续步骤原样回传）
-  const [refAttrsVersion, setRefAttrsVersion] = useState<string | undefined>(undefined);
-  // 镜像到 ref：buildGenerateParams 在 auto 模式同一 tick 内被同步调用，闭包捕获的 useState 值仍是旧值（undefined），
-  // 必须用 ref 才能拿到 plan 刚返回的最新版本号（与 traceSessionIdRef 同款写法）。
+  const {
+    // 生成入参
+    topic,
+    setTopic,
+    style,
+    setStyle,
+    density,
+    setDensity,
+    imagePreference,
+    setImagePreference,
+    colorTheme,
+    setColorTheme,
+    backgroundEnabled,
+    setBackgroundEnabled,
+    autoAuditEnabled,
+    setAutoAuditEnabled,
+    inlineSelfCheckEnabled,
+    setInlineSelfCheckEnabled,
+    iconStyle,
+    setIconStyle,
+    slideCountMode,
+    setSlideCountMode,
+    exactSlideCount,
+    setExactSlideCount,
+    minSlideCount,
+    setMinSlideCount,
+    maxSlideCount,
+    setMaxSlideCount,
+    audience,
+    setAudience,
+    fontFamily,
+    setFontFamily,
+    genLanguage,
+    setGenLanguage,
+    // 参考素材
+    referenceHtml,
+    setReferenceHtml,
+    referenceHtmlName,
+    setReferenceHtmlName,
+    referenceImage,
+    setReferenceImage,
+    referenceImageName,
+    setReferenceImageName,
+    referenceHtmlCover,
+    setReferenceHtmlCover,
+    referenceHtmlCoverName,
+    setReferenceHtmlCoverName,
+    referenceImageCover,
+    setReferenceImageCover,
+    referenceImageCoverName,
+    setReferenceImageCoverName,
+    referenceImageCoverOriginal,
+    setReferenceImageCoverOriginal,
+    referenceHtmlContent,
+    setReferenceHtmlContent,
+    referenceHtmlContentName,
+    setReferenceHtmlContentName,
+    referenceImageContent,
+    setReferenceImageContent,
+    referenceImageContentName,
+    setReferenceImageContentName,
+    referenceImageContentOriginal,
+    setReferenceImageContentOriginal,
+    referenceHtmlSummary,
+    setReferenceHtmlSummary,
+    referenceHtmlSummaryName,
+    setReferenceHtmlSummaryName,
+    referenceImageSummary,
+    setReferenceImageSummary,
+    referenceImageSummaryName,
+    setReferenceImageSummaryName,
+    referenceImageSummaryOriginal,
+    setReferenceImageSummaryOriginal,
+    refAttrsVersion,
+    setRefAttrsVersion,
+    referenceText,
+    setReferenceText,
+    referenceSource,
+    setReferenceSource,
+    draftReferenceLimit,
+    setDraftReferenceLimit,
+    referenceTruncated,
+    setReferenceTruncated,
+    referenceOriginalChars,
+    setReferenceOriginalChars,
+    referenceInitial,
+    setReferenceInitial,
+    showReference,
+    setShowReference,
+    // 流程状态
+    loading,
+    setLoading,
+    progress,
+    setProgress,
+    elapsedTime,
+    setElapsedTime,
+    showAdvanced,
+    setShowAdvanced,
+    stage,
+    setStage,
+    mode,
+    setMode,
+    planLoading,
+    setPlanLoading,
+    designLoading,
+    setDesignLoading,
+    layoutLoading,
+    setLayoutLoading,
+    // 生成结果
+    plan,
+    setPlan,
+    editableSlides,
+    setEditableSlides,
+    editableTitle,
+    setEditableTitle,
+    designProposals,
+    setDesignProposals,
+    selectedDesign,
+    setSelectedDesign,
+    renderedSlides,
+    setRenderedSlides,
+    approvedSlides,
+    setApprovedSlides,
+    regeneratingSlides,
+    setRegeneratingSlides,
+    expandedSlide,
+    setExpandedSlide,
+  } = useGenerateState(settings);
   const refAttrsVersionRef = useRef<string | undefined>(undefined);
   // —— 参考素材（RAG / 对话上下文整理的「权威素材」）——
   // planning 阶段会作为「权威素材」段注入大纲 prompt（后端 GeneratePresentationRequest.referenceText）。
-  const [referenceText, setReferenceText] = useState('');
-  /** 素材来源标识（如「企业知识库 / RAG」），来自 Hermes 草稿，仅展示。 */
-  const [referenceSource, setReferenceSource] = useState<string | undefined>(undefined);
-  /** 草稿给出的素材上限（Hermes 侧按当时页数算得）；未预填时为 undefined，用本地公式派生。 */
-  const [draftReferenceLimit, setDraftReferenceLimit] = useState<number | undefined>(undefined);
-  const [referenceTruncated, setReferenceTruncated] = useState(false);
-  const [referenceOriginalChars, setReferenceOriginalChars] = useState(0);
-  /** 预填时的原始素材，供「恢复初始素材」使用。 */
-  const [referenceInitial, setReferenceInitial] = useState('');
-  const [showReference, setShowReference] = useState(false);
-  // 同 refAttrsVersionRef：auto 模式同一 tick 内同步调用 buildGenerateParams，
-  // 闭包捕获的 useState 仍是旧值，必须镜像到 ref 才能保证素材被带上。
   const referenceTextRef = useRef<string>('');
   /** 统一写入：state 与 ref 必须同步更新。 */
   const updateReferenceText = (value: string) => {
     referenceTextRef.current = value;
     setReferenceText(value);
   };
-  const [elapsedTime, setElapsedTime] = useState(0);
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [density, setDensity] = useState<Density>('normal');
-  const [imagePreference, setImagePreference] = useState<ImagePref>('content-only');
-  const [colorTheme, setColorTheme] = useState<ColorTheme | ''>('');
-  const [backgroundEnabled, setBackgroundEnabled] = useState(false);
-  const [autoAuditEnabled, setAutoAuditEnabled] = useState<boolean>(
-    () => settings.auditSettings?.enabled ?? true,
-  );
-  const [inlineSelfCheckEnabled, setInlineSelfCheckEnabled] = useState<boolean>(
-    () => settings.inlineSelfCheckSettings?.enabled ?? true,
-  );
-  const [iconStyle, setIconStyle] = useState<IconStyle>('auto');
-  const [slideCountMode, setSlideCountMode] = useState<SlideCountMode>('auto');
-  const [exactSlideCount, setExactSlideCount] = useState(8);
-  const [minSlideCount, setMinSlideCount] = useState(5);
-  const [maxSlideCount, setMaxSlideCount] = useState(10);
-  const [audience, setAudience] = useState<string>(t('通用商务受众'));
-  const [fontFamily, setFontFamily] = useState<FontFamily>('sans');
-  // 生成语言：默认跟随界面语言；可单独指定中文/英文（透传至 AI agent）
-  const [genLanguage, setGenLanguage] = useState<'follow' | 'zh-CN' | 'en'>('follow');
-  const [stage, setStage] = useState<PipelineStage>('config');
-  const [mode, setMode] = useState<CollabMode>('guided');
-  const [plan, setPlan] = useState<PresentationPlan | null>(null);
-  const [editableSlides, setEditableSlides] = useState<SlidePlan[]>([]);
-  const [editableTitle, setEditableTitle] = useState('');
-  const [planLoading, setPlanLoading] = useState(false);
-  const [designProposals, setDesignProposals] = useState<DesignProposal[]>([]);
-  const [selectedDesign, setSelectedDesign] = useState<DesignProposal | null>(null);
-  const [renderedSlides, setRenderedSlides] = useState<RenderedSlide[]>([]);
-  const [designLoading, setDesignLoading] = useState(false);
-  const [layoutLoading, setLayoutLoading] = useState(false);
-  const [approvedSlides, setApprovedSlides] = useState<boolean[]>([]);
-  const [regeneratingSlides, setRegeneratingSlides] = useState<Set<number>>(new Set());
-  const [expandedSlide, setExpandedSlide] = useState<number | null>(null);
   const htmlInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const startTimeRef = useRef<number>(0);
@@ -1156,12 +1019,6 @@ export default function AIGenerateModal({ open, onClose }: { open: boolean; onCl
       });
     }
   };
-  const styles = [
-    { id: 'business', name: '商务风', desc: t('专业正式') },
-    { id: 'creative', name: '创意风', desc: t('活泼有趣') },
-    { id: 'simple', name: '简约风', desc: t('简洁明了') },
-    { id: 'academic', name: '学术风', desc: t('严谨专业') },
-  ];
   if (!open) return null;
   const accentColor = plan?.primaryColor || selectedDesign?.primaryColor || '#2563eb';
   const isWideLayout =
@@ -1233,720 +1090,61 @@ export default function AIGenerateModal({ open, onClose }: { open: boolean; onCl
         </div>
 
         <div className="p-6 space-y-5">
-          {stage === 'config' && !planLoading && (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  {t('生成模式')}
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {modeOptions.map((m) => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => setMode(m.id)}
-                      className={`relative p-3 rounded-xl border-2 text-left transition-all ${
-                        mode === m.id
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
-                          : 'border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500'
-                      }`}
-                    >
-                      {m.badge && (
-                        <span className="absolute -top-2 -right-2 px-1.5 py-0.5 bg-gradient-to-r from-orange-400 to-pink-500 text-white text-[10px] font-bold rounded-full">
-                          {m.badge}
-                        </span>
-                      )}
-                      <div
-                        className={`mb-1.5 ${mode === m.id ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'}`}
-                      >
-                        {m.icon}
-                      </div>
-                      <p className="font-semibold text-sm text-slate-900 dark:text-white">
-                        {t(m.title)}
-                      </p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">
-                        {t(m.desc)}
-                      </p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  {t('演示主题')}
-                </label>
-                <textarea
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value)}
-                  placeholder={t(
-                    '例如：2024年度工作总结与2025规划，包含业绩回顾、问题分析、明年计划，10页左右...',
-                  )}
-                  className="w-full h-24 px-4 py-3 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                />
-              </div>
-
-              {/* 参考素材（来自企业知识库 / RAG）：planning 阶段作为「权威素材」注入大纲 prompt */}
-              <div className="rounded-xl border border-slate-200 dark:border-slate-600 overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => setShowReference(!showReference)}
-                  className="w-full flex items-center gap-2 px-4 py-3 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                >
-                  <Database
-                    className={`w-4 h-4 ${referenceText ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'}`}
-                  />
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    {t('参考素材（来自企业知识库 / RAG）')}
-                  </span>
-                  {referenceSource && (
-                    <span className="px-1.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/40 text-[10px] font-medium text-blue-700 dark:text-blue-300">
-                      {referenceSource}
-                    </span>
-                  )}
-                  <span className="ml-auto flex items-center gap-2">
-                    {referenceText ? (
-                      <span
-                        className={`text-[11px] ${referenceOverLimit ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'}`}
-                      >
-                        {referenceText.length.toLocaleString()} /{' '}
-                        {effectiveReferenceLimit.toLocaleString()}
-                        {t('字')}
-                      </span>
-                    ) : (
-                      <span className="text-[11px] text-slate-400 dark:text-slate-500">
-                        {t('未注入')}
-                      </span>
-                    )}
-                    {showReference ? (
-                      <ChevronUp className="w-4 h-4 text-slate-400" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4 text-slate-400" />
-                    )}
-                  </span>
-                </button>
-
-                {showReference && (
-                  <div className="p-3 space-y-2 border-t border-slate-200 dark:border-slate-600">
-                    {(referenceTruncated || referenceOverLimit) && (
-                      <div className="flex items-start gap-1.5 px-2.5 py-2 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-[11px] text-orange-600 dark:text-orange-400">
-                        <AlertTriangle className="w-3.5 h-3.5 mt-px shrink-0" />
-                        <span>
-                          {referenceTruncated
-                            ? t('已按生成要求裁剪：原 {from} 字 → {to} 字（每页约 800 字）', {
-                                from: referenceOriginalChars.toLocaleString(),
-                                to: effectiveReferenceLimit.toLocaleString(),
-                              })
-                            : t('当前页数下素材上限为 {n} 字，超出部分将不会被用于生成', {
-                                n: effectiveReferenceLimit.toLocaleString(),
-                              })}
-                        </span>
-                      </div>
-                    )}
-                    <textarea
-                      value={referenceText}
-                      onChange={(e) => updateReferenceText(e.target.value)}
-                      placeholder={t(
-                        '粘贴或编辑权威素材：企业知识库检索结果、文档整理稿、对话上下文摘要……这些内容会在规划大纲阶段作为「权威素材」参与生成。',
-                      )}
-                      className="w-full h-40 px-3 py-2.5 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs font-mono leading-relaxed"
-                    />
-                    <div className="flex items-center justify-between gap-3">
-                      <span
-                        className={`text-[11px] ${
-                          referenceOverLimit
-                            ? 'text-red-600 dark:text-red-400'
-                            : referenceText.length >= effectiveReferenceLimit * 0.9
-                              ? 'text-orange-600 dark:text-orange-400'
-                              : 'text-slate-500 dark:text-slate-400'
-                        }`}
-                      >
-                        {referenceText.length.toLocaleString()} /{' '}
-                        {effectiveReferenceLimit.toLocaleString()}
-                        {t('字')}
-                      </span>
-                      <div className="flex items-center gap-3">
-                        {referenceInitial && referenceText !== referenceInitial && (
-                          <button
-                            type="button"
-                            onClick={() => updateReferenceText(referenceInitial)}
-                            className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                          >
-                            <RotateCcw className="w-3 h-3" />
-                            {t('恢复初始素材')}
-                          </button>
-                        )}
-                        {referenceText && (
-                          <button
-                            type="button"
-                            onClick={() => updateReferenceText('')}
-                            className="text-[11px] text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
-                          >
-                            {t('清空素材')}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  {t('风格选择')}
-                </label>
-                <div className="grid grid-cols-4 gap-2">
-                  {styles.map((s) => (
-                    <button
-                      key={s.id}
-                      onClick={() => setStyle(s.id as any)}
-                      className={`p-2.5 rounded-xl border-2 text-left transition-all ${
-                        style === s.id
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
-                          : 'border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500'
-                      }`}
-                    >
-                      <p className="font-medium text-sm text-slate-900 dark:text-white">{s.name}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{s.desc}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowAdvanced(!showAdvanced)}
-                className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors w-full"
-              >
-                <Settings2 className="w-4 h-4" />
-                <span>{t('高级排版选项')}</span>
-                {showAdvanced ? (
-                  <ChevronUp className="w-4 h-4 ml-auto" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 ml-auto" />
-                )}
-              </button>
-
-              {showAdvanced && (
-                <div className="space-y-4 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      {t('幻灯片页数')}
-                    </label>
-                    <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-600 overflow-hidden mb-3 w-full">
-                      {(
-                        [
-                          { id: 'auto', name: '自动' },
-                          { id: 'exact', name: '固定页数' },
-                          { id: 'range', name: '页数区间' },
-                        ] as {
-                          id: SlideCountMode;
-                          name: string;
-                        }[]
-                      ).map((tab) => (
-                        <button
-                          key={tab.id}
-                          type="button"
-                          onClick={() => setSlideCountMode(tab.id)}
-                          className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
-                            slideCountMode === tab.id
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-white dark:bg-slate-600/50 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600'
-                          }`}
-                        >
-                          {tab.name}
-                        </button>
-                      ))}
-                    </div>
-                    <div>
-                      {slideCountMode === 'auto' && (
-                        <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                          {t(
-                            'AI 根据主题自行决定，默认 8 页。可在主题中直接指定（如「5-10页」「做6页」等）。',
-                          )}
-                        </p>
-                      )}
-                      {slideCountMode === 'exact' && (
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center rounded-lg border border-slate-200 dark:border-slate-600 overflow-hidden">
-                            <button
-                              type="button"
-                              onClick={() => setExactSlideCount((v) => Math.max(1, v - 1))}
-                              className="px-3 py-2 bg-slate-50 dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 text-lg leading-none"
-                            >
-                              −
-                            </button>
-                            <input
-                              type="number"
-                              min={1}
-                              max={20}
-                              value={exactSlideCount}
-                              onChange={(e) => {
-                                const v = parseInt(e.target.value || '0', 10);
-                                if (!Number.isNaN(v))
-                                  setExactSlideCount(Math.max(1, Math.min(20, v)));
-                              }}
-                              className="w-16 text-center border-x border-slate-200 dark:border-slate-600 py-2 text-sm font-medium bg-white dark:bg-slate-700 text-slate-900 dark:text-white outline-none"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setExactSlideCount((v) => Math.min(20, v + 1))}
-                              className="px-3 py-2 bg-slate-50 dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 text-lg leading-none"
-                            >
-                              +
-                            </button>
-                          </div>
-                          <p className="text-sm text-slate-700 dark:text-slate-300">
-                            {t('固定')}
-                            <span className="font-semibold text-blue-600 dark:text-blue-400">
-                              {exactSlideCount}
-                            </span>
-                            {t('页（范围 1~20）')}
-                          </p>
-                        </div>
-                      )}
-                      {slideCountMode === 'range' && (
-                        <div className="flex items-center flex-wrap gap-3">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-slate-500 dark:text-slate-400">
-                              {t('最少')}
-                            </span>
-                            <div className="flex items-center rounded-lg border border-slate-200 dark:border-slate-600 overflow-hidden">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const next = Math.max(1, minSlideCount - 1);
-                                  setMinSlideCount(next);
-                                  if (next > maxSlideCount) setMaxSlideCount(next);
-                                }}
-                                className="px-2.5 py-2 bg-slate-50 dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 text-lg leading-none"
-                              >
-                                −
-                              </button>
-                              <input
-                                type="number"
-                                min={1}
-                                max={20}
-                                value={minSlideCount}
-                                onChange={(e) => {
-                                  const v = parseInt(e.target.value || '0', 10);
-                                  if (Number.isNaN(v)) return;
-                                  const next = Math.max(1, Math.min(20, v));
-                                  setMinSlideCount(next);
-                                  if (next > maxSlideCount) setMaxSlideCount(next);
-                                }}
-                                className="w-14 text-center border-x border-slate-200 dark:border-slate-600 py-2 text-sm font-medium bg-white dark:bg-slate-700 text-slate-900 dark:text-white outline-none"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const next = Math.min(20, minSlideCount + 1);
-                                  setMinSlideCount(next);
-                                  if (next > maxSlideCount) setMaxSlideCount(next);
-                                }}
-                                className="px-2.5 py-2 bg-slate-50 dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 text-lg leading-none"
-                              >
-                                +
-                              </button>
-                            </div>
-                          </div>
-                          <span className="text-slate-400 dark:text-slate-500 font-medium">~</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-slate-500 dark:text-slate-400">
-                              {t('最多')}
-                            </span>
-                            <div className="flex items-center rounded-lg border border-slate-200 dark:border-slate-600 overflow-hidden">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const next = Math.max(1, maxSlideCount - 1);
-                                  setMaxSlideCount(next);
-                                  if (next < minSlideCount) setMinSlideCount(next);
-                                }}
-                                className="px-2.5 py-2 bg-slate-50 dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 text-lg leading-none"
-                              >
-                                −
-                              </button>
-                              <input
-                                type="number"
-                                min={1}
-                                max={20}
-                                value={maxSlideCount}
-                                onChange={(e) => {
-                                  const v = parseInt(e.target.value || '0', 10);
-                                  if (Number.isNaN(v)) return;
-                                  const next = Math.max(1, Math.min(20, v));
-                                  setMaxSlideCount(next);
-                                  if (next < minSlideCount) setMinSlideCount(next);
-                                }}
-                                className="w-14 text-center border-x border-slate-200 dark:border-slate-600 py-2 text-sm font-medium bg-white dark:bg-slate-700 text-slate-900 dark:text-white outline-none"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const next = Math.min(20, maxSlideCount + 1);
-                                  setMaxSlideCount(next);
-                                  if (next < minSlideCount) setMinSlideCount(next);
-                                }}
-                                className="px-2.5 py-2 bg-slate-50 dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 text-lg leading-none"
-                              >
-                                +
-                              </button>
-                            </div>
-                          </div>
-                          <p className="text-sm text-slate-700 dark:text-slate-300 ml-auto w-full sm:ml-0 sm:w-auto mt-1 sm:mt-0">
-                            {t('页数范围')}
-                            <span className="font-semibold text-blue-600 dark:text-blue-400">
-                              {minSlideCount} ~ {maxSlideCount}
-                            </span>
-                            {t('，AI 按主题复杂度自决定（范围 1~20）')}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      {t('目标受众')}
-                    </label>
-                    <select
-                      value={audience}
-                      onChange={(e) => setAudience(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700"
-                    >
-                      {audienceOptions.map((opt) => (
-                        <option key={opt.id} value={opt.id}>
-                          {t(opt.name)} · {t(opt.desc)}
-                        </option>
-                      ))}
-                    </select>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      {t('影响内容深度、用词专业度和案例风格')}
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      {t('生成语言')}
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {(
-                        [
-                          { id: 'follow', name: '跟随界面' },
-                          { id: 'zh-CN', name: '中文' },
-                          { id: 'en', name: 'English' },
-                        ] as const
-                      ).map((opt) => (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => setGenLanguage(opt.id)}
-                          className={`p-2 rounded-xl border-2 text-center transition-all ${
-                            genLanguage === opt.id
-                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
-                              : 'border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500'
-                          }`}
-                        >
-                          <p className="font-medium text-sm text-slate-900 dark:text-white">
-                            {t(opt.name)}
-                          </p>
-                        </button>
-                      ))}
-                    </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      {t('仅影响本次 AI 生成的正文语言，不改变界面语言')}
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      {t('字体风格')}
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {fontFamilyOptions.map((f) => (
-                        <button
-                          key={f.id}
-                          type="button"
-                          onClick={() => setFontFamily(f.id)}
-                          className={`p-2 rounded-xl border-2 text-left transition-all ${
-                            fontFamily === f.id
-                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
-                              : 'border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500'
-                          }`}
-                          // NOTE: FONT_STACK_MONO —— 若修改请同步：
-                          //   - ai: packages/ai/src/agents/html-presentation-agent.ts#getFontStack('mono')
-                          //   - web: packages/web/src/components/AIGenerateModal.tsx L### mono 预览 style
-                          //   目的：CJK 字体在 Windows 回退时命中微软雅黑(PingFangSC)而不是 SimSun(衬线宋)。
-                          style={{
-                            fontFamily:
-                              f.id === 'serif'
-                                ? "Georgia,'Noto Serif SC',serif"
-                                : f.id === 'mono'
-                                  ? t(
-                                      "'JetBrains Mono', ui-monospace, 'Cascadia Code', Consolas, 'PingFang SC', 'Microsoft YaHei', '微软雅黑', 'Noto Sans SC', 'Noto Sans Mono CJK SC', monospace",
-                                    )
-                                  : "system-ui,'PingFang SC','Microsoft YaHei',sans-serif",
-                          }}
-                        >
-                          <p className="font-medium text-sm text-slate-900 dark:text-white">
-                            {t(f.name)}
-                          </p>
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                            {t(f.desc)}
-                          </p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                          {t('自动添加背景图')}
-                        </label>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                          {t('为封面、目录、内容、总结页生成匹配主题的背景图')}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setBackgroundEnabled(!backgroundEnabled)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${backgroundEnabled ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'}`}
-                      >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${backgroundEnabled ? 'translate-x-6' : 'translate-x-1'}`}
-                        />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                          {t('AI 自动评审')}
-                        </label>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                          {t(
-                            '生成完成后调用多引擎自动审核幻灯片，发现问题自动修复或重新生成（可在设置→AI模型→AI审核设置中配置严格度与阈值）',
-                          )}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setAutoAuditEnabled(!autoAuditEnabled)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${autoAuditEnabled ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'}`}
-                      >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${autoAuditEnabled ? 'translate-x-6' : 'translate-x-1'}`}
-                        />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                          {t('内联自检')}
-                        </label>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                          {t(
-                            '每页生成后立即执行 LLM 文本自检 + VLM 占位视觉评审，未通过当场重做（可在设置→AI模型→AI内联自检设置中配置子项）',
-                          )}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setInlineSelfCheckEnabled(!inlineSelfCheckEnabled)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${inlineSelfCheckEnabled ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'}`}
-                      >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${inlineSelfCheckEnabled ? 'translate-x-6' : 'translate-x-1'}`}
-                        />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      {t('配色主题')}
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => setColorTheme('')}
-                        className={`px-3 py-1.5 rounded-lg text-sm border-2 transition-all ${
-                          colorTheme === ''
-                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                            : 'border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-slate-300'
-                        }`}
-                      >
-                        {t('自动')}
-                      </button>
-                      {colorThemeOptions.map((c) => (
-                        <button
-                          key={c.id}
-                          onClick={() => setColorTheme(c.id)}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border-2 transition-all ${
-                            colorTheme === c.id
-                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
-                              : 'border-slate-200 dark:border-slate-600 hover:border-slate-300'
-                          }`}
-                        >
-                          <span
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: c.color }}
-                          ></span>
-                          <span className="text-slate-700 dark:text-slate-300">{t(c.name)}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      {t('内容密度')}
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {(
-                        [
-                          { id: 'compact', name: '紧凑', desc: t('信息量大') },
-                          { id: 'normal', name: '适中', desc: t('平衡') },
-                          { id: 'spacious', name: '宽松', desc: t('留白多') },
-                        ] as const
-                      ).map((d) => (
-                        <button
-                          key={d.id}
-                          onClick={() => setDensity(d.id)}
-                          className={`p-2 rounded-lg border-2 text-center transition-all ${
-                            density === d.id
-                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
-                              : 'border-slate-200 dark:border-slate-600 hover:border-slate-300'
-                          }`}
-                        >
-                          <p className="font-medium text-sm text-slate-900 dark:text-white">
-                            {d.name}
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">{d.desc}</p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      {t('配图偏好')}
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {(
-                        [
-                          { id: 'content-only', name: '仅内容页配图', desc: t('推荐') },
-                          { id: 'minimal', name: '尽量少图', desc: t('文字为主') },
-                          { id: 'none', name: '无图', desc: t('纯文字') },
-                          { id: 'all', name: '每页都配图', desc: t('含封面') },
-                        ] as const
-                      ).map((p) => (
-                        <button
-                          key={p.id}
-                          onClick={() => setImagePreference(p.id)}
-                          className={`p-2 rounded-lg border-2 text-left transition-all ${
-                            imagePreference === p.id
-                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
-                              : 'border-slate-200 dark:border-slate-600 hover:border-slate-300'
-                          }`}
-                        >
-                          <p className="font-medium text-sm text-slate-900 dark:text-white">
-                            {p.name}
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">{p.desc}</p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      {t('列表图标风格')}
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {iconStyleOptions.map((opt) => (
-                        <button
-                          key={opt.id}
-                          onClick={() => setIconStyle(opt.id)}
-                          className={`p-2 rounded-lg border-2 text-left transition-all ${
-                            iconStyle === opt.id
-                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
-                              : 'border-slate-200 dark:border-slate-600 hover:border-slate-300'
-                          }`}
-                        >
-                          <p className="font-medium text-sm text-slate-900 dark:text-white">
-                            {t(opt.name)}
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {t(opt.desc)}
-                          </p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  {t('参考文件（可选）')}
-                </label>
-
-                {/* 全局共享参考（向后兼容 NFR-3）：未单独上传分类参考时的兜底来源 */}
-                <div className="mb-4">
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-                    {t('全局共享参考：未单独上传分类参考时，作为所有页面的兜底来源')}
-                  </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    {renderReferenceRow('global', 'html')}
-                    {renderReferenceRow('global', 'image')}
-                  </div>
-                </div>
-
-                {/* 三类分类参考（FR-13.1 / C-15）：封面 / 内容 / 总结 各自独立通道 */}
-                <div className="space-y-3">
-                  {renderCategoryCard(
-                    'cover',
-                    t('封面参考（仅用于首页封面页）'),
-                    t('未上传则封面页不应用任何参考属性'),
-                  )}
-                  {renderCategoryCard(
-                    'content',
-                    t('内容参考（用于目录和正文内容页）'),
-                    t('未上传则目录/内容页不应用任何参考属性（目录页与正文页共用同一份内容参考）'),
-                  )}
-                  {renderCategoryCard(
-                    'summary',
-                    t('总结参考（仅用于结尾总结页）'),
-                    t('未上传则总结页不应用任何参考属性'),
-                  )}
-                </div>
-
-                {/* 隐藏文件输入：由 triggerReferenceFile 触发，按 pendingRef 区分 slot/kind */}
-                <input
-                  ref={htmlInputRef}
-                  type="file"
-                  accept=".html,.htm"
-                  onChange={handleReferenceFileChange}
-                  className="hidden"
-                />
-                <input
-                  ref={imageInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleReferenceFileChange}
-                  className="hidden"
-                />
-              </div>
-            </>
-          )}
+          <ConfigPanel
+            stage={stage}
+            planLoading={planLoading}
+            setMode={setMode}
+            mode={mode}
+            topic={topic}
+            setTopic={setTopic}
+            setShowReference={setShowReference}
+            showReference={showReference}
+            referenceText={referenceText}
+            referenceSource={referenceSource}
+            referenceTruncated={referenceTruncated}
+            referenceOriginalChars={referenceOriginalChars}
+            referenceInitial={referenceInitial}
+            setStyle={setStyle}
+            style={style}
+            setShowAdvanced={setShowAdvanced}
+            showAdvanced={showAdvanced}
+            setSlideCountMode={setSlideCountMode}
+            slideCountMode={slideCountMode}
+            setExactSlideCount={setExactSlideCount}
+            exactSlideCount={exactSlideCount}
+            minSlideCount={minSlideCount}
+            setMinSlideCount={setMinSlideCount}
+            maxSlideCount={maxSlideCount}
+            setMaxSlideCount={setMaxSlideCount}
+            audience={audience}
+            setAudience={setAudience}
+            setGenLanguage={setGenLanguage}
+            genLanguage={genLanguage}
+            setFontFamily={setFontFamily}
+            fontFamily={fontFamily}
+            setBackgroundEnabled={setBackgroundEnabled}
+            backgroundEnabled={backgroundEnabled}
+            setAutoAuditEnabled={setAutoAuditEnabled}
+            autoAuditEnabled={autoAuditEnabled}
+            setInlineSelfCheckEnabled={setInlineSelfCheckEnabled}
+            inlineSelfCheckEnabled={inlineSelfCheckEnabled}
+            setColorTheme={setColorTheme}
+            colorTheme={colorTheme}
+            setDensity={setDensity}
+            density={density}
+            setImagePreference={setImagePreference}
+            imagePreference={imagePreference}
+            setIconStyle={setIconStyle}
+            iconStyle={iconStyle}
+            renderReferenceRow={renderReferenceRow}
+            renderCategoryCard={renderCategoryCard}
+            handleReferenceFileChange={handleReferenceFileChange}
+            updateReferenceText={updateReferenceText}
+            effectiveReferenceLimit={effectiveReferenceLimit}
+            referenceOverLimit={referenceOverLimit}
+            htmlInputRef={htmlInputRef}
+            imageInputRef={imageInputRef}
+          />
 
           {planLoading && (
             <div className="py-8 text-center">
@@ -1993,316 +1191,40 @@ export default function AIGenerateModal({ open, onClose }: { open: boolean; onCl
             </div>
           )}
 
-          {stage === 'outline' && plan && !designLoading && (
-            <div className="space-y-4">
-              <Stepper currentStage={stage} />
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
-                  <Edit3 className="w-4 h-4" />
-                  {t('演示标题')}
-                </label>
-                <input
-                  type="text"
-                  value={editableTitle}
-                  onChange={(e) => setEditableTitle(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl focus:ring-2 focus:border-transparent text-sm font-medium"
-                  style={{ '--tw-ring-color': accentColor } as React.CSSProperties}
-                />
-                {plan.description && (
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
-                    {plan.description}
-                  </p>
-                )}
-              </div>
+          <OutlineEditor
+            stage={stage}
+            plan={plan}
+            designLoading={designLoading}
+            editableTitle={editableTitle}
+            setEditableTitle={setEditableTitle}
+            editableSlides={editableSlides}
+            accentColor={accentColor}
+            updateSlideTitle={updateSlideTitle}
+            updateKeyPoint={updateKeyPoint}
+            removeKeyPoint={removeKeyPoint}
+            addKeyPoint={addKeyPoint}
+          />
 
-              <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
-                {editableSlides.map((slide, sIdx) => {
-                  const label = getPageTypeLabel(slide.pageType);
-                  return (
-                    <div
-                      key={sIdx}
-                      className="p-4 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50"
-                    >
-                      <div className="flex items-center gap-2 mb-3">
-                        <span
-                          className="inline-flex items-center justify-center w-6 h-6 rounded-full text-white text-xs font-bold flex-shrink-0"
-                          style={{ backgroundColor: accentColor }}
-                        >
-                          {sIdx + 1}
-                        </span>
-                        <span
-                          className="px-2 py-0.5 rounded-md text-xs font-medium text-white"
-                          style={{ backgroundColor: accentColor }}
-                        >
-                          {label}
-                        </span>
-                        <input
-                          type="text"
-                          value={slide.title}
-                          onChange={(e) => updateSlideTitle(sIdx, e.target.value)}
-                          className="flex-1 px-3 py-1.5 border border-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white rounded-lg text-sm font-medium focus:ring-2 focus:border-transparent outline-none"
-                          style={{ '--tw-ring-color': accentColor } as React.CSSProperties}
-                        />
-                      </div>
+          <DesignProposals
+            stage={stage}
+            layoutLoading={layoutLoading}
+            designProposals={designProposals}
+            selectedDesign={selectedDesign}
+            setSelectedDesign={setSelectedDesign}
+          />
 
-                      <div className="space-y-2 ml-8">
-                        {slide.keyPoints.map((point, pIdx) => (
-                          <div key={pIdx} className="flex items-center gap-2">
-                            <span
-                              className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: accentColor }}
-                            ></span>
-                            <input
-                              type="text"
-                              value={point}
-                              onChange={(e) => updateKeyPoint(sIdx, pIdx, e.target.value)}
-                              className="flex-1 px-3 py-1.5 border border-slate-200 dark:border-slate-600 dark:bg-slate-800 dark:text-white rounded-lg text-sm focus:ring-2 focus:border-transparent outline-none"
-                              style={{ '--tw-ring-color': accentColor } as React.CSSProperties}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => removeKeyPoint(sIdx, pIdx)}
-                              className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors flex-shrink-0"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))}
-                        <button
-                          type="button"
-                          onClick={() => addKeyPoint(sIdx)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg border border-dashed border-slate-300 dark:border-slate-500 text-slate-500 dark:text-slate-400 hover:border-blue-400 hover:text-blue-500 dark:hover:border-blue-400 transition-colors"
-                        >
-                          {t('+ 添加要点')}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {stage === 'design' && !layoutLoading && (
-            <div className="space-y-4">
-              <Stepper currentStage={stage} />
-              <div className="text-center mb-2">
-                <h4 className="text-lg font-semibold text-slate-900 dark:text-white">
-                  {t('选择视觉风格')}
-                </h4>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                  {t('AI 根据内容推荐了 3 套设计方案，点击选择你喜欢的风格')}
-                </p>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {designProposals.map((proposal) => {
-                  const isSelected = selectedDesign?.id === proposal.id;
-                  return (
-                    <div
-                      key={proposal.id}
-                      onClick={() => setSelectedDesign(proposal)}
-                      className={`rounded-xl border-2 overflow-hidden cursor-pointer transition-all ${
-                        isSelected
-                          ? 'border-blue-500 ring-2 ring-blue-200 dark:ring-blue-800'
-                          : 'border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500'
-                      }`}
-                    >
-                      <div className="relative">
-                        <div
-                          className="w-full overflow-hidden bg-slate-100 flex items-center justify-center"
-                          style={{ aspectRatio: '1280 / 720' }}
-                        >
-                          <HtmlPreview html={proposal.coverHtml} fit />
-                        </div>
-                        {isSelected && (
-                          <div className="absolute top-2 right-2 w-7 h-7 bg-blue-500 rounded-full flex items-center justify-center">
-                            <Check className="w-4 h-4 text-white" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="p-3">
-                        <div className="flex items-center justify-between mb-1">
-                          <p className="font-bold text-sm text-slate-900 dark:text-white">
-                            {proposal.name}
-                          </p>
-                          <span
-                            className="w-4 h-4 rounded-full border border-slate-200"
-                            style={{ backgroundColor: proposal.primaryColor }}
-                          />
-                        </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-2">
-                          {proposal.description}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {stage === 'layout-preview' && (
-            <div className="space-y-4">
-              <Stepper currentStage={stage} />
-              <div className="text-center mb-2">
-                <h4 className="text-lg font-semibold text-slate-900 dark:text-white">
-                  {t('预览页面排版')}
-                </h4>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                  {mode === 'collaborative'
-                    ? t('逐页审核排版，AI已自动评审，未通过页面可手动重新生成')
-                    : inlineSelfCheckEnabled
-                      ? t('每页已通过AI设计评审，确认后将开始生成配图和最终润色')
-                      : t('检查每页排版结构，确认后将开始生成配图和最终润色')}
-                </p>
-              </div>
-              {inlineSelfCheckEnabled && (
-                <div className="flex items-center justify-center gap-4 text-xs text-slate-500 dark:text-slate-400">
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                    {t('评审通过')}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                    {t('评审未通过（已用最佳版本）')}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-slate-400"></span>
-                    {t('未开启评审')}
-                  </span>
-                </div>
-              )}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[55vh] overflow-y-auto pr-1">
-                {renderedSlides.map((slide, idx) => {
-                  const label = getPageTypeLabel(slide.pageType);
-                  const isApproved = approvedSlides[idx] !== false;
-                  const isRegenerating = regeneratingSlides.has(idx);
-                  const critique = slide.critique;
-                  const hasCritique = !!critique;
-                  const critiquePassed = critique?.passed ?? false;
-                  const score = critique?.score;
-                  const attempts = critique?.attempts ?? 0;
-                  const issues = critique?.issues ?? [];
-                  const isExpanded = expandedSlide === idx;
-                  const scoreColor = !hasCritique
-                    ? 'text-slate-400 bg-slate-100 dark:bg-slate-700'
-                    : critiquePassed
-                      ? 'text-green-700 bg-green-100 dark:bg-green-900/40 dark:text-green-300'
-                      : 'text-amber-700 bg-amber-100 dark:bg-amber-900/40 dark:text-amber-300';
-                  const scoreDot = !hasCritique
-                    ? 'bg-slate-400'
-                    : critiquePassed
-                      ? 'bg-green-500'
-                      : 'bg-amber-500';
-                  return (
-                    <div
-                      key={idx}
-                      className={`rounded-xl border-2 overflow-hidden transition-all ${
-                        isApproved
-                          ? hasCritique && !critiquePassed
-                            ? 'border-amber-300 dark:border-amber-700'
-                            : 'border-slate-200 dark:border-slate-600'
-                          : 'border-amber-400 bg-amber-50 dark:bg-amber-900/20'
-                      } ${isRegenerating ? 'opacity-60' : ''}`}
-                    >
-                      <div
-                        className="relative bg-slate-100 flex items-center justify-center w-full"
-                        style={{ aspectRatio: '1280 / 720' }}
-                      >
-                        {isRegenerating ? (
-                          <div className="flex flex-col items-center gap-2 text-slate-400">
-                            <RefreshCw className="w-6 h-6 animate-spin" />
-                            <span className="text-xs">{t('重新生成中...')}</span>
-                          </div>
-                        ) : (
-                          <HtmlPreview html={slide.html} fit />
-                        )}
-                        {hasCritique && (
-                          <div
-                            className={`absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${scoreColor}`}
-                          >
-                            <span className={`w-1.5 h-1.5 rounded-full ${scoreDot}`}></span>
-                            {score?.toFixed(1)}
-                            {attempts > 1 && <span className="opacity-70">×{attempts}</span>}
-                          </div>
-                        )}
-                        {mode === 'collaborative' && !isRegenerating && (
-                          <button
-                            type="button"
-                            onClick={() => toggleApprovedSlide(idx)}
-                            className={`absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
-                              isApproved
-                                ? 'bg-green-500 text-white'
-                                : 'bg-white border-2 border-amber-400 text-amber-500'
-                            }`}
-                          >
-                            {isApproved ? <Check className="w-4 h-4" /> : '!'}
-                          </button>
-                        )}
-                      </div>
-                      <div className="p-3">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-bold text-slate-400">#{idx + 1}</span>
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium text-white bg-blue-500">
-                            {label}
-                          </span>
-                        </div>
-                        <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
-                          {slide.title}
-                        </p>
-                        {hasCritique && issues.length > 0 && (
-                          <div className="mt-2">
-                            <button
-                              type="button"
-                              onClick={() => setExpandedSlide(isExpanded ? null : idx)}
-                              className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 hover:underline"
-                            >
-                              {issues.length}
-                              {t('个设计问题')}
-                              {isExpanded ? (
-                                <ChevronUp className="w-3 h-3" />
-                              ) : (
-                                <ChevronDown className="w-3 h-3" />
-                              )}
-                            </button>
-                            {isExpanded && (
-                              <ul className="mt-1.5 space-y-1">
-                                {issues.slice(0, 5).map((issue, i) => (
-                                  <li
-                                    key={i}
-                                    className="text-[11px] text-slate-600 dark:text-slate-400 flex items-start gap-1"
-                                  >
-                                    <span className="text-amber-500 mt-0.5">•</span>
-                                    <span className="line-clamp-2">{issue}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
-                        )}
-                        {(mode === 'collaborative' || (hasCritique && !critiquePassed)) &&
-                          !isRegenerating && (
-                            <button
-                              type="button"
-                              onClick={() => handleRegenerateSlide(idx)}
-                              className="mt-2 inline-flex items-center gap-1 text-[11px] text-blue-600 dark:text-blue-400 hover:underline"
-                            >
-                              <RefreshCw className="w-3 h-3" />
-                              {t('重新生成此页')}
-                            </button>
-                          )}
-                        {!isApproved && mode === 'collaborative' && (
-                          <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
-                            {t('未通过用户审核，点击右上角标记可恢复')}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+          <RenderedSlides
+            stage={stage}
+            mode={mode}
+            inlineSelfCheckEnabled={inlineSelfCheckEnabled}
+            renderedSlides={renderedSlides}
+            approvedSlides={approvedSlides}
+            regeneratingSlides={regeneratingSlides}
+            expandedSlide={expandedSlide}
+            setExpandedSlide={setExpandedSlide}
+            toggleApprovedSlide={toggleApprovedSlide}
+            handleRegenerateSlide={handleRegenerateSlide}
+          />
 
           {stage === 'generating' && (
             <div className="py-8 text-center">
