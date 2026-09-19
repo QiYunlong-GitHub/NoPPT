@@ -29,6 +29,8 @@ export interface ChatOptions {
   maxTokens?: number;
   topP?: number;
   stream?: boolean;
+  /** 透传到底层请求体的额外字段（如关闭思考的 enable_thinking / chat_template_kwargs 等）。 */
+  extraBody?: Record<string, any>;
 }
 
 export interface ChatResponse {
@@ -39,6 +41,10 @@ export interface ChatResponse {
     completionTokens: number;
     totalTokens: number;
   };
+  /** 推理模型（DeepSeek/R1 等）的思考输出，默认落在 message.reasoning_content；为空说明非思考模型或未开启思考。 */
+  reasoningContent?: string;
+  /** choices[0].finish_reason，如 length（截断）/ stop / tool_calls，用于空内容诊断与重试。 */
+  finishReason?: string;
   raw?: any;
 }
 
@@ -48,6 +54,8 @@ export interface ModelConfig {
   baseUrl?: string;
   model: string;
   defaultOptions?: Partial<ChatOptions>;
+  /** 内容生成模型关闭思考（使正文直出 content），对非思考模型该参数被忽略。 */
+  disableThinking?: boolean;
 }
 
 export interface GeneratedOutline {
