@@ -79,3 +79,11 @@ GitHub上传清单.md
 .trae/
 .roo/
 .codebuddy/
+
+# ===== 本地代码体检工具配置（未接入工程，按需保留/忽略） =====
+# Knip 死代码/依赖分析、dependency-cruiser 依赖图、eslint gates 门禁
+knip.json
+.dependency-cruiser.cjs
+.eslintrc.gates.cjs
+# 上述工具生成的基线产物（依赖基线 / eslint 门禁结果）
+baseline/
