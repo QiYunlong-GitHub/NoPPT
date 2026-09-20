@@ -239,45 +239,156 @@ export class LayoutEngine {
     );
   }
 
+  /**
+   * 结构锚定修复：清理「泄漏到 `<svg>` 之外的 SVG 图形子元素」。
+   *
+   * 成因（pres_mu7skl55_0cmg3m7 slide-03「严重遮挡」的直接原因）：
+   * 上游 wrapTextNodes 不认识 SVG 命名空间，把自闭合的 `<rect />` / `<path />`
+   * 切成独立片段；再经 DOM 序列化后变成 HTML 未知元素 `<rect …>…</rect>` /
+   * `<path …>…</path>`，并把随后的文字节点吞进自己内部，造成大面积错位与遮挡。
+   *
+   * 旧实现按**像素值**锚定（`width:22px` / `gap:12px`），8pt 网格归一后这些值被改写
+   * （gap 12→8/16），修复完全失配；故改为按**结构**锚定：凡不在 `<svg>` 内的图形标签
+   * 一律视为泄漏，剥离外壳、还原其内部的可见文字节点。
+   *
+   * 幂等：无泄漏时逐字节返回原串。
+   */
+  private static repairLeakedSvgShapes(html: string): string {
+    const SHAPES = 'rect|path|circle|line|polyline|polygon|ellipse';
+    const MASK = '@@NOPPT_SVG@@';
+    // ① 先掩码合法的 <svg>…</svg> 区块（内部的图形标签是合法的，绝不能动）
+    const blocks: string[] = [];
+    const masked = html.replace(/<svg\b[\s\S]*?<\/svg>/gi, (block) => {
+      blocks.push(block);
+      return `${MASK}${blocks.length - 1}${MASK}`;
+    });
+    if (!new RegExp(`<(${SHAPES})\\b`, 'i').test(masked)) return html;
+
+    let out = masked;
+    // ② 成对形态 <rect …>…</rect>：剥掉外壳，还原内部可见文字
+    out = out.replace(
+      new RegExp(`<(${SHAPES})\\b[^>]*>([\\s\\S]*?)<\\/\\1\\s*>`, 'gi'),
+      (_m: string, _tag: string, inner: string) => LayoutEngine.extractTextFromLeakedShape(inner),
+    );
+    // ③ 无配对的自闭合残留（<rect …/> / <rect …>）直接删除
+    out = out.replace(new RegExp(`<(${SHAPES})\\b[^>]*>`, 'gi'), '');
+
+    // ④ 还原被掩码的合法 svg
+    if (blocks.length > 0) {
+      out = out.replace(
+        new RegExp(`${MASK}(\\d+)${MASK}`, 'g'),
+        (_m: string, i: string) => blocks[Number(i)] ?? '',
+      );
+    }
+    // ⑤ 「只包着一个 <svg> 的 <p>」解包：这层 <p> 是上游误包的产物，会凭空增加块级高度
+    out = out.replace(/<p\b[^>]*>\s*(<svg\b[\s\S]*?<\/svg>)\s*<\/p>/gi, '$1');
+    return out;
+  }
+
+  /** 从泄漏的图形元素内部还原可见文字：删空 <p>、解包非空 <p>，保留 LLM 原始 span/文本。 */
+  private static extractTextFromLeakedShape(inner: string): string {
+    return inner
+      .replace(/<p\b[^>]*>\s*<\/p>/gi, '')
+      .replace(/<p\b[^>]*>([\s\S]*?)<\/p>/gi, (_m: string, body: string) => body);
+  }
+
+  /**
+   * comparison-deep-dive 行对齐：把左右两栏的 `<ul>` 改为等分行高的 grid。
+   *
+   * 原结构是 `display:flex;flex-direction:column` + 内容驱动的 li 高度，左右栏
+   * 只要 padding / 图标尺寸 / 进度条高度有任何差异，第 i 行就会累积错位，两栏底边也不齐。
+   * 改成 `grid-template-rows:repeat(N,1fr)` 后：
+   *   - 同一个 ul 内所有行等高；
+   *   - 左右两个 ul 处在 align-items:stretch 的双栏容器里、高度相同且行数相同
+   *     （由 balanceComparisonDeepDiveLIs 保证）→ 左右第 i 行严格等高、顶部对齐；
+   *   - 1fr 等价于 minmax(auto,1fr)，行高不会被压到内容以下，因此不会产生行内重叠。
+   */
+  private static alignComparisonDeepDiveRows(html: string): string {
+    const uls = LayoutEngine.findUlBlocks(html);
+    if (uls.length < 2) return html;
+    const N = Math.max(uls[0].liCount, uls[1].liCount, 1);
+    const ROWS = `repeat(${N},1fr)`;
+    let out = html;
+    // 从后往前替换，保证前面的 index 仍然有效
+    for (let i = 1; i >= 0; i--) {
+      const ul = uls[i];
+      const styleMatch = ul.openTag.match(/style="([^"]*)"/i);
+      let newOpen: string;
+      if (styleMatch) {
+        let body = styleMatch[1]
+          .replace(/(?:^|;)\s*display\s*:\s*[^;]*/gi, '')
+          .replace(/(?:^|;)\s*flex-direction\s*:\s*[^;]*/gi, '')
+          .replace(/(?:^|;)\s*grid-template-rows\s*:\s*[^;]*/gi, '')
+          .replace(/^;+|;+$/g, '')
+          .replace(/;;+/g, ';');
+        body = `${body};display:grid;grid-template-rows:${ROWS}`.replace(/^;+/, '');
+        newOpen = ul.openTag.replace(/style="[^"]*"/i, `style="${body}"`);
+      } else {
+        newOpen = ul.openTag.replace(
+          /\s*\/?>$/,
+          ` style="display:grid;grid-template-rows:${ROWS}">`,
+        );
+      }
+      if (newOpen === ul.openTag) continue;
+      out = out.substring(0, ul.openIdx) + newOpen + out.substring(ul.openIdx + ul.openTag.length);
+    }
+    return out;
+  }
+
+  /** 收集 HTML 中所有顶层 `<ul>` 块（含嵌套 ul 的外层优先），返回位置与内部 li 数量。 */
+  private static findUlBlocks(
+    html: string,
+  ): Array<{
+    openIdx: number;
+    openTag: string;
+    closeIdx: number;
+    body: string;
+    liCount: number;
+  }> {
+    const result: Array<{
+      openIdx: number;
+      openTag: string;
+      closeIdx: number;
+      body: string;
+      liCount: number;
+    }> = [];
+    const ulRe = /<ul\b([^>]*)>/gi;
+    let m: RegExpExecArray | null;
+    while ((m = ulRe.exec(html)) !== null) {
+      const openIdx = m.index;
+      const openTag = m[0];
+      let dep = 1;
+      const innerScan = /<(\/?)ul\b([^>]*)>/gi;
+      innerScan.lastIndex = openIdx + openTag.length;
+      let closeIdx = -1;
+      let inner: RegExpExecArray | null;
+      while ((inner = innerScan.exec(html)) !== null) {
+        if (inner[1] === '/') {
+          dep--;
+          if (dep === 0) {
+            closeIdx = inner.index;
+            break;
+          }
+        } else if (!/\/\s*$/.test(inner[2] || '')) dep++;
+      }
+      if (closeIdx < 0) continue;
+      const body = html.substring(openIdx + openTag.length, closeIdx);
+      result.push({
+        openIdx,
+        openTag,
+        closeIdx,
+        body,
+        liCount: (body.match(/<li\b/gi) || []).length,
+      });
+    }
+    return result;
+  }
+
   private static repairComparisonDeepDiveHtml(html: string): string {
     let result = html;
 
-    result = result.replace(
-      /(<span\b[^>]*display:\s*inline-flex[^>]*width:\s*22px[^>]*background:\s*#E5E7EB[^>]*>)\s*<svg\b[^>]*>\s*<rect\b([^>]*)>([\s\S]*?)<\/rect>\s*<\/svg>\s*<\/span>/gi,
-      (match, circleOpen: string, rectAttrs: string, inner: string) => {
-        const hasNestedTags = /<(p|span|div|li|h[1-6])\b/i.test(inner);
-        if (!hasNestedTags) return match;
-        const text = inner.replace(/<[^>]+>/g, '').trim();
-        if (!text) return match;
-        const properSvg = `<svg width="10" height="10" viewBox="0 0 10 10"><rect${rectAttrs}/></svg>`;
-        const labelSpan = `<span style="font-size:20px;font-weight:600;color:#374151;line-height:1.4;flex:1;min-width:0;overflow-wrap:break-word;word-break:break-word">${text}</span>`;
-        return `${circleOpen}${properSvg}</span>${labelSpan}`;
-      },
-    );
-
-    result = result.replace(
-      /(<div\b[^>]*display:\s*flex[^>]*align-items:\s*center[^>]*gap:\s*12px[^>]*>)([\s\S]*?)<\/div>/gi,
-      (match, divOpen: string, divInner: string) => {
-        const brokenRect = /<rect\b[^>]*>([\s\S]*?)<\/rect>/i.exec(divInner);
-        if (!brokenRect) return match;
-        const rectInner = brokenRect[1];
-        const hasNestedTags = /<(p|span|div|li|h[1-6])\b/i.test(rectInner);
-        if (!hasNestedTags) return match;
-        const text = rectInner.replace(/<[^>]+>/g, '').trim();
-        if (!text) return match;
-        const cleanedBefore = divInner
-          .substring(0, brokenRect.index)
-          .replace(/<p\b[^>]*>\s*<\/p>/gi, '')
-          .replace(/<p\b[^>]*>[\s\S]*?<\/p>/gi, '');
-        const cleanedAfter = divInner
-          .substring(brokenRect.index + brokenRect[0].length)
-          .replace(/<p\b[^>]*>\s*<\/p>/gi, '')
-          .replace(/<p\b[^>]*>[\s\S]*?<\/p>/gi, '');
-        const iconHtml = `<span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:22px;height:22px;border-radius:50%;background:#E5E7EB;"><svg width="10" height="10" viewBox="0 0 10 10"><rect x="2" y="4.5" width="6" height="1.5" rx="0.75" fill="#9CA3AF"/></svg></span>`;
-        const labelHtml = `<span style="font-size:20px;font-weight:600;color:#374151;line-height:1.4;flex:1;min-width:0;overflow-wrap:break-word;word-break:break-word">${text}</span>`;
-        return `${divOpen}${cleanedBefore}${iconHtml}${labelHtml}${cleanedAfter}</div>`;
-      },
-    );
+    // ——— 结构锚定：清理泄漏到 <svg> 之外的图形元素（替代旧的像素值锚定修复）———
+    result = LayoutEngine.repairLeakedSvgShapes(result);
 
     // ——— FR-4 (fix-slide-comparison-image-disaster)：防御性清理两栏内"h3 ↔ ul 之间被入侵的 <img>" ———
     // 比较版式（comparison-deep-dive）的左右栏卡片内部禁止任何插图；若 LLM 在闭环中自发
@@ -301,6 +412,12 @@ export class LayoutEngine {
     );
 
     result = result.replace(/<p\b[^>]*>\s*<\/p>/gi, '');
+
+    // 泄漏的 <rect> 被剥离后，左栏「灰底横杠」图标会变成空 <svg>；此处按 width 还原标准图形
+    result = result.replace(
+      /(<svg\b[^>]*width="10"[^>]*>)\s*(<\/svg>)/gi,
+      '$1<rect x="2" y="4.5" width="6" height="1.5" rx="0.75" fill="#9CA3AF"/>$2',
+    );
 
     result = result.replace(
       /(<svg\b[^>]*width="14"[^>]*>)\s*(<\/svg>)/gi,
@@ -480,41 +597,17 @@ export class LayoutEngine {
   }
 
   private static balanceComparisonDeepDiveLIs(html: string): string {
-    const uls: Array<{
-      open: string;
-      close: string;
-      openIdx: number;
-      closeIdx: number;
-      liCount: number;
-      body: string;
-    }> = [];
-    const ulRe = /<ul\b([^>]*)>/gi;
-    let m: RegExpExecArray | null;
-    while ((m = ulRe.exec(html)) !== null) {
-      const openIdx = m.index;
-      const openTag = m[0];
-      let dep = 1;
-      const innerScan = /<(\/?)ul\b([^>]*)>/gi;
-      innerScan.lastIndex = openIdx + openTag.length;
-      let closeIdx = -1;
-      let inner: RegExpExecArray | null;
-      while ((inner = innerScan.exec(html)) !== null) {
-        if (inner[1] === '/') {
-          dep--;
-          if (dep === 0) {
-            closeIdx = inner.index;
-            break;
-          }
-        } else if (!/\/\s*$/.test(inner[2] || '')) dep++;
-      }
-      if (closeIdx < 0) continue;
-      const closeTag = `</ul>`;
-      const body = html.substring(openIdx + openTag.length, closeIdx);
-      const liCount = (body.match(/<li\b/gi) || []).length;
-      uls.push({ open: openTag, close: closeTag, openIdx, closeIdx, liCount, body });
-      if (uls.length >= 2) break;
-    }
-    if (uls.length < 2) return html;
+    // 复用 findUlBlocks（与 alignComparisonDeepDiveRows 同一套定位逻辑，避免两处漂移）
+    const all = LayoutEngine.findUlBlocks(html);
+    if (all.length < 2) return html;
+    const uls = all.slice(0, 2).map((u) => ({
+      open: u.openTag,
+      close: `</ul>`,
+      openIdx: u.openIdx,
+      closeIdx: u.closeIdx,
+      liCount: u.liCount,
+      body: u.body,
+    }));
     const [ulL, ulR] = uls;
     const N = Math.max(ulL.liCount, ulR.liCount, 3);
 
@@ -601,6 +694,8 @@ export class LayoutEngine {
       if (layoutMatch?.[1]?.toLowerCase() === 'comparison-deep-dive') {
         html = LayoutEngine.repairComparisonDeepDiveHtml(html);
         html = LayoutEngine.balanceComparisonDeepDiveLIs(html);
+        // 行对齐必须在 li 数量补齐之后执行：行数 N 由补齐后的 li 数决定
+        html = LayoutEngine.alignComparisonDeepDiveRows(html);
       }
     } else {
       // 普通版式：走原来的 normalizeOuterContainer（含 flatten），保持向后兼容
