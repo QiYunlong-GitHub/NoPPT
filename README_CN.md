@@ -50,6 +50,10 @@ packages/
 └── web/       # React 编辑器与演示预览 (@noppt/web)
 ```
 
+## 📚 仓库 Wiki（Repo Wiki）
+
+面向开发者的架构与包 API 文档（由代码自动分析生成、已提交 git）：见 [`repo-wiki/`](./repo-wiki/README.md)。
+
 ## 🛡️ AI 质量保障（内联审核 · LLM / VLM 审核 · 自动重生成 · 自动后处理修复）
 
 NoPPT 不只是生成幻灯片，还会对成品做校验。围绕生成流程有两层验证，均可在「设置 → AI 模型 →
