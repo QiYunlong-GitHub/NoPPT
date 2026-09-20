@@ -136,8 +136,9 @@ describe('封面副标题字号层级豁免（决策 4：不被 clamp 压平为�
       <p style="font-size:18px;color:#374151;margin:0 0 20px 0;">正文段</p>
     </div>`;
     const out = agent.postProcessHtmlSnapshot(content, { primaryColor: '#2563eb' });
-    // 内容页非封面，间距豁免不生效 → 20px 被规整到 24px（上取整到 8 倍数）
-    expect(out).toMatch(/margin:\s*0 0 24px 0/i);
+    // 内容页非封面，间距豁免不生效 → 20px 被规整到 16px
+    // （roundTo8 不再单向放大：半步长值统一向下取，旧实现是上取整到 24px）
+    expect(out).toMatch(/margin:\s*0 0 16px 0/i);
   });
 });
 

@@ -1,32 +1,13 @@
 import { parseStyleDeclarations } from '@noppt/core';
+import { composeInheritedPStyle } from './wrap-text';
+
+// wrapTextNodes / composeInheritedPStyle 已外置到 ./wrap-text，此处再导出保持对外签名不变
+export { composeInheritedPStyle, wrapTextNodes } from './wrap-text';
 
 /**
  * PostProcess DOM 簇（从 html-presentation-agent.ts 外置）。
  * 纯函数，无 this 依赖；agent 中对应方法改为「薄委托」保留在原型上。
  */
-
-export function composeInheritedPStyle(parentStyle?: string): string {
-  if (!parentStyle)
-    return 'font-size:24px;color:#374151;font-weight:600;line-height:2.0;overflow-wrap:break-word;word-break:break-word;';
-  const grab = (re: RegExp): string | undefined => {
-    const m = re.exec(parentStyle);
-    return m ? m[1].trim() : undefined;
-  };
-  const fs = grab(/font-size\s*:\s*([^;"}]+)/i);
-  const fc = grab(/(?:^|[^-])color\s*:\s*([^;"}]+)/i);
-  const ls = grab(/letter-spacing\s*:\s*([^;"}]+)/i);
-  const lh = grab(/line-height\s*:\s*([^;"}]+)/i);
-  const fw = grab(/font-weight\s*:\s*([^;"}]+)/i);
-  const parts = ['margin:0;'];
-  if (fs) parts.push(`font-size:${fs};`);
-  if (fc) parts.push(`color:${fc};`);
-  if (ls) parts.push(`letter-spacing:${ls};`);
-  if (lh) parts.push(`line-height:${lh};`);
-  if (fw) parts.push(`font-weight:${fw};`);
-  return parts.length > 1
-    ? parts.join('')
-    : 'font-size:24px;color:#374151;font-weight:600;line-height:2.0;overflow-wrap:break-word;word-break:break-word;';
-}
 
 export function ensureSemanticWrapping(html: string): string {
   if (!html) return html;
@@ -99,8 +80,11 @@ export function ensureSemanticWrapping(html: string): string {
     if (!sm) return false;
     const s = sm[1];
     const hasInlineFlex = /display\s*:\s*(?:inline-flex|flex)\b/i.test(s);
-    const hasBadgePadding =
-      /padding\s*:[^;]*(?:1[0-9]px\s+2[0-9]px|10px\s+28px|12px\s+24px)\b/i.test(s);
+    // 胶囊内边距特征：任意「上下 ≤16px / 左右 ≤40px」的两值 padding 均视为胶囊
+    // （原正则只认 `1Xpx 2Xpx / 10px 28px / 12px 24px`，8pt 归一后常见的 `8px 16px`
+    //  不再命中 → 图例胶囊内的 span 被多包一层 <p>，行高翻倍把图例条撑高）。
+    const padMatch = /padding\s*:[^;]*?(\d+)px\s+(\d+)px/i.exec(s);
+    const hasBadgePadding = !!padMatch && Number(padMatch[1]) <= 16 && Number(padMatch[2]) <= 40;
     const hasRadius999 = /border-radius\s*:[^;]*999px/i.test(s);
     const hasBgTint =
       /background\s*:[^;]*(?:#[0-9a-f]{6,8}1[0-9a-f]|rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*0\.0[5-9])/i.test(
@@ -506,205 +490,6 @@ export function findDirectChildElements(
     }
     result.push({ tagName, styleAttr, innerPreview });
   }
-  return result;
-}
-
-export function wrapTextNodes(html: string): string {
-  let result = html;
-  const processContainer = (content: string, parentStyle?: string): string => {
-    const segments: Array<{ type: 'text' | 'block' | 'inline'; content: string }> = [];
-    let buffer = '';
-    let i = 0;
-    while (i < content.length) {
-      if (content[i] === '<') {
-        // ===== 新增：优先识别注释块 <!---->、CDATA <![CDATA[...]]>、DOCTYPE/XML 声明 <!...> =====
-        // 这些"非正规 tag"被识别为独立 block segment，不进入文本缓冲，避免污染/打断裸文本行
-        if (content.startsWith('<!--', i)) {
-          const endIdx = content.indexOf('-->', i);
-          const j = endIdx === -1 ? content.length : endIdx + 3;
-          if (buffer.trim()) {
-            segments.push({ type: 'text', content: buffer });
-            buffer = '';
-          }
-          segments.push({ type: 'block', content: content.slice(i, j) });
-          i = j;
-          continue;
-        }
-        if (content.startsWith('<![CDATA[', i)) {
-          const endIdx = content.indexOf(']]>', i);
-          const j = endIdx === -1 ? content.length : endIdx + 3;
-          if (buffer.trim()) {
-            segments.push({ type: 'text', content: buffer });
-            buffer = '';
-          }
-          segments.push({ type: 'block', content: content.slice(i, j) });
-          i = j;
-          continue;
-        }
-        if (content.startsWith('<!', i)) {
-          const endIdx = content.indexOf('>', i);
-          const j = endIdx === -1 ? content.length : endIdx + 1;
-          if (buffer.trim()) {
-            segments.push({ type: 'text', content: buffer });
-            buffer = '';
-          }
-          segments.push({ type: 'block', content: content.slice(i, j) });
-          i = j;
-          continue;
-        }
-        // ===== 注释识别结束 =====
-        const tagEnd = content.indexOf('>', i);
-        if (tagEnd === -1) {
-          buffer += content.slice(i);
-          break;
-        }
-        const tagFull = content.slice(i, tagEnd + 1);
-        const tagMatch = tagFull.match(/^<\/?([a-zA-Z0-9]+)/);
-        if (!tagMatch) {
-          buffer += content[i];
-          i++;
-          continue;
-        }
-        const tagName = tagMatch[1].toLowerCase();
-        const isClosing = tagFull[1] === '/';
-        const isSelfClosing =
-          tagFull[tagFull.length - 2] === '/' || ['br', 'img', 'hr', 'input'].includes(tagName);
-        const isInline = [
-          'span',
-          'strong',
-          'em',
-          'b',
-          'i',
-          'u',
-          'a',
-          'br',
-          'sup',
-          'sub',
-          'font',
-        ].includes(tagName);
-        const isBlock = [
-          'h1',
-          'h2',
-          'h3',
-          'h4',
-          'h5',
-          'h6',
-          'p',
-          'ul',
-          'ol',
-          'li',
-          'div',
-          'section',
-          'article',
-          'table',
-          'blockquote',
-          'img',
-          'video',
-          'figure',
-          'figcaption',
-          'pre',
-          'code',
-        ].includes(tagName);
-        if (isInline || isSelfClosing) {
-          if (isSelfClosing && !isInline) {
-            if (buffer.trim()) {
-              segments.push({ type: 'text', content: buffer });
-              buffer = '';
-            }
-            segments.push({ type: 'block', content: tagFull });
-          } else {
-            buffer += tagFull;
-          }
-          i = tagEnd + 1;
-        } else if (isBlock && !isClosing) {
-          let depth = 1,
-            j = tagEnd + 1;
-          while (j < content.length && depth > 0) {
-            if (content[j] === '<') {
-              // ===== 新增：嵌套匹配时也要跳过注释 =====
-              if (content.startsWith('<!--', j)) {
-                const endIdx = content.indexOf('-->', j);
-                j = endIdx === -1 ? content.length : endIdx + 3;
-                continue;
-              }
-              const nt = content.indexOf('>', j);
-              if (nt === -1) break;
-              const nm = content.slice(j, nt + 1).match(/^<\/?([a-zA-Z0-9]+)/);
-              if (nm && nm[1].toLowerCase() === tagName) {
-                if (content[j + 1] === '/') depth--;
-                else if (content[nt - 1] !== '/') depth++;
-              }
-              j = nt + 1;
-            } else j++;
-          }
-          if (buffer.trim()) {
-            segments.push({ type: 'text', content: buffer });
-            buffer = '';
-          }
-          segments.push({ type: 'block', content: content.slice(i, j) });
-          i = j;
-        } else if (isBlock && isClosing) {
-          if (buffer.trim()) {
-            segments.push({ type: 'text', content: buffer });
-            buffer = '';
-          }
-          segments.push({ type: 'block', content: tagFull });
-          i = tagEnd + 1;
-        } else {
-          buffer += tagFull;
-          i = tagEnd + 1;
-        }
-      } else {
-        buffer += content[i];
-        i++;
-      }
-    }
-    if (buffer.trim()) segments.push({ type: 'text', content: buffer });
-    // ===== 增强：裸文本缓冲按换行拆分，每行独立包裹 <p> =====
-    // 原来：多行裸文本合并成一个 <p> → 内部换行丢失，视觉上堆叠在一起
-    // 现在：每行（trim 后非空）单独生成一个 <p>，模拟"每行要点"的呈现效果
-    return segments
-      .map((seg) => {
-        if (seg.type === 'text' && seg.content.trim()) {
-          const lines = seg.content.split(/\r?\n/);
-          const wrapped: string[] = [];
-          for (const rawLine of lines) {
-            const line = rawLine.trim();
-            if (!line) continue;
-            wrapped.push(`<p style="${composeInheritedPStyle(parentStyle)}">${line}</p>`);
-          }
-          return wrapped.join('');
-        }
-        return seg.content;
-      })
-      .join('');
-  };
-  const replaceTextInDiv = (htmlStr: string): string => {
-    const divRegex = /<(div|section|article)(\s[^>]*)?>([\s\S]*?)<\/\1>/gi;
-    let iterations = 0;
-    do {
-      const before = htmlStr;
-      htmlStr = htmlStr.replace(divRegex, (match, tag, attrs, innerContent) => {
-        const styleAttr = (attrs || '').match(/style="([^"]*)"/i);
-        const parentStyle = styleAttr ? styleAttr[1] : undefined;
-        const hasOuterDiv = /<(div|section|article)[\s>]/i.test(innerContent);
-        if (hasOuterDiv) {
-          // Step 1: 递归处理嵌套的子容器内部（深度优先，先内层）
-          let pi = replaceTextInDiv(innerContent);
-          // Step 2: 对当前层级的内容也执行包裹，防止嵌套 div 周围的兄弟裸文本被遗漏
-          const processed = processContainer(pi, parentStyle);
-          if (processed !== innerContent) return `<${tag}${attrs || ''}>${processed}</${tag}>`;
-          return match;
-        }
-        const p = processContainer(innerContent, parentStyle);
-        return p === innerContent ? match : `<${tag}${attrs || ''}>${p}</${tag}>`;
-      });
-      iterations++;
-      if (htmlStr === before) break;
-    } while (iterations < 10);
-    return htmlStr;
-  };
-  result = replaceTextInDiv(result);
   return result;
 }
 

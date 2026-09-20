@@ -208,6 +208,36 @@ describe('postprocess · 布局/DOM 簇（确定性 + 幂等断言）', () => {
     expect(svc.wrapTextNodes(input)).toBe(input);
   });
 
+  // =====================================================================
+  // pres_mu7skl55_0cmg3m7 slide-03 回归：
+  // wrapTextNodes 曾把 `<span><svg><rect/></svg></span>` 拆成
+  // `<p><svg …></svg></p><rect …>…</rect>`，SVG 图形丢失且 <rect> 退化成
+  // HTML 未知元素吞掉后续文字 → 对比页严重遮挡。
+  // =====================================================================
+  const ICON_ROW_HTML =
+    '<div style="display:flex;align-items:center;gap:12px;">' +
+    '<span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:22px;height:22px;border-radius:50%;background:#E5E7EB;">' +
+    '<svg width="10" height="10" viewBox="0 0 10 10"><rect x="2" y="4.5" width="6" height="1.5" rx="0.75" fill="#9CA3AF"/></svg>' +
+    '</span>' +
+    '<span style="font-size:19px;font-weight:600;color:#374151;line-height:1.4;flex:1;min-width:0;">海表温度异常</span>' +
+    '</div>';
+
+  it('wrapTextNodes：<svg><rect/></svg> 保持完整，不产生成对 <rect> 元素', () => {
+    const out = svc.wrapTextNodes(ICON_ROW_HTML);
+    // 图形仍在 svg 内部（自闭合形态原样保留）
+    expect(out).toContain(
+      '<svg width="10" height="10" viewBox="0 0 10 10"><rect x="2" y="4.5" width="6" height="1.5" rx="0.75" fill="#9CA3AF"/></svg>',
+    );
+    // 绝不出现「成对」的 <rect …>…</rect>（那是退化为 HTML 未知元素的标志）
+    expect(out).not.toMatch(/<rect\b[^>]*>[\s\S]*?<\/rect>/i);
+    expect(out).not.toMatch(/<path\b[^>]*>[\s\S]*?<\/path>/i);
+  });
+
+  it('wrapTextNodes：SVG 修复后图标行不被额外包一层 <p>', () => {
+    const out = svc.wrapTextNodes(ICON_ROW_HTML);
+    expect(out).not.toMatch(/<p\b[^>]*>\s*<svg\b/i);
+  });
+
   it('composeInheritedPStyle：无父样式回落默认 24px', () => {
     expect(svc.composeInheritedPStyle(undefined)).toContain('font-size:24px');
   });

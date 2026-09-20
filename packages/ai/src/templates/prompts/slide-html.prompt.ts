@@ -578,8 +578,8 @@ filled 与 line 风格不得在同一页面混用——所有 li 卡片图标风
 - 有意义容器（玻璃卡/进度条整体/大卡外壳/彩色卡片外层）须含非透明background、非零border、≥8px圆角或box-shadow之一，便于可选中。
 - 勿用 \`writing-mode:vertical-rl\` 竖排（正文除外）；勿在装饰div写纯数字/字母"水印"；勿用position:absolute做主要布局（仅装饰halo/blob/分隔线可用）。
 
-### 🔴 comparison-deep-dive 7 条刚性红线（本版式专属，违反任一条立即返工）
-**⚠️ 只要 PAGE_TYPE = comparison-deep-dive，以下 7 条必须一字不差严格遵守：**
+### 🔴 comparison-deep-dive 8 条刚性红线（本版式专属，违反任一条立即返工）
+**⚠️ 只要 PAGE_TYPE = comparison-deep-dive，以下 8 条必须一字不差严格遵守：**
 1. **左右栏 li 数量必须严格相等**（左栏 N 条 → 右栏 N 条，N=3~5，一条不差，多一条少一条都算违规；不要在右栏加"其他"占位或在左栏少一项）。
 2. **禁止在 li 内部再嵌套 <p> 标签**：li 是 flex-direction:column 容器，内部直接放「图标行 div（display:flex 含图标+文字+徽章）」+「进度条容器 div」，不要有多余 <p> 包裹文字（会导致行高不统一、高度差溢出）。
 3. **右栏每个 metricValues 对应进度条 width 必须用真实值**：第 i 项进度条填充 width = \`metricValues[i] + '%'\`，不要全部写成 85%、不要编造数值（12%→实际 12%，95%→实际 95%）。
@@ -587,6 +587,7 @@ filled 与 line 风格不得在同一页面混用——所有 li 卡片图标风
 5. **禁止在左右栏容器内写入固定 width/height/left/top/max-width:none 等脏属性**：外层双栏容器永远用 flex:1 + gap:28px，内部卡片用 padding/border-radius/border/background 做造型，不要硬写 \`width:500px\`、\`height:600px\`、\`position:absolute\`、\`max-width:none\` 会被 LayoutEngine 后处理剔除（写了白写还容易错位）。
 6. **禁止在普通项进度条渐变中使用与主题无关的 hex 颜色**：所有「非胜出项（NO 项）」进度条渐变必须**严格只使用以下 3 个颜色值**（本页上方示例里刚出现过的 3 个值，一字不差）：① \`{{PRIMARY_COLOR_LIGHTER}}\`（浅一档主色，首段 0%）→ ② \`{{PRIMARY_COLOR}}\`（主色，中段 45%）→ ③ \`{{PRIMARY_COLOR_DARKER}}\`（深一档主色，末段 100%），角度统一 135°，内高光用 \`box-shadow:inset 0 1px 2px rgba(255,255,255,0.45),inset 0 -1px 2px rgba(0,0,0,0.12)\`，**不要自己编造 #a855f7、#fbbf24 这类与主题色无关的颜色值**。「胜出项」进度条同样只用主色系，仅比普通项深一档（如 \`linear-gradient(135deg,{{PRIMARY_COLOR}} 0%,{{PRIMARY_COLOR_DARKER}} 45%,{{PRIMARY_COLOR_DARKER}} 100%)\`）；绿色仅保留用于胜出件的 ✓ 图标 / 胜出徽章 / 左边框，不进入进度条。
 7. **本页型颜色总览 ≤5 种**：主色系（{{PRIMARY_COLOR}} / {{PRIMARY_COLOR_DARKER}}）+ 1 个语义绿（胜出 #10b981 / #059669）+ 中性灰阶；**禁止出现红/紫等其他色相**（如 #ef4444 / #dc2626 / #7c3aed / #34d399 等一律不得作为本页面板、进度条、图标或字体的主色）。
+8. **左右栏 li 必须逐行等高（度量完全对称）**：左右两栏 li 的 \`padding\`、\`gap\`、图标容器 \`width/height\`、正文 \`font-size\`、进度条 \`height\` 必须取**完全相同的值**，只有配色 / 边框色 / 徽章文案可以不同。任一度量不对称 → 左栏第 i 行与右栏第 i 行高度不同，错位会逐行累积，两栏底边也不齐（历史缺陷：pres_mu7skl55_0cmg3m7 slide-03）。推荐对称值：\`li padding:16px 24px; gap:8px\`、正文 20px、进度条 \`height:8px\`；N=5 时统一降为 \`padding:8px 16px\` + \`gap:8px\` + 进度条 \`height:8px\` 以留出高度。
 
 ## 字体
 

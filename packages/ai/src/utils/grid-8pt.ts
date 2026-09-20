@@ -9,14 +9,34 @@
 // 或完整 HTML 的标签 style 属性；正则中不包含引号字符，避免 TS/ESBuild
 // 转义歧义。
 
-/** 四舍五入到最近的 8 倍数；最小 8。例：19->16, 14->16, 4->8 */
+/**
+ * 归整到 8pt 网格（就近取整），但**不做单向放大**。
+ *
+ * 旧实现 `Math.max(8, Math.round(v / 8) * 8)` 有两个系统性放大缺陷：
+ *   ① `Math.max(8, …)` 把 4px 这类紧凑内边距强行抬到 8px（徽章/紧凑卡片被撑大）；
+ *   ② `Math.round` 对 `.5` 一律进位，于是 12→16、20→24、28→32，
+ *      凡是「半步长」值都被 +4，卡片总高被逐层累加放大后溢出 1280×720 画布
+ *      （pres_mu7skl55_0cmg3m7 slide-03 遮挡的放大因素之一）。
+ *
+ * 新规则：
+ *   - `v <= 0`：原样返回（0 / auto 等）；
+ *   - `v < 8`：保留原值（小间距不再被抬到 8px）；
+ *   - 其余：就近取整，恰好半步长（`v % 8 === 4`，如 12/20/28）统一**向下**取；
+ *   - 因此单次归整的最大增量为 3px（仅当余数 > 4 时），不会再出现 +4 的系统性放大。
+ *
+ * 例：19->16, 14->16, 4->4, 12->8, 20->16, 28->24, 30->32, 48->48
+ */
 export function roundTo8(v: number): number {
   if (v <= 0) return v;
-  return Math.max(8, Math.round(v / 8) * 8);
+  if (v < 8) return v;
+  const r = v % 8;
+  if (r === 0) return v;
+  // r === 4 恰好半步长 → 与 r < 4 同样向下取（12→8 / 20→16 / 28→24）
+  return r <= 4 ? v - r : v + (8 - r);
 }
 
-/** 对 margin / padding / gap 的值 token 做 8 倍数归一。
- *  auto / 0 / 非 px 原样返回。 */
+/** 对 margin / padding / gap 的值 token 做 8 倍数归一（就近取整，不单向放大）。
+ *  auto / 0 / 非 px / 小于 8px 的值原样返回。 */
 export function normGridTokens(valsRaw: string): string {
   return valsRaw
     .trim()
