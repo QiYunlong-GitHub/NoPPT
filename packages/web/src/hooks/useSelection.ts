@@ -2,7 +2,12 @@ import { useEffect, useState, useRef } from 'react';
 import { Dragger } from '@/utils/Dragger';
 import { ResizeGesture, type ResizeDirection, type ResizeResult } from '@/utils/Resizer';
 import { calculateGuides, type GuideLine, type ElementRect } from '@/utils/SmartGuides';
-import { getCollectiveBBox, highlightElement, commitElementTransform } from './selection/element-utils';
+import {
+  getCollectiveBBox,
+  highlightElement,
+  commitElementTransform,
+  ensureOffsetPositionable,
+} from './selection/element-utils';
 import {
   getElementByPath as _getElementByPath,
   getElementPath as _getElementPath,
@@ -400,6 +405,18 @@ export function useSelection({
       const direction = resizeHandle.getAttribute('data-resize-handle') as ResizeDirection;
       const el = selectedElementsRef.current[0];
 
+      const originalPosition = el.style.position;
+      const originalTransform = el.style.transform;
+      const originalLeft = el.style.left;
+      const originalTop = el.style.top;
+      const originalWidth = el.style.width;
+      const originalHeight = el.style.height;
+      const originalMaxWidth = el.style.maxWidth;
+      const originalMaxHeight = el.style.maxHeight;
+      // 流式（static）元素：resize / 拖动都依赖 left/top 承载偏移，先规整为 relative；
+      // 规整后若被取消（ESC/越界），通过 originalPosition 回滚为 static，避免残留 relative 影响布局。
+      ensureOffsetPositionable(el);
+
       const transformMatch = el.style.transform.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
       let tx = 0,
         ty = 0;
@@ -415,14 +432,6 @@ export function useSelection({
 
       const effectiveLeft = styleLeft + tx;
       const effectiveTop = styleTop + ty;
-
-      const originalTransform = el.style.transform;
-      const originalLeft = el.style.left;
-      const originalTop = el.style.top;
-      const originalWidth = el.style.width;
-      const originalHeight = el.style.height;
-      const originalMaxWidth = el.style.maxWidth;
-      const originalMaxHeight = el.style.maxHeight;
 
       if (tx !== 0 || ty !== 0) {
         el.style.left = `${effectiveLeft}px`;
@@ -484,6 +493,7 @@ export function useSelection({
             el.style.maxWidth = originalMaxWidth;
             el.style.maxHeight = originalMaxHeight;
             el.style.transform = originalTransform;
+            el.style.position = originalPosition;
             if (isGroup && contentWrapper) {
               contentWrapper.style.transform = originalContentTransform;
               if (originalGroupScaleX !== null)
@@ -498,8 +508,8 @@ export function useSelection({
             commitAllSelectedTransforms();
             normalizeWhitespaceTextNodes();
             ensureElementIds();
-            saveSlideHtmlRef.current(true);
             markUnsaved();
+            saveAndRestoreSelection();
             updateResizeBox();
           }
           resizerRef.current = null;
@@ -583,8 +593,8 @@ export function useSelection({
             commitAllSelectedTransforms();
             normalizeWhitespaceTextNodes();
             ensureElementIds();
-            saveSlideHtmlRef.current(true);
             markUnsaved();
+            saveAndRestoreSelection();
             updateResizeBox();
           }
           draggerRef.current = null;
@@ -656,8 +666,8 @@ export function useSelection({
             commitAllSelectedTransforms();
             normalizeWhitespaceTextNodes();
             ensureElementIds();
-            saveSlideHtmlRef.current(true);
             markUnsaved();
+            saveAndRestoreSelection();
             updateResizeBox();
           }
           draggerRef.current = null;

@@ -446,8 +446,8 @@ export function useElementOperations({
     }
 
     commitAllSelectedTransforms();
-    saveSlideHtml(true);
     markUnsaved();
+    saveAndRestoreSelection();
     updateResizeBox();
   };
 
@@ -506,8 +506,8 @@ export function useElementOperations({
 
     element.style.transform = `translate(${tx + deltaX}px, ${ty + deltaY}px)`;
     commitAllSelectedTransforms();
-    saveSlideHtml(true);
     markUnsaved();
+    saveAndRestoreSelection();
     updateResizeBox();
   };
 
@@ -534,8 +534,8 @@ export function useElementOperations({
     });
 
     commitAllSelectedTransforms();
-    saveSlideHtml(true);
     markUnsaved();
+    saveAndRestoreSelection();
     updateResizeBox();
   };
 
