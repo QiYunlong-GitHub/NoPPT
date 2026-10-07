@@ -56,6 +56,7 @@ docs/
 Slides_Templates/
 tests/
 offline-wheels/
+workflow-records/
 *.lnk
 noppt-config-*.json
 # 含明文 API Key 的 Hermes 项目级约定（切勿入库；clone 者请按 README 自建 Key）
@@ -80,6 +81,7 @@ GitHub上传清单.md
 .roo/
 .codebuddy/
 .kiro/
+.agents
 .agents/artifacts/
 packages/.agents/
 
