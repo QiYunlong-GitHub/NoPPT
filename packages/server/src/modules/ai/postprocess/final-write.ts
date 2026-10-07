@@ -38,6 +38,7 @@ export interface FinalWriteCtx {
   iconStyle?: string;
   integrityAuditEnabled?: boolean;
   traceSessionId?: string;
+  integrityRunId?: string;
   integrityCandidateWriter?: {
     writeCandidatePresentation(presentation: unknown): Promise<unknown>;
   };
@@ -325,7 +326,7 @@ export async function runFinalWrite(ctx: FinalWriteCtx): Promise<void> {
     if (ctx.integrityAuditEnabled && typeof self.auditService?.validateBeforeSave === 'function') {
       await self.auditService.validateBeforeSave(result, result.id, {
         plan,
-        runId: ctx.traceSessionId,
+        runId: ctx.integrityRunId || ctx.traceSessionId,
         phase: 'candidate',
         source: result.slides.some((slide: { deck?: unknown }) => Boolean(slide.deck)) ? 'deck' : 'html-fallback',
         designContext: {

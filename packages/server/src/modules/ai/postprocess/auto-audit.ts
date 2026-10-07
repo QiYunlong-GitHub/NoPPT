@@ -23,6 +23,7 @@ export async function runAutoAudit(ctx: any): Promise<void> {
     imageConfig,
     imageProvider,
     traceSessionId,
+    integrityRunId,
     topic,
     colorTheme,
     finalWidth,
@@ -110,7 +111,7 @@ export async function runAutoAudit(ctx: any): Promise<void> {
           plan,
           designContext: auditDesignContext,
           referenceContext,
-          runId: traceSessionId,
+          runId: ctx.integrityRunId || traceSessionId,
           phase: 'candidate',
           source: result.slides.some((slide: { deck?: unknown }) => Boolean(slide.deck)) ? 'deck' : 'html-fallback',
         });

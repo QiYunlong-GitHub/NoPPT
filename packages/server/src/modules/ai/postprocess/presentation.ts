@@ -59,6 +59,7 @@ export async function postProcessPresentationImpl(
     generationOptions,
     enableAudit,
     integrityCandidateWriter,
+    integrityRunId,
   } = params;
 
   const finalWidth = presentation.width || slideWidth || 1280;
@@ -525,6 +526,7 @@ export async function postProcessPresentationImpl(
     presentation: presentation,
     integrityAuditEnabled,
     traceSessionId,
+    integrityRunId,
     integrityCandidateWriter,
   });
 
@@ -545,6 +547,7 @@ export async function postProcessPresentationImpl(
     imageConfig,
     imageProvider,
     traceSessionId,
+    integrityRunId,
     integrityCandidateWriter,
     topic,
     colorTheme,

@@ -81,7 +81,8 @@ describe('deck-to-html · §2 根容器约定', () => {
     expect(html).toContain('data-logical-width="1280"');
     expect(html).toContain('data-logical-height="720"');
     expect(html).toContain('aspect-ratio:1280 / 720');
-    expect(html).toContain('width:100%');
+    expect(html).toContain('width:var(--noppt-root-width,100vw)');
+    expect(html).toContain('data-logical-canvas="true"');
     expect(html).toContain('max-width:1280px');
     expect(html).toContain('box-sizing:border-box');
   });

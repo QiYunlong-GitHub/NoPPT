@@ -77,9 +77,18 @@ describe('typed slide contract', () => {
     expect(result.normalized.metricItems[0]).toMatchObject({ kind: 'metric', label: '全球均温升高约', value: '0.2°C' });
     expect(result.normalized.metricItems[1]).toMatchObject({
       kind: 'omission',
+      contentId: 'slide-3-metric-2',
+      order: 1,
       originalText: '仅有指标名称',
       reason: 'value_not_separable',
-      status: 'needs_review',
+      status: 'omitted',
+    });
+    expect(result.normalized.metricItems[1]).not.toHaveProperty('value');
+    expect(result.requiredItems).toContainEqual({
+      contentId: 'slide-3-metric-2',
+      text: '仅有指标名称',
+      role: 'metric',
+      sourceIndex: 1,
     });
     expect(result.normalized.metricItems.every((item) => item.kind === 'omission' || (item.label && item.value))).toBe(true);
   });

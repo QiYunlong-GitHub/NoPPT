@@ -68,6 +68,13 @@ function baseParams(overrides: Record<string, unknown> = {}): any {
     agent: undefined,
     generationOptions: { referenceVisualAttributes: null },
     enableAudit: false,
+    integrityCandidateWriter: {
+      writeCandidatePresentation: vi.fn(async (candidate: unknown) => {
+        await svc.storage.writeJsonFile('/tmp/noppt-test/presentation.json', candidate);
+        return candidate;
+      }),
+    },
+    integrityRunId: 'run-lock-1',
     ...overrides,
   };
 }

@@ -52,6 +52,10 @@ import { isStructurePage, resolveDeckReferencePrimaryColor } from '@noppt/ai';
 import type { Presentation } from '@noppt/core';
 import { SlideRenderer, type VlmReviewResult } from '@noppt/audit';
 import { StorageService } from '../../common/storage.service';
+import {
+  PresentationIntegrityService,
+  type IntegrityCandidateWriter,
+} from '../presentation/presentation-integrity.service';
 import { LogsService } from '../logs/logs.service';
 import { AuditService } from '../audit/audit.service';
 import { ConfigService } from '../config/config.service';
@@ -241,6 +245,7 @@ export class AiService {
     private readonly logsService: LogsService,
     protected readonly auditService: AuditService,
     private readonly configService: ConfigService,
+    private readonly presentationIntegrityService: PresentationIntegrityService,
   ) {
     // r6 Task1: 打印后处理版本标识（进程级仅一次）。
     // @noppt/ai 的 POST_VERSION_SIG 当前未被 server 可用的类型入口导出（ai 包在另一侧改造中），
@@ -2153,6 +2158,21 @@ export class AiService {
     }
   }
 
+  private async createIntegrityCandidateContext(
+    presentation: HTMLPresentation,
+    presentationId?: string,
+  ): Promise<{ integrityCandidateWriter: IntegrityCandidateWriter; integrityRunId: string }> {
+    const id = presentationId || String((presentation as any).id || '');
+    if (!id) {
+      throw new Error('integrity_context_required: presentation id is required before integrity run');
+    }
+    const run = await this.presentationIntegrityService.startRun(id);
+    return {
+      integrityCandidateWriter: this.presentationIntegrityService.createCandidateWriter(run),
+      integrityRunId: run.runId,
+    };
+  }
+
   private async postProcessPresentation(
     presentation: HTMLPresentation,
     params: {
@@ -2189,9 +2209,20 @@ export class AiService {
       agent?: HTMLPresentationAgent;
       generationOptions?: any;
       enableAudit?: boolean;
+      integrityCandidateWriter?: IntegrityCandidateWriter;
+      integrityRunId?: string;
     },
   ): Promise<Presentation> {
-    return postProcessPresentationImpl.call(this, presentation, params);
+    const integrityContext = params.integrityCandidateWriter
+      ? {
+          integrityCandidateWriter: params.integrityCandidateWriter,
+          integrityRunId: params.integrityRunId || params.traceSessionId,
+        }
+      : await this.createIntegrityCandidateContext(presentation, params.presentationId);
+    return postProcessPresentationImpl.call(this, presentation, {
+      ...params,
+      ...integrityContext,
+    });
   }
 
   /**
