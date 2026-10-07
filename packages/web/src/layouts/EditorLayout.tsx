@@ -51,11 +51,10 @@ import {
   findBestIconContainer,
   type IconStyle,
 } from '@/utils/iconReplacer';
-import html2canvas from 'html2canvas';
 import { BULLET_STYLES, NUMBER_STYLES } from '@/constants/listStyles';
 import { ICON_STYLE_OPTIONS } from '@/constants/iconStyles';
 import type { IconStyleOption } from '@/constants/iconStyles';
-import { useZoom } from '@/hooks/useZoom';
+import { LOGICAL_CANVAS_HEIGHT, LOGICAL_CANVAS_WIDTH, useZoom } from '@/hooks/useZoom';
 import { useSelection, type ClipboardElement, type ContextMenuState } from '@/hooks/useSelection';
 import { useContextMenu } from '@/hooks/useContextMenu';
 import { useElementOperations } from '@/hooks/useElementOperations';
@@ -81,14 +80,11 @@ import {
 } from '@/utils/elementFactories';
 import { getLinePrefixInfo as _getLinePrefixInfo } from '@/utils/listFormatting';
 import { toggleListInRange as _toggleListInRange } from '@/utils/listDom';
-
 interface EditorLayoutProps {
   children?: React.ReactNode;
 }
-
 export default function EditorLayout({}: EditorLayoutProps) {
   const navigate = useNavigate();
-
   const presentation = usePresentationStore((s) => s.presentation);
   const selectedSlideId = usePresentationStore((s) => s.presentation?.selectedSlideId);
   const undo = usePresentationStore((s) => s.undo);
@@ -110,10 +106,9 @@ export default function EditorLayout({}: EditorLayoutProps) {
   const setExportModal = useUIStore((s) => s.setExportModal);
   const showToast = useUIStore((s) => s.showToast);
   const { t } = useI18n();
-
   const slideContainerRef = useRef<HTMLDivElement>(null);
   const editorAreaRef = useRef<HTMLDivElement>(null);
-  const { userZoomOverrideRef } = useZoom({
+  const { userZoomOverrideRef, viewport } = useZoom({
     editorAreaRef,
     presentationId: presentation?.id,
     presentationWidth: presentation?.width,
@@ -147,22 +142,18 @@ export default function EditorLayout({}: EditorLayoutProps) {
   const keepAspectRatioRef = useRef(keepAspectRatio);
   keepAspectRatioRef.current = keepAspectRatio;
   const keyHeldRef = useRef({ i: false, o: false });
-
   const stopTextEditingRef = useRef<() => void>(() => {});
   const handlePasteAtPositionRef = useRef<(clientX: number, clientY: number) => void>(() => {});
   const handleFormatBrushApplyRef = useRef<(element: HTMLElement) => void>(() => {});
   const clearClipboardRef = useRef<() => void>(() => {});
   const saveSlideHtmlRef = useRef<(addToHistory?: boolean, slideId?: string) => void>(() => {});
-
   const markUnsaved = () => {
     hasUnsavedChangesRef.current = true;
     markUnsavedStore();
   };
-
   useEffect(() => {
     hasUnsavedChangesRef.current = hasUnsavedChanges;
   }, [hasUnsavedChanges]);
-
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
@@ -182,7 +173,6 @@ export default function EditorLayout({}: EditorLayoutProps) {
       window.removeEventListener('keyup', handleKeyUp);
     };
   }, []);
-
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasUnsavedChangesRef.current) {
@@ -191,11 +181,9 @@ export default function EditorLayout({}: EditorLayoutProps) {
         return '';
       }
     };
-
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);
-
   const handleOpenPresentation = async () => {
     try {
       await loadAllPresentations();
@@ -204,7 +192,6 @@ export default function EditorLayout({}: EditorLayoutProps) {
       showToast(t('加载演示列表失败'), 'error');
     }
   };
-
   const handleSelectPresentation = (id: string) => {
     if (id === presentation?.id) {
       setShowPresentationList(false);
@@ -214,7 +201,6 @@ export default function EditorLayout({}: EditorLayoutProps) {
     window.open(url, '_blank');
     setShowPresentationList(false);
   };
-
   const handleSave = async () => {
     if (hasUnsavedChangesRef.current) {
       saveSlideHtml();
@@ -230,7 +216,6 @@ export default function EditorLayout({}: EditorLayoutProps) {
       showToast(t('保存失败，请重试'), 'error');
     }
   };
-
   const handlePreview = () => {
     if (!presentation) return;
     if (hasUnsavedChangesRef.current) {
@@ -239,7 +224,6 @@ export default function EditorLayout({}: EditorLayoutProps) {
     savePresentation();
     navigate(`/preview/${presentation.id}`);
   };
-
   const handleBack = () => {
     if (hasUnsavedChangesRef.current) {
       if (confirm(t('您有未保存的更改，确定要离开吗？'))) {
@@ -251,9 +235,7 @@ export default function EditorLayout({}: EditorLayoutProps) {
       navigate('/');
     }
   };
-
   const currentSlide = presentation?.slides.find((s) => s.id === selectedSlideId);
-
   const {
     wrapTextInVisualContainers,
     normalizeWhitespaceTextNodes,
@@ -262,11 +244,9 @@ export default function EditorLayout({}: EditorLayoutProps) {
     getSlideAppendTarget,
     findSelectableElement,
   } = createEditorSlideWrappers(slideContainerRef);
-
   const saveAndRestoreSelectionRef = useRef<() => void>(() => {});
   const highlightElementRef = useRef<(el: HTMLElement, highlight: boolean) => void>(() => {});
   const updateSelectedElementsRef = useRef<(elements: HTMLElement[]) => HTMLElement[]>(() => []);
-
   const {
     isTextEditing,
     setIsTextEditing,
@@ -315,7 +295,6 @@ export default function EditorLayout({}: EditorLayoutProps) {
     updateSelectedElementsRef,
   });
   stopTextEditingRef.current = stopTextEditing;
-
   const {
     selectedElements,
     setSelectedElements,
@@ -377,11 +356,9 @@ export default function EditorLayout({}: EditorLayoutProps) {
     markUnsaved,
     clearClipboardRef,
   });
-
   saveAndRestoreSelectionRef.current = saveAndRestoreSelection;
   highlightElementRef.current = highlightElement;
   updateSelectedElementsRef.current = updateSelectedElements;
-
   const {
     checkClipboard,
     clearClipboard,
@@ -435,7 +412,6 @@ export default function EditorLayout({}: EditorLayoutProps) {
     highlightElement,
     saveAndRestoreSelectionForNewElements,
   });
-
   const handlePasteFromClipboardRef = clipboardPasteFromClipboardRef;
   handlePasteAtPositionRef.current = handlePasteAtPosition;
   clearClipboardRef.current = clearClipboard;
@@ -447,7 +423,6 @@ export default function EditorLayout({}: EditorLayoutProps) {
   const readElementsFromClipboardRef = clipboardReadElementsRef;
   const handleCancelPasteRef = clipboardCancelPasteRef;
   const handlePasteEventRef = clipboardPasteEventRef;
-
   useEffect(() => {
     if (prevSlideIdRef.current !== undefined && prevSlideIdRef.current !== selectedSlideId) {
       if (hasUnsavedChangesRef.current) {
@@ -459,17 +434,13 @@ export default function EditorLayout({}: EditorLayoutProps) {
     }
     prevSlideIdRef.current = selectedSlideId;
   }, [selectedSlideId]);
-
   useEffect(() => {
     if (!contentRef.current || !currentSlide) return;
-
     if (currentSlide.html === lastSavedHtmlRef.current) {
       return;
     }
-
     contentRef.current.innerHTML = sanitizeHtml(currentSlide.html || '');
     lastSavedHtmlRef.current = currentSlide.html || '';
-
     const rafId = requestAnimationFrame(() => {
       if (!contentRef.current) return;
       wrapTextInVisualContainers();
@@ -488,24 +459,19 @@ export default function EditorLayout({}: EditorLayoutProps) {
         isRestoringSelectionRef.current = false;
       }
     });
-
     return () => cancelAnimationFrame(rafId);
   }, [currentSlide?.id, currentSlide?.html]);
-
   const handlePropertyChange = () => {
     markUnsaved();
     saveAndRestoreSelection();
   };
-
   const handleDeleteElement = () => {
     if (selectedElementsRef.current.length === 0 || !currentSlide) return;
-
     selectedElementsRef.current.forEach((el) => el.remove());
     saveSlideHtml(true);
     updateSelectedElements([]);
     setShowPropertyPanel(false);
   };
-
   const {
     handleContextMenu,
     handleDeleteElementFromMenu,
@@ -534,35 +500,27 @@ export default function EditorLayout({}: EditorLayoutProps) {
     presentationZoom: presentation?.zoom ?? 1,
     showToast,
   });
-
   const createTableElement = (
     x: number,
     y: number,
     rows: number = 3,
     cols: number = 3,
   ): HTMLElement => _createTableElement(x, y, rows, cols);
-
   const handleDeleteElementRef = useRef(handleDeleteElement);
   handleDeleteElementRef.current = handleDeleteElement;
-
   const handleSaveRef = useRef(handleSave);
   handleSaveRef.current = handleSave;
-
   const handleInsertTable = () => {
     if (!currentSlide) return;
-
     const container = slideContainerRef.current;
     const innerDiv = container?.querySelector('[data-slide-content="true"]') as HTMLElement | null;
     if (!container || !innerDiv) return;
-
     const rect = innerDiv.getBoundingClientRect();
     const zoom = presentation?.zoom ?? 1;
     const centerX = rect.width / 2 / zoom - 200;
     const centerY = rect.height / 3 / zoom - 50;
-
     const tableEl = createTableElement(centerX, centerY, tableRows, tableCols);
     getSlideAppendTarget(innerDiv).appendChild(tableEl);
-
     saveSlideHtml(true);
     highlightElement(tableEl, true);
     updateSelectedElements([tableEl]);
@@ -571,31 +529,24 @@ export default function EditorLayout({}: EditorLayoutProps) {
     setShowTableDialog(false);
     markUnsaved();
   };
-
   const handleInsertImage = () => {
     imageInputRef.current?.click();
   };
-
   const handleImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !currentSlide || !presentation) return;
-
     try {
       showToast(t('正在上传图片...'), 'info');
-
       const asset = await assetsApi.upload(presentation.id, 'image', file);
-
       const container = slideContainerRef.current;
       const innerDiv = container?.querySelector(
         '[data-slide-content="true"]',
       ) as HTMLElement | null;
       if (!container || !innerDiv) return;
-
       const rect = innerDiv.getBoundingClientRect();
       const zoom = presentation?.zoom ?? 1;
       const centerX = rect.width / 2 / zoom - 150;
       const centerY = rect.height / 3 / zoom - 100;
-
       const imgEl = document.createElement('img');
       imgEl.src = asset.url;
       imgEl.style.cssText = `
@@ -605,13 +556,11 @@ export default function EditorLayout({}: EditorLayoutProps) {
         object-fit: contain;
       `;
       getSlideAppendTarget(innerDiv).appendChild(imgEl);
-
       imgEl.onload = () => {
         let width = imgEl.naturalWidth;
         let height = imgEl.naturalHeight;
         const maxWidth = 400;
         const maxHeight = 300;
-
         if (width > maxWidth) {
           height = (maxWidth / width) * height;
           width = maxWidth;
@@ -622,11 +571,9 @@ export default function EditorLayout({}: EditorLayoutProps) {
         }
         imgEl.style.width = `${width}px`;
         imgEl.style.height = `${height}px`;
-
         saveSlideHtml(true);
         updateResizeBox();
       };
-
       highlightElement(imgEl, true);
       updateSelectedElements([imgEl]);
       setShowPropertyPanel(true);
@@ -637,34 +584,26 @@ export default function EditorLayout({}: EditorLayoutProps) {
       console.error('Failed to upload image:', err);
       showToast(t('图片上传失败，请重试'), 'error');
     }
-
     e.target.value = '';
   };
-
   const handleInsertVideo = () => {
     videoInputRef.current?.click();
   };
-
   const handleVideoFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !currentSlide || !presentation) return;
-
     try {
       showToast(t('正在上传视频...'), 'info');
-
       const asset = await assetsApi.upload(presentation.id, 'video', file);
-
       const container = slideContainerRef.current;
       const innerDiv = container?.querySelector(
         '[data-slide-content="true"]',
       ) as HTMLElement | null;
       if (!container || !innerDiv) return;
-
       const rect = innerDiv.getBoundingClientRect();
       const zoom = presentation?.zoom ?? 1;
       const centerX = rect.width / 2 / zoom - 200;
       const centerY = rect.height / 3 / zoom - 100;
-
       const video = document.createElement('video');
       video.src = asset.url;
       video.controls = true;
@@ -676,13 +615,11 @@ export default function EditorLayout({}: EditorLayoutProps) {
         background: #000;
       `;
       video.setAttribute('data-noppt-video', 'true');
-
       video.onloadedmetadata = () => {
         let width = video.videoWidth;
         let height = video.videoHeight;
         const maxWidth = 480;
         const maxHeight = 360;
-
         if (width > maxWidth) {
           height = (maxWidth / width) * height;
           width = maxWidth;
@@ -691,13 +628,10 @@ export default function EditorLayout({}: EditorLayoutProps) {
           width = (maxHeight / height) * width;
           height = maxHeight;
         }
-
         video.style.width = `${width}px`;
         video.style.height = `${height}px`;
       };
-
       getSlideAppendTarget(innerDiv).appendChild(video);
-
       saveSlideHtml(true);
       highlightElement(video, true);
       updateSelectedElements([video]);
@@ -709,16 +643,12 @@ export default function EditorLayout({}: EditorLayoutProps) {
       console.error('Failed to upload video:', err);
       showToast(t('视频上传失败，请重试'), 'error');
     }
-
     e.target.value = '';
   };
-
   const handleFormatBrushCopy = () => {
     if (selectedElementsRef.current.length !== 1) return;
-
     const element = selectedElementsRef.current[0];
     const computedStyle = window.getComputedStyle(element);
-
     const styleProps = [
       'fontSize',
       'fontWeight',
@@ -730,31 +660,24 @@ export default function EditorLayout({}: EditorLayoutProps) {
       'lineHeight',
       'letterSpacing',
     ];
-
     const data: Record<string, string> = {};
     styleProps.forEach((prop) => {
       data[prop] = (computedStyle as any)[prop];
     });
-
     setFormatBrushData(data);
     setIsFormatBrushMode(true);
   };
-
   const handleFormatBrushApply = (element: HTMLElement) => {
     if (!formatBrushData) return;
-
     Object.entries(formatBrushData).forEach(([prop, value]) => {
       (element.style as any)[prop] = value;
     });
-
     markUnsaved();
     saveAndRestoreSelection();
   };
   handleFormatBrushApplyRef.current = handleFormatBrushApply;
-
   const handleDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
-
     if (target.tagName === 'TD' || target.tagName === 'TH') {
       e.preventDefault();
       e.stopPropagation();
@@ -762,37 +685,29 @@ export default function EditorLayout({}: EditorLayoutProps) {
       startTableCellEditing(target);
       return;
     }
-
     const element = findSelectableElement(target, 'inner');
-
     if (element && isTextElement(element)) {
       e.preventDefault();
       clearSelection();
       startTextEditing(element, e.clientX, e.clientY);
     }
   };
-
   const saveSlideHtml = (addToHistory: boolean = false, slideId?: string) => {
     const innerDiv = contentRef.current;
     if (!innerDiv || !currentSlide) return;
-
     _normalizeWhitespaceTextNodes(innerDiv);
-
     _ensureElementIds(innerDiv);
-
     const clonedDiv = innerDiv.cloneNode(true) as HTMLElement;
     const selectedEls = clonedDiv.querySelectorAll('.noppt-selected');
     selectedEls.forEach((el) => {
       el.classList.remove('noppt-selected');
     });
-
     clonedDiv.querySelectorAll('*').forEach((el) => {
       const classAttr = el.getAttribute('class');
       if (classAttr !== null && classAttr.trim() === '') {
         el.removeAttribute('class');
       }
     });
-
     const textWrappers = clonedDiv.querySelectorAll('.noppt-text-wrapper');
     textWrappers.forEach((wrapper) => {
       const parent = wrapper.parentNode;
@@ -803,7 +718,6 @@ export default function EditorLayout({}: EditorLayoutProps) {
         parent.removeChild(wrapper);
       }
     });
-
     const html = clonedDiv.innerHTML;
     const targetSlideId = slideId ?? currentSlide.id;
     if (targetSlideId === currentSlide.id) {
@@ -812,7 +726,6 @@ export default function EditorLayout({}: EditorLayoutProps) {
     updateSlide(targetSlideId, { html }, addToHistory);
   };
   saveSlideHtmlRef.current = saveSlideHtml;
-
   const {
     handleBindElements,
     handleUnbindElements,
@@ -845,52 +758,42 @@ export default function EditorLayout({}: EditorLayoutProps) {
     showToast,
     commitAllSelectedTransforms,
   });
-
   useEffect(() => {
     if (!contextMenu) return;
-
     const handlePointerDown = (e: PointerEvent) => {
       if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
         setContextMenu(null);
       }
     };
-
     window.addEventListener('pointerdown', handlePointerDown);
     return () => window.removeEventListener('pointerdown', handlePointerDown);
   }, [contextMenu]);
-
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       const isEditing =
         target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
-
       if (contextMenu && e.key === 'Escape') {
         e.preventDefault();
         setContextMenu(null);
         return;
       }
-
       if (isTextEditing && e.key === 'Escape') {
         e.preventDefault();
         stopTextEditing();
         return;
       }
-
       if (e.key === 'Escape' && (isPasteMode || isFormatBrushMode)) {
         e.preventDefault();
         handleCancelPasteRef.current();
         return;
       }
-
       if (e.key === 'Escape' && selectedElementsRef.current.length > 0 && !isTextEditing) {
         e.preventDefault();
         clearSelection();
         return;
       }
-
       if (isEditing && !isTextEditing) return;
-
       if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
         e.preventDefault();
         if (e.shiftKey) {
@@ -899,17 +802,14 @@ export default function EditorLayout({}: EditorLayoutProps) {
           undo();
         }
       }
-
       if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
         e.preventDefault();
         redo();
       }
-
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         handleSaveRef.current();
       }
-
       if (
         (e.ctrlKey || e.metaKey) &&
         e.key === 'c' &&
@@ -919,7 +819,6 @@ export default function EditorLayout({}: EditorLayoutProps) {
         e.preventDefault();
         handleCopyElementsRef.current();
       }
-
       if (
         (e.ctrlKey || e.metaKey) &&
         e.key === 'x' &&
@@ -930,14 +829,12 @@ export default function EditorLayout({}: EditorLayoutProps) {
         handleCopyElementsRef.current();
         handleDeleteElementRef.current();
       }
-
       if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !isEditing) {
         if (clipboardElements.length > 0) {
           e.preventDefault();
           handlePasteWithOffset();
         }
       }
-
       if (
         (e.key === 'Delete' || e.key === 'Backspace') &&
         selectedElementsRef.current.length > 0 &&
@@ -946,7 +843,6 @@ export default function EditorLayout({}: EditorLayoutProps) {
         e.preventDefault();
         handleDeleteElementRef.current();
       }
-
       if (
         (e.ctrlKey || e.metaKey) &&
         e.key === ']' &&
@@ -956,7 +852,6 @@ export default function EditorLayout({}: EditorLayoutProps) {
         e.preventDefault();
         bringForwardRef.current();
       }
-
       if (
         (e.ctrlKey || e.metaKey) &&
         e.key === '[' &&
@@ -966,7 +861,6 @@ export default function EditorLayout({}: EditorLayoutProps) {
         e.preventDefault();
         sendBackwardRef.current();
       }
-
       if (
         (e.ctrlKey || e.metaKey) &&
         e.shiftKey &&
@@ -977,7 +871,6 @@ export default function EditorLayout({}: EditorLayoutProps) {
         e.preventDefault();
         bringToFrontRef.current();
       }
-
       if (
         (e.ctrlKey || e.metaKey) &&
         e.shiftKey &&
@@ -988,7 +881,6 @@ export default function EditorLayout({}: EditorLayoutProps) {
         e.preventDefault();
         sendToBackRef.current();
       }
-
       if (
         e.key === 'Tab' &&
         selectedElementsRef.current.length > 0 &&
@@ -1001,7 +893,6 @@ export default function EditorLayout({}: EditorLayoutProps) {
           '[data-slide-content="true"]',
         ) as HTMLElement | null;
         if (!innerDiv) return;
-
         const allSelectable: HTMLElement[] = [];
         const walk = (el: Element) => {
           if (
@@ -1014,7 +905,6 @@ export default function EditorLayout({}: EditorLayoutProps) {
           Array.from(el.children).forEach(walk);
         };
         Array.from(innerDiv.children).forEach(walk);
-
         const currentIdx = allSelectable.indexOf(current);
         if (currentIdx === -1) return;
         let nextIdx: number;
@@ -1027,12 +917,10 @@ export default function EditorLayout({}: EditorLayoutProps) {
         addToSelection(allSelectable[nextIdx]);
       }
     };
-
     const handlePaste = (e: ClipboardEvent) => {
       const target = e.target as HTMLElement;
       const isInputFocused =
         target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
-
       if (isTextEditing) {
         return;
       }
@@ -1044,14 +932,11 @@ export default function EditorLayout({}: EditorLayoutProps) {
         handlePasteWithOffset();
         return;
       }
-
       e.preventDefault();
       handlePasteEventRef.current(e);
     };
-
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('paste', handlePaste, true);
-
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'noppt_clipboard_timestamp' && e.newValue) {
         const parts = e.newValue.split('_');
@@ -1072,9 +957,7 @@ export default function EditorLayout({}: EditorLayoutProps) {
         }
       }
     };
-
     window.addEventListener('storage', handleStorageChange);
-
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('paste', handlePaste, true);
@@ -1090,14 +973,11 @@ export default function EditorLayout({}: EditorLayoutProps) {
     clipboardSourceSlideId,
     contextMenu,
   ]);
-
   useEffect(() => {
     if (!isTextEditing) return;
-
     const handleSelectionChange = () => {
       updateSelectionStyles();
     };
-
     const handleEditorFocus = () => {
       hideFakeSelection();
       if (savedSelectionRangeRef.current) {
@@ -1108,7 +988,6 @@ export default function EditorLayout({}: EditorLayoutProps) {
         }
       }
     };
-
     const handleEditorBlur = () => {
       const sel = window.getSelection();
       if (sel && sel.rangeCount > 0 && !sel.isCollapsed && editingElementRef.current) {
@@ -1119,16 +998,13 @@ export default function EditorLayout({}: EditorLayoutProps) {
         }
       }
     };
-
     const handleClickOutside = (e: PointerEvent) => {
       const target = e.target as HTMLElement;
       if (!editingElementRef.current) return;
-
       if (editingElementRef.current.contains(target)) {
         savedSelectionRangeRef.current = null;
         return;
       }
-
       if (target.closest('[data-property-panel="true"]')) {
         const sel = window.getSelection();
         if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
@@ -1136,10 +1012,8 @@ export default function EditorLayout({}: EditorLayoutProps) {
         }
         return;
       }
-
       stopTextEditing();
     };
-
     document.addEventListener('selectionchange', handleSelectionChange);
     document.addEventListener('pointerdown', handleClickOutside);
     editingElementRef.current?.addEventListener('focus', handleEditorFocus);
@@ -1152,7 +1026,6 @@ export default function EditorLayout({}: EditorLayoutProps) {
       hideFakeSelection();
     };
   }, [isTextEditing]);
-
   useEffect(() => {
     if (!iconStyleMenuOpen) return;
     const handleClickOutside = (e: PointerEvent) => {
@@ -1170,13 +1043,11 @@ export default function EditorLayout({}: EditorLayoutProps) {
       document.removeEventListener('keydown', handleEsc);
     };
   }, [iconStyleMenuOpen]);
-
   const handleApplyIconStyle = (style: string) => {
     applyIconStyle(style as any);
     setIconStyleMenuOpen(false);
     showToast(t('图标风格已更新（全局）'), 'success');
   };
-
   const handleApplyIconStyleToSelection = (style: IconStyle) => {
     setContextMenu(null);
     const rawElements = selectedElementsRef.current;
@@ -1184,21 +1055,16 @@ export default function EditorLayout({}: EditorLayoutProps) {
       showToast(t('请先选中要修改的元素'), 'warning');
       return;
     }
-
     saveHistory();
-
     const bestElements = rawElements.map((el) => findBestIconContainer(el));
     const uniqueElements = Array.from(
       new Set(bestElements.filter((el) => el && el.isConnected)),
     ) as HTMLElement[];
     const elementPaths = uniqueElements.map((el) => getElementPath(el));
-
     let count = replaceIconsInElements(uniqueElements, style);
-
     if (count === 0 && style !== 'none') {
       count = addIconsToElements(uniqueElements, style).count;
     }
-
     if (count > 0) {
       markUnsaved();
       saveSlideHtml(true);
@@ -1221,24 +1087,18 @@ export default function EditorLayout({}: EditorLayoutProps) {
       showToast(t('选中区域无可添加图标的文本内容'), 'info');
     }
   };
-
   const handleApplyIconStyleToCurrentSlide = (style: IconStyle) => {
     setContextMenu(null);
     if (!slideContainerRef.current || !currentSlide) return;
-
     const innerDiv = slideContainerRef.current.querySelector(
       '[data-slide-content="true"]',
     ) as HTMLElement;
     if (!innerDiv) return;
-
     saveHistory();
-
     let count = replaceIconsInElement(innerDiv, style);
-
     if (count === 0 && style !== 'none') {
       count = findAndAddIconsInSlide(innerDiv, style);
     }
-
     if (count > 0) {
       markUnsaved();
       saveAndRestoreSelection();
@@ -1247,11 +1107,10 @@ export default function EditorLayout({}: EditorLayoutProps) {
       showToast(t('当前页未找到可替换或添加图标的内容'), 'info');
     }
   };
-
   const iconStyleOptions: IconStyleOption[] = ICON_STYLE_OPTIONS;
-
   if (!presentation) return null;
-
+  const logicalWidth = presentation.width || LOGICAL_CANVAS_WIDTH;
+  const logicalHeight = presentation.height || LOGICAL_CANVAS_HEIGHT;
   return (
     <div className="h-screen flex flex-col bg-slate-100 overflow-hidden">
       {/* Main Content */}
@@ -1260,7 +1119,6 @@ export default function EditorLayout({}: EditorLayoutProps) {
         <aside className="w-60 bg-white border-r border-slate-200 flex flex-col shrink-0">
           <SlideListPanel />
         </aside>
-
         {/* Center - Preview Area */}
         <main className="flex-1 flex flex-col overflow-hidden">
           <EditorToolbar
@@ -1300,62 +1158,78 @@ export default function EditorLayout({}: EditorLayoutProps) {
             zoom={zoom}
             iconStyleMenuRef={iconStyleMenuRef}
           />
-
-          {/* Slide Preview */}
+          {/* Slide Preview: the outer viewport owns scrolling; the stage owns transformed layout size. */}
           <div
             ref={editorAreaRef}
-            className="flex-1 overflow-auto flex items-center justify-center p-8 bg-slate-200"
+            className="flex-1 min-h-0 min-w-0 overflow-auto flex items-center justify-center bg-slate-200"
+            data-editor-viewport
+            data-viewport-profile={viewport.profile}
+            data-viewport-scale={viewport.scale}
           >
             <div
-              ref={slideContainerRef}
-              className="bg-white shadow-2xl rounded-lg overflow-hidden shrink-0 cursor-pointer relative select-none"
+              className="relative shrink-0"
               style={{
-                width: `${presentation?.width || 1280}px`,
-                height: `${presentation?.height || 720}px`,
-                transform: `scale(${zoom})`,
-                transformOrigin: 'center',
-                touchAction: 'none',
+                width: `${logicalWidth * zoom}px`,
+                height: `${logicalHeight * zoom}px`,
+                margin: 'auto',
               }}
-              data-slide-zoom={zoom}
-              onPointerDown={handleSlidePointerDown}
-              onPointerMove={handleSlidePointerMove}
-              onPointerUp={handleSlidePointerUp}
-              onPointerLeave={handleSlidePointerUp}
-              onDoubleClick={handleDoubleClick}
-              onContextMenu={handleContextMenu}
+              data-slide-stage
+              data-logical-width={logicalWidth}
+              data-logical-height={logicalHeight}
             >
-              {currentSlide && (
-                <div
-                  ref={contentRef}
-                  className="w-full h-full"
-                  style={{ position: 'relative' }}
-                  data-slide-content="true"
+              <div
+                ref={slideContainerRef}
+                className="bg-white shadow-2xl rounded-lg shrink-0 cursor-pointer relative select-none"
+                style={{
+                  width: `${logicalWidth}px`,
+                  height: `${logicalHeight}px`,
+                  transform: `scale(${zoom})`,
+                  transformOrigin: 'top left',
+                  touchAction: 'none',
+                }}
+                data-slide-canvas
+                data-slide-zoom={zoom}
+                data-logical-width={logicalWidth}
+                data-logical-height={logicalHeight}
+                onPointerDown={handleSlidePointerDown}
+                onPointerMove={handleSlidePointerMove}
+                onPointerUp={handleSlidePointerUp}
+                onPointerLeave={handleSlidePointerUp}
+                onDoubleClick={handleDoubleClick}
+                onContextMenu={handleContextMenu}
+              >
+                {currentSlide && (
+                  <div
+                    ref={contentRef}
+                    className="w-full h-full"
+                    style={{ position: 'relative', ['--noppt-scale' as string]: 1, ['--noppt-root-width' as string]: `${logicalWidth}px`, ['--noppt-root-margin' as string]: '0px' } as React.CSSProperties}
+                    data-slide-content="true"
+                  />
+                )}
+                {selectionBox && (
+                  <div
+                    className="absolute border-2 border-blue-500 bg-blue-500/10 pointer-events-none"
+                    style={{
+                      left: `${selectionBox.x}px`,
+                      top: `${selectionBox.y}px`,
+                      width: `${selectionBox.width}px`,
+                      height: `${selectionBox.height}px`,
+                      zIndex: 9999,
+                    }}
+                  />
+                )}
+                <SelectionOverlay
+                  selectedElements={selectedElements}
+                  zoom={zoom}
+                  slideContainerRef={slideContainerRef}
+                  resizeBox={resizeBox}
+                  isTextEditing={isTextEditing}
                 />
-              )}
-              {selectionBox && (
-                <div
-                  className="absolute border-2 border-blue-500 bg-blue-500/10 pointer-events-none"
-                  style={{
-                    left: `${selectionBox.x}px`,
-                    top: `${selectionBox.y}px`,
-                    width: `${selectionBox.width}px`,
-                    height: `${selectionBox.height}px`,
-                    zIndex: 9999,
-                  }}
-                />
-              )}
-              <SelectionOverlay
-                selectedElements={selectedElements}
-                zoom={zoom}
-                slideContainerRef={slideContainerRef}
-                resizeBox={resizeBox}
-                isTextEditing={isTextEditing}
-              />
-              <GuidesOverlay guides={guides} />
+                <GuidesOverlay guides={guides} />
+              </div>
             </div>
           </div>
         </main>
-
         {/* Right Sidebar */}
         <aside
           ref={propertyPanelRef}
@@ -1393,7 +1267,6 @@ export default function EditorLayout({}: EditorLayoutProps) {
               {t('AI 助手')}
             </button>
           </div>
-
           {/* Selection Breadcrumb */}
           {selectedElements.length > 0 && !isTextEditing && (
             <SelectionBreadcrumb
@@ -1407,7 +1280,6 @@ export default function EditorLayout({}: EditorLayoutProps) {
               }}
             />
           )}
-
           {/* Tab Content */}
           <div className="flex-1 overflow-hidden">
             {rightPanelTab === 'property' &&
@@ -1462,7 +1334,6 @@ export default function EditorLayout({}: EditorLayoutProps) {
           </div>
         </aside>
       </div>
-
       {showTableDialog && (
         <div
           className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
@@ -1522,7 +1393,6 @@ export default function EditorLayout({}: EditorLayoutProps) {
           </div>
         </div>
       )}
-
       <PresentationListModal
         open={showPresentationList}
         presentations={presentations}
@@ -1545,7 +1415,6 @@ export default function EditorLayout({}: EditorLayoutProps) {
         onDeleteElement={handleDeleteElementFromMenu}
         onApplyIconStyleToCurrentSlide={handleApplyIconStyleToCurrentSlide}
       />
-
       <input
         ref={imageInputRef}
         type="file"

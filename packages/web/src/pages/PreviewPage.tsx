@@ -5,6 +5,8 @@ import { usePresentationStore } from '@/stores/presentation';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { safeHtml } from '@/utils';
 type TransitionType = 'none' | 'fade' | 'slide' | 'zoom' | 'flip';
+// The preview page intentionally coordinates route loading, keyboard navigation, transitions, and controls.
+// eslint-disable-next-line max-lines-per-function
 export default function PreviewPage() {
   const { id } = useParams<{
     id: string;
@@ -163,6 +165,8 @@ export default function PreviewPage() {
 
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 z-50 opacity-60 hover:opacity-100 transition-opacity duration-300">
         <button
+          type="button"
+          aria-label={t('上一页')}
           onClick={() => goToSlide(Math.max(currentIndex - 1, 0), 'prev')}
           disabled={currentIndex === 0 || isTransitioning}
           className="p-3 bg-black/40 backdrop-blur-sm text-white rounded-full hover:bg-black/60 disabled:opacity-30 transition-all"
@@ -173,6 +177,8 @@ export default function PreviewPage() {
           {currentIndex + 1} / {presentation.slides.length}
         </span>
         <button
+          type="button"
+          aria-label={t('下一页')}
           onClick={() =>
             goToSlide(Math.min(currentIndex + 1, presentation.slides.length - 1), 'next')
           }
@@ -185,6 +191,8 @@ export default function PreviewPage() {
 
       <div className="absolute top-6 right-6 flex items-center gap-2 z-50 opacity-60 hover:opacity-100 transition-opacity duration-300">
         <button
+          type="button"
+          aria-label={t('关闭预览')}
           onClick={() => window.history.back()}
           className="p-2 bg-black/40 backdrop-blur-sm text-white rounded-lg hover:bg-black/60 transition-all"
         >
@@ -196,6 +204,9 @@ export default function PreviewPage() {
         {presentation.slides.map((_, i) => (
           <button
             key={i}
+            type="button"
+            aria-label={t(`第 ${i + 1} 页`)}
+            aria-current={i === currentIndex ? 'step' : undefined}
             onClick={() => goToSlide(i, i > currentIndex ? 'next' : 'prev')}
             className={`w-2 h-2 rounded-full transition-all ${i === currentIndex ? 'bg-white w-3' : 'bg-white/30 hover:bg-white/50'}`}
           />

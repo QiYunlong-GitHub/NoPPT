@@ -29,7 +29,17 @@ vi.mock('@/components/SelectionBreadcrumb', () => ({ default: () => null }));
 const minimalPresentation: Presentation = {
   id: 'p1',
   title: 'Test Presentation',
-  slides: [{ id: 's1', title: 'S1', html: '<div></div>', hidden: false, index: 0, createdAt: 0, updatedAt: 0 }],
+  slides: [
+    {
+      id: 's1',
+      title: 'S1',
+      html: '<div></div>',
+      hidden: false,
+      index: 0,
+      createdAt: 0,
+      updatedAt: 0,
+    },
+  ],
   selectedSlideId: 's1',
   zoom: 1,
   width: 1280,
@@ -105,5 +115,25 @@ describe('EditorLayout（行为锁定 / 回归基线）', () => {
     expect(queryByText('打开演示')).toBeNull();
     // 图标风格菜单默认收起
     expect(queryByText('全局应用到所有页')).toBeNull();
+  });
+});
+
+describe('EditorLayout viewport boundary', () => {
+  it('uses a scrollable viewport and a layout-sized logical canvas stage', () => {
+    const { container } = renderEditor();
+    const viewport = container.querySelector('[data-editor-viewport]') as HTMLElement | null;
+    const stage = container.querySelector('[data-slide-stage]') as HTMLElement | null;
+    const canvas = container.querySelector('[data-slide-canvas]') as HTMLElement | null;
+
+    expect(viewport).toBeTruthy();
+    expect(stage).toBeTruthy();
+    expect(canvas).toBeTruthy();
+    expect(viewport?.className).toContain('overflow-auto');
+    expect(viewport?.className).not.toContain('p-8');
+    expect(stage?.style.width).toBe('1280px');
+    expect(stage?.style.height).toBe('720px');
+    expect(canvas?.className).not.toContain('overflow-hidden');
+    expect(canvas?.style.width).toBe('1280px');
+    expect(canvas?.style.height).toBe('720px');
   });
 });

@@ -52,7 +52,9 @@ function IconStyleMenu({
           >
             <IconComp className="w-4 h-4 text-slate-500 dark:text-slate-400 flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{t(opt.name)}</p>
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                {t(opt.name)}
+              </p>
               <p className="text-xs text-slate-400 dark:text-slate-500">{t(opt.desc)}</p>
             </div>
           </button>

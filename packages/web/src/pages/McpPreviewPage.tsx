@@ -1,4 +1,5 @@
 import { t } from '@/i18n';
+import { parseMcpIndexMessage } from '@/utils/mcp-preview';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ChevronLeft, ChevronRight, FileWarning, RefreshCw } from 'lucide-react';
@@ -39,7 +40,10 @@ export default function McpPreviewPage() {
     let cancelled = false;
     setState('loading');
     setVisible(false);
-    fetch(viewUrl)
+    setIndex(0);
+    setTotal(1);
+    const controller = new AbortController();
+    fetch(viewUrl, { signal: controller.signal })
       .then(async (res) => {
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);
@@ -57,28 +61,22 @@ export default function McpPreviewPage() {
         window.setTimeout(() => !cancelled && setVisible(true), 200);
       })
       .catch((err) => {
-        if (cancelled) return;
+        if (cancelled || (err instanceof DOMException && err.name === 'AbortError')) return;
         console.error(t('[McpPreviewPage] 加载失败：'), err);
         setState('error');
       });
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [viewUrl, reloadKey]);
   // 接收 deck 运行时回传的页码
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
-      const data = e.data as
-        | {
-            type?: string;
-            index?: number;
-            total?: number;
-          }
-        | string;
-      if (!data || typeof data !== 'object') return;
-      if (data.type !== 'noppt:index') return;
-      if (typeof data.index === 'number') setIndex(data.index);
-      if (typeof data.total === 'number') setTotal(data.total);
+      const message = parseMcpIndexMessage(e, frameRef.current?.contentWindow ?? null);
+      if (!message) return;
+      setIndex(message.index);
+      setTotal(message.total);
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
@@ -163,7 +161,11 @@ export default function McpPreviewPage() {
               <ChevronLeft className="h-3.5 w-3.5" />
               {t('上一页')}
             </button>
-            <span className="min-w-[52px] text-center text-[13px] tabular-nums text-slate-500 dark:text-slate-400">
+            <span
+              className="min-w-[52px] text-center text-[13px] tabular-nums text-slate-500 dark:text-slate-400"
+              aria-live="polite"
+              aria-label={t('当前页码')}
+            >
               {index + 1} / {Math.max(1, total)}
             </span>
             <button
