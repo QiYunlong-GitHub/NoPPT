@@ -3,6 +3,7 @@ import type {
   ChatOptions,
   ChatResponse,
   ModelConfig,
+  ModelRole,
   ImageGenerationOptions,
   GeneratedImage,
 } from '../types';
@@ -55,7 +56,7 @@ function formatContentForLog(content: string | import('../types').ContentPart[])
     .join(' | ');
 }
 
-function formatMessages(messages: ChatMessage[]): any[] {
+function formatMessages(messages: ChatMessage[]): Array<{ role: ModelRole; content: string }> {
   return messages.map((m) => ({
     role: m.role,
     content: formatContentForLog(m.content),
@@ -120,7 +121,7 @@ export abstract class BaseProvider implements AIModelProvider {
     addTrace(this.activeTraceSessionId, enriched);
   }
 
-  protected logRequest(method: string, details: any) {
+  protected logRequest(method: string, details: Record<string, unknown>) {
     const tag = `LLM:${this.name}:REQUEST`;
     if (isConsoleDetailed()) {
       const timestamp = formatBeijingTime();
@@ -148,7 +149,7 @@ export abstract class BaseProvider implements AIModelProvider {
     }
   }
 
-  protected logResponse(method: string, details: any) {
+  protected logResponse(method: string, details: Record<string, unknown>) {
     const tag = `LLM:${this.name}:RESPONSE`;
     if (isConsoleDetailed()) {
       const timestamp = formatBeijingTime();
@@ -157,8 +158,14 @@ export abstract class BaseProvider implements AIModelProvider {
       console.log('');
     } else {
       // 简单模式：摘要信息
-      const usage = details?.usage as any;
-      const tokens = usage ? `tok=${usage.total_tokens ?? usage.output_tokens ?? '?'}` : undefined;
+      const usage = details.usage;
+      const usageRecord =
+        usage && typeof usage === 'object' && !Array.isArray(usage)
+          ? (usage as Record<string, unknown>)
+          : undefined;
+      const tokens = usageRecord
+        ? `tok=${usageRecord.total_tokens ?? usageRecord.output_tokens ?? '?'}`
+        : undefined;
       const contentLen = typeof details?.content === 'string' ? details.content.length : 0;
       simpleLog(tag, `← ${method}`, {
         model: this.config.model,
@@ -168,7 +175,7 @@ export abstract class BaseProvider implements AIModelProvider {
     }
   }
 
-  protected logError(method: string, error: any) {
+  protected logError(method: string, error: unknown) {
     // 错误信息永远输出（不受简单模式限制），否则难以排查故障
     const timestamp = formatBeijingTime();
     console.error(`[${timestamp}] [LLM:${this.name}:ERROR] ${method}`);

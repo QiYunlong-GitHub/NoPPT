@@ -7,6 +7,14 @@ import type {
   ImageGenerationOptions,
   GeneratedImage,
 } from '../types';
+import { consumeSse } from './sse';
+import {
+  asResponseRecord,
+  responseNumber,
+  responseRecord,
+  responseRecords,
+  responseString,
+} from './response-helpers';
 
 export class FreeAIProvider extends BaseProvider {
   name = 'freeai';
@@ -55,6 +63,7 @@ export class FreeAIProvider extends BaseProvider {
           top_p: opts.topP,
           stream: false,
         }),
+        signal: options?.signal,
       });
 
       if (!response.ok) {
@@ -64,19 +73,22 @@ export class FreeAIProvider extends BaseProvider {
         throw new Error(errorMsg);
       }
 
-      const data = await response.json();
+      const data = asResponseRecord(await response.json());
       const duration = Date.now() - startTime;
-
-      const result = {
-        content: data.choices[0]?.message?.content || '',
-        model: data.model,
-        usage: data.usage
+      const choice = responseRecords(data, 'choices')[0];
+      const message = choice ? responseRecord(choice, 'message') : undefined;
+      const usage = responseRecord(data, 'usage');
+      const result: ChatResponse = {
+        content: responseString(message ?? {}, 'content') ?? '',
+        model: responseString(data, 'model') ?? opts.model,
+        usage: usage
           ? {
-              promptTokens: data.usage.prompt_tokens,
-              completionTokens: data.usage.completion_tokens,
-              totalTokens: data.usage.total_tokens,
+              promptTokens: responseNumber(usage, 'prompt_tokens') ?? 0,
+              completionTokens: responseNumber(usage, 'completion_tokens') ?? 0,
+              totalTokens: responseNumber(usage, 'total_tokens') ?? 0,
             }
           : undefined,
+        finishReason: responseString(choice ?? {}, 'finish_reason'),
       };
 
       this.logResponse('chat', {
@@ -85,7 +97,7 @@ export class FreeAIProvider extends BaseProvider {
         usage: result.usage,
         contentPreview: truncate(result.content, 1000),
         contentLength: result.content.length,
-        finishReason: data.choices[0]?.finish_reason,
+        finishReason: result.finishReason,
       });
 
       this.recordTrace({
@@ -150,6 +162,7 @@ export class FreeAIProvider extends BaseProvider {
           top_p: opts.topP,
           stream: true,
         }),
+        signal: options?.signal,
       });
 
       if (!response.ok) {
@@ -160,39 +173,32 @@ export class FreeAIProvider extends BaseProvider {
       }
 
       const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
       let fullContent = '';
       let model = opts.model;
       let chunkCount = 0;
 
       if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value);
-          const lines = chunk.split('\n');
-
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const data = line.slice(6);
-              if (data === '[DONE]') continue;
-
-              try {
-                const parsed = JSON.parse(data);
-                const content = parsed.choices?.[0]?.delta?.content || '';
-                if (parsed.model) model = parsed.model;
-                if (content) {
-                  fullContent += content;
-                  chunkCount++;
-                  onChunk(content);
-                }
-              } catch {
-                // ignore parse errors
+        await consumeSse(
+          reader,
+          (data) => {
+            try {
+              const parsed = asResponseRecord(JSON.parse(data));
+              const choice = responseRecords(parsed, 'choices')[0];
+              const delta = choice ? responseRecord(choice, 'delta') : undefined;
+              const content = responseString(delta ?? {}, 'content') || '';
+              const parsedModel = responseString(parsed, 'model');
+              if (parsedModel) model = parsedModel;
+              if (content) {
+                fullContent += content;
+                chunkCount++;
+                onChunk(content);
               }
+            } catch {
+              // Ignore malformed provider events, but never catch stream AbortError here.
             }
-          }
-        }
+          },
+          options?.signal,
+        );
       }
 
       const duration = Date.now() - startTime;
@@ -283,8 +289,22 @@ export class FreeAIProvider extends BaseProvider {
       const duration = Date.now() - startTime;
 
       if (response.ok) {
-        const data = await response.json();
-        const models = Array.isArray(data) ? data.map((m: any) => m.id || m.name) : [];
+        const data: unknown = await response.json();
+        const models = Array.isArray(data)
+          ? data
+              .filter(
+                (item): item is Record<string, unknown> =>
+                  typeof item === 'object' && item !== null,
+              )
+              .map((item) =>
+                typeof item.id === 'string'
+                  ? item.id
+                  : typeof item.name === 'string'
+                    ? item.name
+                    : '',
+              )
+              .filter(Boolean)
+          : [];
         this.logResponse('getModels', {
           success: true,
           status: response.status,
@@ -322,9 +342,14 @@ export class FreeAIProvider extends BaseProvider {
     });
 
     const startTime = Date.now();
-    const fullOptions: ImageGenerationOptions = { ...(options || {}), model, size, n };
-    const scene = (options as any)?.scene as string | undefined;
-    const writeTrace = (extra: any) => {
+    const traceOptions = { ...options };
+    delete traceOptions.signal;
+    const fullOptions: ImageGenerationOptions = { ...traceOptions, model, size, n };
+    const scene = options?.scene;
+    const writeTrace = (extra: {
+      response?: { images: GeneratedImage[]; raw?: unknown };
+      error?: { message: string; stack?: string };
+    }) => {
       const endedAt = Date.now();
       this.recordTrace({
         type: 'image',
@@ -354,6 +379,7 @@ export class FreeAIProvider extends BaseProvider {
           size,
           watermark: false,
         }),
+        signal: options?.signal,
       });
 
       if (!response.ok) {
@@ -365,14 +391,21 @@ export class FreeAIProvider extends BaseProvider {
         throw err;
       }
 
-      const data = await response.json();
+      const data = asResponseRecord(await response.json());
       const duration = Date.now() - startTime;
-
-      const results =
-        data.data?.map((item: any) => ({
-          url: item.url,
-          revisedPrompt: item.revised_prompt,
-        })) || [];
+      const results = responseRecords(data, 'data')
+        .map((item): GeneratedImage | undefined => {
+          const url = responseString(item, 'url');
+          return url
+            ? {
+                url,
+                ...(responseString(item, 'revised_prompt')
+                  ? { revisedPrompt: responseString(item, 'revised_prompt') }
+                  : {}),
+              }
+            : undefined;
+        })
+        .filter((item): item is GeneratedImage => Boolean(item));
 
       this.logResponse('generateImage', {
         durationMs: duration,
