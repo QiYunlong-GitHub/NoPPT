@@ -133,10 +133,7 @@ export async function runHtmlPlaceholderAuditLoop(
       let blocking = false;
 
       // —— 频控：仅当该页 LLM critique 已通过时才执行占位 VLM 评审（未通过则整页跳过，节省 VLM 配额）——
-      if (
-        params.onlyAfterLlmPass &&
-        !(slidesWorking[idx].critique && slidesWorking[idx].critique.passed)
-      ) {
+      if (params.onlyAfterLlmPass && !slidesWorking[idx]?.critique?.passed) {
         console.warn(`[HTML-AUDIT] 第 ${idx + 1} 页 LLM critique 未通过，跳过占位 VLM（频控）`);
         continue;
       }

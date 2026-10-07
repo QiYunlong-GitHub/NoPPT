@@ -130,4 +130,32 @@ describe('AiService · 后处理编排主体（postProcessPresentation）· 装�
     await svc.postProcessPresentation(presentation, baseParams());
     expect(svc.resolveReferenceVisualAttributes).toHaveBeenCalledTimes(1);
   });
+
+  it('server 端重建 slides 时透传 agent(finalize) 产出的 deck 节点树（端到端落盘 presentation.json）', async () => {
+    const deckSlide: any = {
+      id: 'slide-0',
+      title: 'S1',
+      nodes: [
+        {
+          kind: 'text',
+          rect: { x: 0, y: 0, w: 100, h: 50 },
+          paragraphs: [{ runs: [{ text: 'Hello' }] }],
+        },
+      ],
+    };
+    const presentation: any = {
+      title: 'Deck Lock Demo',
+      design: { primaryColor: '#999999' },
+      slides: [{ title: 'S1', html: '<div>Hello</div>', pageType: 'content', deck: deckSlide }],
+    };
+    const result = await svc.postProcessPresentation(presentation, baseParams());
+    // 1) 返回对象保留 deck（与输入一致）
+    expect(result.slides[0].deck).toBeDefined();
+    expect(result.slides[0].deck).toEqual(deckSlide);
+    // 2) 终局写盘（presentation.json）的内容也包含 deck —— 真正的端到端落盘
+    const writeCalls = (svc.storage.writeJsonFile as any).mock.calls;
+    expect(writeCalls.length).toBeGreaterThan(0);
+    const persisted = writeCalls[writeCalls.length - 1][1]; // (path, content)
+    expect(persisted.slides[0].deck).toEqual(deckSlide);
+  });
 });

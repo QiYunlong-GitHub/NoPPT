@@ -25,7 +25,7 @@ export interface ReferenceOriginalsStorage {
   readReferenceOriginalImage(
     presentationId: string,
     slot: 'cover' | 'content' | 'summary',
-  ): ReferenceOriginalImage | undefined;
+  ): ReferenceOriginalImage | null | undefined;
   saveReferenceOriginalImage(
     presentationId: string,
     slot: 'cover' | 'content' | 'summary',

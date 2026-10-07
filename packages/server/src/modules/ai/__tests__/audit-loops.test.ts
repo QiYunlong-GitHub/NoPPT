@@ -15,15 +15,13 @@
 import 'reflect-metadata';
 import { describe, it, expect, vi } from 'vitest';
 
-const {
-  runVlmCritiqueMock,
-  runHtmlPlaceholderAuditLoopMock,
-  triageSlideIssuesMock,
-} = vi.hoisted(() => ({
-  runVlmCritiqueMock: vi.fn(),
-  runHtmlPlaceholderAuditLoopMock: vi.fn(),
-  triageSlideIssuesMock: vi.fn(),
-}));
+const { runVlmCritiqueMock, runHtmlPlaceholderAuditLoopMock, triageSlideIssuesMock } = vi.hoisted(
+  () => ({
+    runVlmCritiqueMock: vi.fn(),
+    runHtmlPlaceholderAuditLoopMock: vi.fn(),
+    triageSlideIssuesMock: vi.fn(),
+  }),
+);
 
 vi.mock('@noppt/audit', () => ({
   SlideRenderer: class {
@@ -58,17 +56,14 @@ function makeSlides(n = 1): any[] {
 
 describe('audit-loops · buildHtmlAuditHookImpl · 短路护栏', () => {
   it('内联自检关闭（critique.enabled=false）→ 返回的 hook 透传 slides', async () => {
-    const hook = buildHtmlAuditHookImpl.call(
-      {},
-      {
-        agent,
-        topic: 't',
-        options: { critique: { enabled: false } },
-        maxRetries: 1,
-        slideWidth: 100,
-        slideHeight: 100,
-      } as any,
-    );
+    const hook = buildHtmlAuditHookImpl.call({}, {
+      agent,
+      topic: 't',
+      options: { critique: { enabled: false } },
+      maxRetries: 1,
+      slideWidth: 100,
+      slideHeight: 100,
+    } as any);
     expect(typeof hook).toBe('function');
     const slides = makeSlides();
     const out = await hook(slides, { plan: {} as any, design: {} as any });
@@ -144,19 +139,16 @@ describe('audit-loops · runPostImageVlmTriageLoopImpl · 短路护栏', () => {
 
 describe('audit-loops · runAuditImageRegenerationLoopImpl · 短路护栏', () => {
   it('imageProvider 缺失 → {regeneratedCount:0,attempts:0}', async () => {
-    const r = await runAuditImageRegenerationLoopImpl.call(
-      {},
-      {
-        result: { id: 'p1', slides: makeSlides() } as any,
-        plan: undefined,
-        imageProvider: null,
-        imageConfig: {},
-        traceSessionId: 's',
-        topic: 't',
-        maxRetries: 2,
-        designContext: { style: '', primaryColor: '', fontFamily: '', iconStyle: '' },
-      } as any,
-    );
+    const r = await runAuditImageRegenerationLoopImpl.call({}, {
+      result: { id: 'p1', slides: makeSlides() } as any,
+      plan: undefined,
+      imageProvider: null,
+      imageConfig: {},
+      traceSessionId: 's',
+      topic: 't',
+      maxRetries: 2,
+      designContext: { style: '', primaryColor: '', fontFamily: '', iconStyle: '' },
+    } as any);
     expect(r).toEqual({ regeneratedCount: 0, attempts: 0 });
   });
 });

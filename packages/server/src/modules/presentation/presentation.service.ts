@@ -1,10 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { Presentation, Slide } from '@noppt/core';
+import type { Presentation } from '@noppt/core';
 import { LayoutEngine } from '@noppt/core';
 import { StorageService } from '../../common/storage.service';
 import { sanitizeHtmlServerSide } from '../../utils/sanitize';
 import { join } from 'path';
-import { readFileSync, existsSync } from 'fs';
 
 export interface ChatMessage {
   id: string;
@@ -34,7 +33,7 @@ export class PresentationService {
     const presentations: PresentationListItem[] = [];
     for (const dir of dirs) {
       const metaFile = join(presentationsDir, dir, 'presentation.json');
-      const data = this.storage.readJsonFile<Presentation>(metaFile, null);
+      const data = this.storage.readJsonFile<Presentation | null>(metaFile, null);
       if (data) {
         presentations.push({
           id: data.id,
@@ -53,7 +52,7 @@ export class PresentationService {
 
   async get(id: string): Promise<Presentation | null> {
     const presentationFile = join(this.storage.getPresentationDir(id), 'presentation.json');
-    const data = this.storage.readJsonFile<Presentation>(presentationFile, null);
+    const data = this.storage.readJsonFile<Presentation | null>(presentationFile, null);
     if (!data) return null;
     let changed = false;
     const normalizedSlides = data.slides.map((slide) => {
@@ -128,7 +127,7 @@ export class PresentationService {
     meta: { title?: string; description?: string },
   ): Promise<Presentation> {
     const presentationFile = join(this.storage.getPresentationDir(id), 'presentation.json');
-    const existing = this.storage.readJsonFile<Presentation>(presentationFile, null);
+    const existing = this.storage.readJsonFile<Presentation | null>(presentationFile, null);
     if (!existing) {
       throw new NotFoundException('演示文稿不存在');
     }

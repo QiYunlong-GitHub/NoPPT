@@ -12,7 +12,7 @@ import {
   resolveEffectivePrimaryColor,
   type ReferenceVisualAttributes,
 } from '@noppt/ai';
-import type { GeneratePresentationRequest } from '../ai.service';
+import type { ReferenceGenerationRequest } from './request-types';
 import { buildReferenceBrief } from './reference-brief';
 
 export interface ResolveReferenceVisualAttributesResult {
@@ -27,9 +27,9 @@ export interface ResolveReferenceVisualAttributesResult {
  * resolveReferenceVisualAttributes 由调用方注入（ai.service 中的 private 实现依赖 DI 成员）。
  */
 export async function resolveReferenceForGeneration(
-  req: GeneratePresentationRequest,
+  req: ReferenceGenerationRequest,
   resolveReferenceVisualAttributes: (
-    req: GeneratePresentationRequest,
+    req: ReferenceGenerationRequest,
   ) => Promise<ResolveReferenceVisualAttributesResult>,
 ): Promise<{
   referenceVisualAttributes?: ReferenceVisualAttributes;
@@ -63,7 +63,7 @@ export async function resolveReferenceForGeneration(
  * 并就地写回 presentation.design.primaryColor/colorTheme 与 generationOptions.primaryColor/colorTheme。
  */
 export function resolveFinalEffectivePrimary(
-  presentation: { design?: any },
+  presentation: unknown,
   generationOptions: any,
   opts: { primaryColor?: string; colorTheme?: any; design?: any },
 ): string {
@@ -76,8 +76,7 @@ export function resolveFinalEffectivePrimary(
     : resolveEffectivePrimaryColor(
         { primaryColor, colorTheme },
         {
-          primaryColor:
-            (design as any)?.primaryColor ?? (presentation as any).design?.primaryColor,
+          primaryColor: (design as any)?.primaryColor ?? (presentation as any).design?.primaryColor,
           colorTheme: (design as any)?.colorTheme ?? (presentation as any).design?.colorTheme,
         },
         '#2563eb',

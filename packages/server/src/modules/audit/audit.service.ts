@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, OnModuleDestroy } from '@nestjs/common';
 import { join } from 'path';
 import { existsSync, mkdirSync, copyFileSync } from 'fs';
 import type { Presentation } from '@noppt/core';
@@ -23,6 +23,7 @@ import {
   type AuditReport,
   type AuditConfig,
   type ScreenshotInfo,
+  assertIntegrityEvidenceForSave,
 } from '@noppt/audit';
 import { StorageService } from '../../common/storage.service';
 import { ConfigService } from '../config/config.service';
@@ -44,10 +45,13 @@ export interface AuditRunOptions {
     content?: boolean;
     fidelity?: boolean;
   };
+  runId?: string;
+  phase?: 'candidate' | 'preview' | 'promotion' | 'rollback';
+  source?: 'plan' | 'deck' | 'canonical-html' | 'editor' | 'html-fallback' | 'unknown';
 }
 
 @Injectable()
-export class AuditService {
+export class AuditService implements OnModuleDestroy {
   private readonly logger = new Logger(AuditService.name);
   private engine: AuditEngine | null = null;
   private visualEngine: VisualAuditEngine | null = null;
@@ -56,6 +60,7 @@ export class AuditService {
   private vlmProviderRef: any = null;
   private initPromise: Promise<AuditEngine> | null = null;
   private configFingerprint: string = '';
+  private lifecycleGeneration = 0;
 
   constructor(
     private readonly storage: StorageService,
@@ -90,8 +95,8 @@ export class AuditService {
       return this.initPromise;
     }
 
-    if (this.engine) {
-      this.logger.log('检测到审核配置变更，重新初始化审核引擎...');
+    if (this.initPromise || this.engine) {
+      if (this.engine) this.logger.log('检测到审核配置变更，重新初始化审核引擎...');
       await this.destroy();
     }
 
@@ -101,7 +106,9 @@ export class AuditService {
   }
 
   private async initializeEngine(): Promise<AuditEngine> {
+    const generation = this.lifecycleGeneration;
     const appConfig = await this.configService.getConfig();
+    if (generation !== this.lifecycleGeneration) throw new Error('审核引擎初始化已取消');
     const auditSettings = appConfig.auditSettings;
     const preset = getConfigPreset(auditSettings.strictness);
 
@@ -118,13 +125,15 @@ export class AuditService {
 
     this.contentProviderRef = null;
     this.vlmProviderRef = null;
+    this.visualEngine = null;
+    this.fidelityEngine = null;
 
     let contentProvider: any = null;
     if (auditSettings.llmReview) {
       const auditModelConfig = await this.configService.resolveModelConfig('audit');
+      if (generation !== this.lifecycleGeneration) throw new Error('审核引擎初始化已取消');
       if (auditModelConfig) {
         contentProvider = createChatProvider(auditModelConfig);
-        this.contentProviderRef = contentProvider;
         this.logger.log(
           `审核 LLM 评审已启用：${auditModelConfig.provider}/${auditModelConfig.model}`,
         );
@@ -146,9 +155,9 @@ export class AuditService {
     let vlmProvider: any = null;
     if (auditSettings.vlmReview) {
       const vlmModelConfig = await this.configService.resolveModelConfig('auditVlm');
+      if (generation !== this.lifecycleGeneration) throw new Error('审核引擎初始化已取消');
       if (vlmModelConfig) {
         vlmProvider = createChatProvider(vlmModelConfig);
-        this.vlmProviderRef = vlmProvider;
         this.logger.log(
           `审核 VLM 视觉评审已启用：${vlmModelConfig.provider}/${vlmModelConfig.model}`,
         );
@@ -180,6 +189,16 @@ export class AuditService {
       );
     }
 
+    if (generation !== this.lifecycleGeneration) {
+      try {
+        await engine.destroy();
+      } catch {
+        /* best-effort cleanup of an initialization cancelled by destroy */
+      }
+      throw new Error('审核引擎初始化已取消');
+    }
+    this.contentProviderRef = contentProvider;
+    this.vlmProviderRef = vlmProvider;
     this.engine = engine;
     return engine;
   }
@@ -246,12 +265,24 @@ export class AuditService {
         options?.plan,
         options?.designContext,
         options?.referenceContext,
+        options?.runId ?? traceSessionId,
+        { phase: options?.phase, source: options?.source },
       );
 
       report.screenshots = this.collectScreenshots(report);
 
       if (presentationId) {
         await this.persistReport(presentationId, report);
+      }
+
+      if (presentationId && report.integrity) {
+        for (const event of report.integrity.events) {
+          await this.logsService.logIntegrityEvent(presentationId, {
+            ...event,
+            phase: options?.phase ?? event.phase,
+            source: options?.source ?? event.source,
+          });
+        }
       }
 
       const auditTraces = getLLMTraces(traceSessionId);
@@ -286,6 +317,20 @@ export class AuditService {
       }
       closeTraceSession(traceSessionId);
     }
+  }
+
+  async validateBeforeSave(
+    presentation: Presentation,
+    presentationId: string,
+    options?: AuditRunOptions,
+  ): Promise<AuditReport> {
+    const report = await this.auditPresentationFromData(presentation, presentationId, {
+      ...options,
+      phase: options?.phase ?? 'candidate',
+      source: options?.source ?? (presentation.slides.some((slide) => slide.deck) ? 'deck' : 'html-fallback'),
+    });
+    assertIntegrityEvidenceForSave(report);
+    return report;
   }
 
   async auditOutline(plan: PresentationPlan): Promise<AuditReport> {
@@ -334,7 +379,9 @@ export class AuditService {
   private collectScreenshots(report: AuditReport): ScreenshotInfo[] {
     const screenshots: ScreenshotInfo[] = [];
     const visualResult = report.engineResults.find((r) => r.engine === 'visual');
-    const paths: string[] = visualResult?.raw?.screenshots || [];
+    const paths = Array.isArray(visualResult?.raw?.screenshots)
+      ? visualResult.raw.screenshots.filter((value): value is string => typeof value === 'string')
+      : [];
     for (let i = 0; i < paths.length; i++) {
       screenshots.push({
         slideIndex: i,
@@ -367,32 +414,37 @@ export class AuditService {
   }
 
   async destroy(): Promise<void> {
-    if (this.visualEngine) {
+    this.lifecycleGeneration += 1;
+    const pendingInitialization = this.initPromise;
+    this.initPromise = null;
+    if (pendingInitialization) {
       try {
-        await this.visualEngine.destroy();
+        await pendingInitialization;
       } catch {
-        /* ignore */
+        // A destroy racing initialization must still clear all references below.
       }
-      this.visualEngine = null;
     }
-    if (this.fidelityEngine) {
-      try {
-        await this.fidelityEngine.destroy();
-      } catch {
-        /* ignore */
-      }
-      this.fidelityEngine = null;
-    }
-    if (this.engine) {
-      try {
-        await this.engine.destroy();
-      } catch {
-        /* ignore */
-      }
-      this.engine = null;
-    }
+
+    const engine = this.engine;
+    this.engine = null;
     this.contentProviderRef = null;
     this.vlmProviderRef = null;
-    this.initPromise = null;
+    this.visualEngine = null;
+    this.fidelityEngine = null;
+    this.configFingerprint = '';
+
+    if (engine) {
+      try {
+        await engine.destroy();
+      } catch (error) {
+        this.logger.warn(
+          `审核引擎销毁失败：${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    await this.destroy();
   }
 }

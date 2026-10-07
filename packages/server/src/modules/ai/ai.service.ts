@@ -1,12 +1,4 @@
-import {
-  collectImageRefs,
-  isLocalAssetUrl,
-  replaceImageUrlInHtml,
-  mapRatioToSize,
-  extractRatioFromImgTag,
-  _serverHasBareText,
-  ensureSemanticWrapping,
-} from './utils/html-string';
+import { _serverHasBareText } from './utils/html-string';
 import { Injectable, BadRequestException } from '@nestjs/common';
 import type {
   ModelConfig,
@@ -40,61 +32,57 @@ import {
   formatBeijingTime,
   setLogConfig,
   normalizeLogConfig,
-  isConsoleDetailed,
   simpleLog,
-  isFileDetailed,
   openTraceSession,
   closeTraceSession,
-  setSessionStage,
   getLLMTraces,
   getImageTraces,
-  replaceImagePlaceholderWithRealSrc,
   type VlmTextProvider,
   type TraceableProvider,
   type LLMCallTrace,
-  type ImageGenerationTrace,
   countStyleRules,
 } from '@noppt/ai';
 import {
   HTMLPresentationAgent,
   extractSlideCountSpec,
   extractPageStructureHints,
-  IMAGE_PLACEHOLDER,
   type HTMLPresentation,
 } from '@noppt/ai/agents';
-import {
-  styleViolationSignal,
-  exceedsThreshold,
-  collectStyleViolationSamples,
-  formatStyleViolationSamplesSummary,
-  type StyleViolationBreakdown,
-  resolveEffectivePrimaryColor,
-  resolveReferencePrimaryColor,
-  resolveDeckReferencePrimaryColor,
-  resolveFinalPagePrimaryColor,
-  getReferencePaletteForPage,
-  isStructurePage,
-} from '@noppt/ai';
-import type { Presentation, Slide } from '@noppt/core';
-import { LayoutEngine } from '@noppt/core';
-import { SlideRenderer, runVlmCritique, type VlmReviewResult } from '@noppt/audit';
+import { isStructurePage, resolveDeckReferencePrimaryColor } from '@noppt/ai';
+import type { Presentation } from '@noppt/core';
+import { SlideRenderer, type VlmReviewResult } from '@noppt/audit';
 import { StorageService } from '../../common/storage.service';
 import { LogsService } from '../logs/logs.service';
 import { AuditService } from '../audit/audit.service';
 import { ConfigService } from '../config/config.service';
-import { sanitizeHtmlServerSide } from '../../utils/sanitize';
 import { join } from 'path';
-import { buildHtmlAuditHookImpl, runPostImageVlmTriageLoopImpl, runAuditImageRegenerationLoopImpl } from './audit/audit-loops';
+import {
+  buildHtmlAuditHookImpl,
+  runPostImageVlmTriageLoopImpl,
+  runAuditImageRegenerationLoopImpl,
+} from './audit/audit-loops';
 import { existsSync, readFileSync } from 'fs';
-import * as os from 'os';
-import { runHtmlPlaceholderAuditLoop } from './html-audit-loop';
-import { triageSlideIssues } from './triage-vlm-issues';
 import { computeRefAttrsHash as _computeRefAttrsHash } from './reference/reference-attrs';
-import { collectAppliedReferenceFields as _collectAppliedReferenceFields, buildReferenceBrief as _buildReferenceBrief, attachMasterLogoSources as _attachMasterLogoSources } from './reference/reference-brief';
-import { injectOrphanImageIntoSlide as _injectOrphanImageIntoSlide, inferImagePreferenceFromPresentation as _inferImagePreferenceFromPresentation, visibleTextLength as _visibleTextLengthFn, rescueOrphanImages as _rescueOrphanImages } from './postprocess/orphan-image';
+import {
+  collectAppliedReferenceFields as _collectAppliedReferenceFields,
+  buildReferenceBrief as _buildReferenceBrief,
+  attachMasterLogoSources as _attachMasterLogoSources,
+} from './reference/reference-brief';
+import {
+  injectOrphanImageIntoSlide as _injectOrphanImageIntoSlide,
+  inferImagePreferenceFromPresentation as _inferImagePreferenceFromPresentation,
+  visibleTextLength as _visibleTextLengthFn,
+  rescueOrphanImages as _rescueOrphanImages,
+} from './postprocess/orphan-image';
 import { postProcessPresentationImpl } from './postprocess/presentation';
-import { resolveReferenceForGeneration as _resolveReferenceForGeneration, resolveFinalEffectivePrimary as _resolveFinalEffectivePrimary } from './reference/resolve-for-generation';
-import { backfillReferenceOriginalSources as _backfillReferenceOriginalSources, persistReferenceOriginals as _persistReferenceOriginals } from './reference/reference-originals';
+import {
+  resolveReferenceForGeneration as _resolveReferenceForGeneration,
+  resolveFinalEffectivePrimary as _resolveFinalEffectivePrimary,
+} from './reference/resolve-for-generation';
+import {
+  backfillReferenceOriginalSources as _backfillReferenceOriginalSources,
+  persistReferenceOriginals as _persistReferenceOriginals,
+} from './reference/reference-originals';
 
 export interface GeneratePresentationRequest {
   topic: string;
@@ -230,8 +218,6 @@ export interface EditGlobalRequest {
   logSettings?: LogConfig;
 }
 
-
-
 // —— r6 Task1: 后处理版本标识日志（模块级防重复打印，确保每个进程只打一次）——
 let postProcessVersionLogged = false;
 
@@ -243,7 +229,6 @@ function getSessionKey(trace: string | undefined): string {
   return trace || 'anon';
 }
 
-
 // —— Task1 / FR-1: server 端终局防线已重构为三分量结构化 styleViolationSignal（见 @noppt/ai 包）。
 // 旧的 hexToHsl / hueDelta / 单数字 styleViolationSignal 函数已被 ai 包版本替代并统一维护，
 // 避免 server 内与 agent 内两份实现漂移导致误判差异（本规格 AC-4 根因之一）。
@@ -254,7 +239,7 @@ export class AiService {
   constructor(
     private readonly storage: StorageService,
     private readonly logsService: LogsService,
-    private readonly auditService: AuditService,
+    protected readonly auditService: AuditService,
     private readonly configService: ConfigService,
   ) {
     // r6 Task1: 打印后处理版本标识（进程级仅一次）。
@@ -353,7 +338,10 @@ export class AiService {
     }
 
     const planningConfig = modelConfigs?.planning || modelConfig!;
-    const contentConfig: ModelConfig = { ...(modelConfigs?.content || modelConfig!), disableThinking: (modelConfigs?.content || modelConfig!)?.disableThinking ?? true };
+    const contentConfig: ModelConfig = {
+      ...(modelConfigs?.content || modelConfig!),
+      disableThinking: (modelConfigs?.content || modelConfig!)?.disableThinking ?? true,
+    };
     const editingConfig = modelConfigs?.editing || modelConfig!;
 
     const planningProvider = this.createProvider(planningConfig);
@@ -576,7 +564,10 @@ export class AiService {
     // ================ ★ END: 一致性校验 ★ ================
 
     const planningConfig = modelConfigs?.planning || modelConfig!;
-    const contentConfig: ModelConfig = { ...(modelConfigs?.content || modelConfig!), disableThinking: (modelConfigs?.content || modelConfig!)?.disableThinking ?? true };
+    const contentConfig: ModelConfig = {
+      ...(modelConfigs?.content || modelConfig!),
+      disableThinking: (modelConfigs?.content || modelConfig!)?.disableThinking ?? true,
+    };
     const editingConfig = modelConfigs?.editing || modelConfig!;
 
     if (
@@ -850,8 +841,6 @@ export class AiService {
       fontFamily,
       referenceHtml,
       referenceText,
-      slideWidth,
-      slideHeight,
       presentationId,
       logSettings,
     } = req;
@@ -932,7 +921,10 @@ export class AiService {
     }
 
     const planningConfig = modelConfigs?.planning || modelConfig!;
-    const contentConfig: ModelConfig = { ...(modelConfigs?.content || modelConfig!), disableThinking: (modelConfigs?.content || modelConfig!)?.disableThinking ?? true };
+    const contentConfig: ModelConfig = {
+      ...(modelConfigs?.content || modelConfig!),
+      disableThinking: (modelConfigs?.content || modelConfig!)?.disableThinking ?? true,
+    };
     const editingConfig = modelConfigs?.editing || modelConfig!;
 
     const planningProvider = this.createProvider(planningConfig);
@@ -1000,7 +992,7 @@ export class AiService {
         colorTheme,
         referenceHtmlBrief,
         imageConfig?.enabled ?? false,
-        referenceVisualAttributes,
+        referenceVisualAttributes ?? undefined,
         // 第 17 参：RAG 文本素材（referenceText）。透传给 buildPlanningPrompt 注入「权威素材」段。
         // 与 HTML/视觉那路的 referenceHtmlBrief / referenceVisualAttributes 相互独立、互不影响。
         referenceText || '',
@@ -1315,10 +1307,10 @@ export class AiService {
       }
     }
 
-    const cI = urlToResult.get(imgCover);
-    const coI = urlToResult.get(imgContent);
-    const sI = urlToResult.get(imgSummary);
-    const gI = urlToResult.get(imgGlobal);
+    const cI = imgCover ? urlToResult.get(imgCover) : undefined;
+    const coI = imgContent ? urlToResult.get(imgContent) : undefined;
+    const sI = imgSummary ? urlToResult.get(imgSummary) : undefined;
+    const gI = imgGlobal ? urlToResult.get(imgGlobal) : undefined;
 
     const coverRef = mergeReferenceAttrs(cH, cI);
     const contentRef = mergeReferenceAttrs(coH, coI);
@@ -1434,7 +1426,11 @@ export class AiService {
     referenceVisualAttributes: ReferenceVisualAttributes | null | undefined,
     presentationId: string | undefined,
   ): void {
-    return _backfillReferenceOriginalSources(referenceVisualAttributes, presentationId, this.storage);
+    return _backfillReferenceOriginalSources(
+      referenceVisualAttributes,
+      presentationId,
+      this.storage,
+    );
   }
 
   // 将参考图片原图副本（Q7）按 presentationId 暂存，供后续母版 LOGO 开窗复用（FR-16）。
@@ -1476,7 +1472,9 @@ export class AiService {
     referenceHtmlBrief: string;
     refAttrsVersion: string;
   }> {
-    return _resolveReferenceForGeneration(req, (r) => this.resolveReferenceVisualAttributes(r));
+    return _resolveReferenceForGeneration(req, (r) =>
+      this.resolveReferenceVisualAttributes(r as GeneratePresentationRequest),
+    );
   }
 
   async generateFromPlan(req: GenerateFromPlanRequest): Promise<Presentation> {
@@ -1565,7 +1563,10 @@ export class AiService {
     }
 
     const planningConfig = modelConfigs?.planning || modelConfig!;
-    const contentConfig: ModelConfig = { ...(modelConfigs?.content || modelConfig!), disableThinking: (modelConfigs?.content || modelConfig!)?.disableThinking ?? true };
+    const contentConfig: ModelConfig = {
+      ...(modelConfigs?.content || modelConfig!),
+      disableThinking: (modelConfigs?.content || modelConfig!)?.disableThinking ?? true,
+    };
     const editingConfig = modelConfigs?.editing || modelConfig!;
 
     const planningProvider = this.createProvider(planningConfig);
@@ -1765,8 +1766,8 @@ export class AiService {
       backgroundEnabled,
       iconStyle,
       referenceHtml,
-      slideWidth,
-      slideHeight,
+      slideWidth = 1280,
+      slideHeight = 720,
       presentationId,
       critique,
       traceSessionId,
@@ -1845,8 +1846,8 @@ export class AiService {
       audience,
       imagePreference,
       referenceHtml,
-      slideWidth,
-      slideHeight,
+      slideWidth = 1280,
+      slideHeight = 720,
       presentationId,
       critique,
       startIndex,
@@ -2187,7 +2188,8 @@ export class AiService {
       design?: DesignProposal;
       agent?: HTMLPresentationAgent;
       generationOptions?: any;
-      enableAudit?: boolean;    },
+      enableAudit?: boolean;
+    },
   ): Promise<Presentation> {
     return postProcessPresentationImpl.call(this, presentation, params);
   }
@@ -2196,7 +2198,7 @@ export class AiService {
    * 5 级 single-source primary 链（FR-3 / Task4）：参考 deck 主色优先，否则 5 级回退，
    * 并写回 presentation.design 与 generationOptions。纯逻辑（无 this.* 外部依赖），便于行为锁定测试。
    */
-  private resolveFinalEffectivePrimary(
+  protected resolveFinalEffectivePrimary(
     presentation: Presentation,
     generationOptions: any,
     opts: { primaryColor?: string; colorTheme?: any; design?: any },
@@ -2209,7 +2211,7 @@ export class AiService {
    * 纯编排（依赖 this.storage / this.injectOrphanImage* / this.inferImagePreferenceFromPresentation /
    * this.slideHasMeaningfulBody）；返回成功救援的孤儿图数量。便于行为锁定测试。
    */
-  private rescueOrphanImages(result: Presentation, detailed: boolean): number {
+  protected rescueOrphanImages(result: Presentation, detailed: boolean): number {
     return _rescueOrphanImages(result, detailed, {
       storage: this.storage,
       injectOrphanImageIntoSlide: this.injectOrphanImageIntoSlide.bind(this),
@@ -2540,7 +2542,7 @@ export class AiService {
     return textOnly.length >= 6;
   }
 
-  private inlineLocalImagesForScreenshot(html: string, presentationId: string): string {
+  protected inlineLocalImagesForScreenshot(html: string, _presentationId: string): string {
     if (!html) return html;
     return html.replace(
       /(<img[^>]*src\s*=\s*["'])(\/data\/workspace\/presentations\/[^"']+)(["'][^>]*>)/gi,
@@ -2571,7 +2573,7 @@ export class AiService {
     );
   }
 
-  private async captureSlideScreenshot(
+  protected async captureSlideScreenshot(
     renderer: InstanceType<typeof SlideRenderer>,
     html: string,
     idx: number,
@@ -2590,11 +2592,11 @@ export class AiService {
     }
   }
 
-  private vlmHasBlockingIssue(vlm: VlmReviewResult): boolean {
+  protected vlmHasBlockingIssue(vlm: VlmReviewResult): boolean {
     return vlm.issues.some((i) => i.severity === 'error' || i.severity === 'warn');
   }
 
-  private buildVlmFeedback(vlm: VlmReviewResult): string {
+  protected buildVlmFeedback(vlm: VlmReviewResult): string {
     const items = vlm.issues
       .filter((i) => i.severity === 'error' || i.severity === 'warn')
       .map((issue, i) => {
@@ -2605,7 +2607,7 @@ export class AiService {
     return `【VLM 视觉评审反馈，请针对性修复】\n${items.join('\n')}`;
   }
 
-  private async generateAndLocalizeImage(params: {
+  protected async generateAndLocalizeImage(params: {
     imageProvider: any;
     imagePrompt: string;
     targetSize: string;
@@ -2652,7 +2654,6 @@ export class AiService {
     return null;
   }
 
-
   private buildHtmlAuditHook(params: {
     agent: HTMLPresentationAgent;
     topic: string;
@@ -2667,7 +2668,7 @@ export class AiService {
     return buildHtmlAuditHookImpl.call(this, params);
   }
 
-  private async runPostImageVlmTriageLoop(params: {
+  protected async runPostImageVlmTriageLoop(params: {
     result: Presentation;
     plan: PresentationPlan | undefined;
     design: DesignProposal | undefined;
@@ -2686,7 +2687,7 @@ export class AiService {
     return runPostImageVlmTriageLoopImpl.call(this, params);
   }
 
-  private async runAuditImageRegenerationLoop(params: {
+  protected async runAuditImageRegenerationLoop(params: {
     result: Presentation;
     plan: PresentationPlan | undefined;
     imageProvider: any;
@@ -2700,7 +2701,6 @@ export class AiService {
   }): Promise<{ regeneratedCount: number; attempts: number }> {
     return runAuditImageRegenerationLoopImpl.call(this, params);
   }
-
 
   /**
    * 兜底：将磁盘上孤立存在的本地配图 URL 注入到“纯文字内容页”slide HTML 中，
@@ -2722,7 +2722,7 @@ export class AiService {
   }
 
   /** 可见文本长度（去标签/注释/空白），用于「图片注入不得吞文本」的不变量校验 */
-  private _visibleTextLength(html: string): number {
+  protected _visibleTextLength(html: string): number {
     return _visibleTextLengthFn(html);
   }
 
@@ -2738,7 +2738,7 @@ export class AiService {
    * 被打为 minimal，从而孤儿救援 maxFill 被限制为 2 张、cover/summary 的 BG 注入不触发。
    * 15% 以下才认定为 minimal，更符合"尽量少配图"的语义。
    */
-  private inferImagePreferenceFromPresentation(result: {
+  protected inferImagePreferenceFromPresentation(result: {
     slides: Array<{ html: string; title?: string; pageType?: string }>;
   }): ImagePreference {
     return _inferImagePreferenceFromPresentation(result);
@@ -2764,10 +2764,7 @@ export class AiService {
     if (!html || !localImageUrl) return html;
     if (/<img\b/i.test(html)) return html;
     // 结构页（封面/目录/总结）在任何偏好下都不配图（含背景大图）——与参考模板保持一致
-    if (
-      typeof opts.pageType === 'string' &&
-      isStructurePage(opts.pageType.toLowerCase())
-    ) {
+    if (typeof opts.pageType === 'string' && isStructurePage(opts.pageType.toLowerCase())) {
       return html;
     }
     // ——— FR-2 同构（扩展版）：保护版式既不做 BG 大图叠加，也不回退触发 orphan-slide 45:55 overwrite
@@ -2825,5 +2822,4 @@ export class AiService {
       return this.injectOrphanImageIntoSlide(html, localImageUrl, opts);
     return rebuilt;
   }
-
 }

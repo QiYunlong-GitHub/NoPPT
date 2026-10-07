@@ -104,7 +104,8 @@ describe('AiService · 启发式 imagePreference 推断（inferImagePreferenceFr
   });
 
   it('cover+summary+内容均大量有图（>=70%）→ all', () => {
-    const imgSlide = (pt?: string) => slide(`<div><img src="a.png"><h2>${pt ?? 'c'}</h2><p>有图</p></div>`, pt);
+    const imgSlide = (pt?: string) =>
+      slide(`<div><img src="a.png"><h2>${pt ?? 'c'}</h2><p>有图</p></div>`, pt);
     const slides = [
       imgSlide('cover'),
       imgSlide(),
