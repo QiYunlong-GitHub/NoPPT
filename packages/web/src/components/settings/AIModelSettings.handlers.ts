@@ -20,7 +20,12 @@ function getActiveImageProvider(settings: SettingsState) {
 }
 
 export function buildModelOptions(settings: SettingsState) {
-  const options: Array<{ value: string; label: string; disabled: boolean; disabledReason?: string }> = [];
+  const options: Array<{
+    value: string;
+    label: string;
+    disabled: boolean;
+    disabledReason?: string;
+  }> = [];
   const providers: Array<keyof typeof settings.apiConfig> = [
     'openai',
     'anthropic',
@@ -68,7 +73,11 @@ export function getRoutingValue(settings: SettingsState, stage: RoutingStageKey)
   return modelOptions[0]?.value || '';
 }
 
-export function handleRoutingChange(settings: SettingsState, stage: RoutingStageKey, value: string) {
+export function handleRoutingChange(
+  settings: SettingsState,
+  stage: RoutingStageKey,
+  value: string,
+) {
   const [provider, modelIndexStr] = value.split(':');
   const modelIndex = parseInt(modelIndexStr, 10);
   if (provider && !isNaN(modelIndex)) {
@@ -80,7 +89,7 @@ export function handleRoutingChange(settings: SettingsState, stage: RoutingStage
 
 export function handleProviderConfigChange(
   settings: SettingsState,
-  key: 'apiKey' | 'baseUrl',
+  key: 'apiKey' | 'baseUrl' | 'userCode',
   value: string,
 ) {
   const updateFn = {
@@ -173,7 +182,11 @@ export function removeImageModel(settings: SettingsState, modelIndex: number) {
   updateActiveImageProvider(settings, { models: currentModels });
 }
 
-export function updateImageModelName(settings: SettingsState, modelIndex: number, modelName: string) {
+export function updateImageModelName(
+  settings: SettingsState,
+  modelIndex: number,
+  modelName: string,
+) {
   const currentModels = [...(getActiveImageProvider(settings).models || [])];
   currentModels[modelIndex] = { ...currentModels[modelIndex], modelName };
   updateActiveImageProvider(settings, { models: currentModels });
@@ -276,7 +289,7 @@ export function bindAIModelSettingsHandlers(settings: SettingsState) {
     getRoutingValue: (stage: RoutingStageKey) => getRoutingValue(settings, stage),
     handleRoutingChange: (stage: RoutingStageKey, value: string) =>
       handleRoutingChange(settings, stage, value),
-    handleProviderConfigChange: (key: 'apiKey' | 'baseUrl', value: string) =>
+    handleProviderConfigChange: (key: 'apiKey' | 'baseUrl' | 'userCode', value: string) =>
       handleProviderConfigChange(settings, key, value),
     addTextModel: () => addTextModel(settings),
     removeTextModel: (index: number) => removeTextModel(settings, index),

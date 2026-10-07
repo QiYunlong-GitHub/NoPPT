@@ -19,7 +19,7 @@ export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState<SectionId>('ai-model');
   const { t } = useI18n();
   const { hasUnsavedChanges, handleSave } = useSettings();
-  const { testing, testResult, testConnection } = useTestConnection();
+  const { testing, testResult, testConnection, testError, isCors } = useTestConnection();
   const {
     showResetConfirm,
     setShowResetConfirm,
@@ -43,6 +43,8 @@ export default function SettingsPage() {
                 onTestConnection={testConnection}
                 testing={testing}
                 testResult={testResult}
+                testError={testError}
+                isCors={isCors}
               />
             )}
 

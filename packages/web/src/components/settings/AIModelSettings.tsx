@@ -3,7 +3,13 @@ import { useSettingsStore } from '@/stores/settings';
 import { t } from '@/i18n';
 import { isCorsError } from './utils';
 import { bindAIModelSettingsHandlers } from './AIModelSettings.handlers';
-import { OpenAIProvider, FreeAIProvider, AnthropicProvider, QwenImageProvider, SeedreamProvider } from '@noppt/ai';
+import {
+  OpenAIProvider,
+  FreeAIProvider,
+  AnthropicProvider,
+  QwenImageProvider,
+  SeedreamProvider,
+} from '@noppt/ai/providers';
 import { LlmProviderSection } from './aimodel-sections/LlmProviderSection';
 import { ProviderConfigSection } from './aimodel-sections/ProviderConfigSection';
 import { RoutingSection } from './aimodel-sections/RoutingSection';
@@ -15,12 +21,18 @@ interface AIModelSettingsProps {
   onTestConnection: () => Promise<void>;
   testing: boolean;
   testResult: 'success' | 'error' | null;
+  /** 测试连接失败时的原始错误信息（可选，缺省不展示） */
+  testError?: string | null;
+  /** 失败是否由浏览器跨域（CORS）导致 */
+  isCors?: boolean;
 }
 
 export default function AIModelSettings({
   onTestConnection,
   testing,
   testResult,
+  testError,
+  isCors,
 }: AIModelSettingsProps) {
   const settings = useSettingsStore();
   const handlers = bindAIModelSettingsHandlers(settings);
@@ -108,6 +120,8 @@ export default function AIModelSettings({
           onTestConnection={onTestConnection}
           testing={testing}
           testResult={testResult}
+          testError={testError}
+          isCors={isCors}
         />
         <RoutingSection
           handlers={handlers}

@@ -10,6 +10,10 @@ interface ProviderConfigSectionProps {
   onTestConnection: () => Promise<void>;
   testing: boolean;
   testResult: 'success' | 'error' | null;
+  /** 测试连接失败时的原始错误信息（可选，缺省不展示） */
+  testError?: string | null;
+  /** 失败是否为浏览器跨域（CORS）导致 */
+  isCors?: boolean;
 }
 
 function ProviderModelList({
@@ -19,8 +23,14 @@ function ProviderModelList({
   settings: AIModelSettingsStore;
   handlers: AIModelHandlers;
 }) {
-  const { providerConfig, handleProviderConfigChange, addTextModel, updateTextModel, setTextModelAsDefault, removeTextModel } =
-    handlers;
+  const {
+    providerConfig,
+    handleProviderConfigChange,
+    addTextModel,
+    updateTextModel,
+    setTextModelAsDefault,
+    removeTextModel,
+  } = handlers;
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
@@ -123,6 +133,8 @@ function ProviderTestConnection({
   onTestConnection,
   testing,
   testResult,
+  testError,
+  isCors,
 }: ProviderConfigSectionProps) {
   const { providerConfig } = handlers;
   return (
@@ -167,6 +179,39 @@ function ProviderTestConnection({
           </span>
         )}
       </p>
+      {testError && (
+        <div
+          className={`mt-2 p-3 border rounded-lg ${
+            isCors
+              ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'
+              : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+          }`}
+        >
+          {isCors ? (
+            <>
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                {t('跨域访问受限（CORS）')}
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-400 mt-2">
+                {t('浏览器安全策略阻止了前端直接调用该 API')}
+              </p>
+              {settings.defaultModelProvider === 'company-gateway' && (
+                <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                  {t('实际生成由服务端发起，不受浏览器跨域限制，仍可正常出片')}
+                </p>
+              )}
+              <p className="text-xs text-amber-600 dark:text-amber-500 mt-2 font-mono break-all">
+                {testError}
+              </p>
+            </>
+          ) : (
+            <p className="text-xs text-red-700 dark:text-red-400 font-mono whitespace-pre-wrap break-all">
+              {testError}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -177,6 +222,8 @@ export function ProviderConfigSection({
   onTestConnection,
   testing,
   testResult,
+  testError,
+  isCors,
 }: ProviderConfigSectionProps) {
   const { providerConfig, handleProviderConfigChange } = handlers;
   return (
@@ -194,15 +241,41 @@ export function ProviderConfigSection({
         {settings.defaultModelProvider !== 'ollama' && (
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-              API Key
+              {settings.defaultModelProvider === 'company-gateway'
+                ? t('域账号 / API Key')
+                : t('API Key')}
             </label>
-            <input
-              type="password"
-              value={providerConfig.apiKey}
-              onChange={(e) => handleProviderConfigChange('apiKey', e.target.value)}
-              placeholder={getApiKeyPlaceholder(settings.defaultModelProvider)}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
-            />
+            {settings.defaultModelProvider === 'company-gateway' ? (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={providerConfig.userCode || ''}
+                  onChange={(e) => handleProviderConfigChange('userCode', e.target.value)}
+                  placeholder={t('域账号')}
+                  className="w-1/5 px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                />
+                <input
+                  type="password"
+                  value={providerConfig.apiKey}
+                  onChange={(e) => handleProviderConfigChange('apiKey', e.target.value)}
+                  placeholder={getApiKeyPlaceholder(settings.defaultModelProvider)}
+                  className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                />
+              </div>
+            ) : (
+              <input
+                type="password"
+                value={providerConfig.apiKey}
+                onChange={(e) => handleProviderConfigChange('apiKey', e.target.value)}
+                placeholder={getApiKeyPlaceholder(settings.defaultModelProvider)}
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+              />
+            )}
+            {settings.defaultModelProvider === 'company-gateway' && (
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {t('域账号将作为请求头 X-Sany-User-Code 随网关请求发送')}
+              </p>
+            )}
             {settings.defaultModelProvider === 'freeai' && (
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 {t('在')}
@@ -254,6 +327,8 @@ export function ProviderConfigSection({
           onTestConnection={onTestConnection}
           testing={testing}
           testResult={testResult}
+          testError={testError}
+          isCors={isCors}
         />
       </div>
     </section>

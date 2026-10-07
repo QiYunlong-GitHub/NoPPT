@@ -56,9 +56,7 @@ export function ImageRoutingConfig({
           </p>
           <p>
             2. <strong>{t('版本优先')}</strong>
-            {t(
-              '：高版本基础模型优于低版本增强模型（如 qwen-image-2.0 优于 qwen-image-plus）',
-            )}
+            {t('：高版本基础模型优于低版本增强模型（如 qwen-image-2.0 优于 qwen-image-plus）')}
           </p>
           <p>
             3. <strong>{t('场景适配')}</strong>
@@ -106,9 +104,7 @@ export function ImageRoutingConfig({
                   const currentIndex =
                     routing?.[
                       `${key}ModelIndex` as
-                        | 'coverModelIndex'
-                        | 'contentModelIndex'
-                        | 'secondaryModelIndex'
+                        'coverModelIndex' | 'contentModelIndex' | 'secondaryModelIndex'
                     ];
                   const hasManual = currentIndex !== undefined && currentIndex >= 0;
                   return (
@@ -133,9 +129,7 @@ export function ImageRoutingConfig({
                           onChange={(e) => {
                             const val = e.target.value;
                             const field = `${key}ModelIndex` as
-                              | 'coverModelIndex'
-                              | 'contentModelIndex'
-                              | 'secondaryModelIndex';
+                              'coverModelIndex' | 'contentModelIndex' | 'secondaryModelIndex';
                             if (val === 'auto') {
                               settings.setImageRoutingConfig(
                                 settings.imageGeneration.activeProvider,

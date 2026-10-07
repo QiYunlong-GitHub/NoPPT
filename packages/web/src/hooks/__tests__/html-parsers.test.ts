@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  createTableFromHtml,
-  createRichTextFromHtml,
-} from '../clipboard/html-parsers';
+import { createTableFromHtml, createRichTextFromHtml } from '../clipboard/html-parsers';
 
 // ================================================================
 // clipboard/html-parsers —— 行为锁定测试（characterization test）
