@@ -79,6 +79,9 @@ GitHub上传清单.md
 .trae/
 .roo/
 .codebuddy/
+.kiro/
+.agents/artifacts/
+packages/.agents/
 
 # ===== 本地代码体检工具配置（未接入工程，按需保留/忽略） =====
 # Knip 死代码/依赖分析、dependency-cruiser 依赖图、eslint gates 门禁
