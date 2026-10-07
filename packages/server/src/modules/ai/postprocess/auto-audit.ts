@@ -23,7 +23,6 @@ export async function runAutoAudit(ctx: any): Promise<void> {
     imageConfig,
     imageProvider,
     traceSessionId,
-    integrityRunId,
     topic,
     colorTheme,
     finalWidth,

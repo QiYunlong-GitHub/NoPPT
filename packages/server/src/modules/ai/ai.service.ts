@@ -245,7 +245,7 @@ export class AiService {
     private readonly logsService: LogsService,
     protected readonly auditService: AuditService,
     private readonly configService: ConfigService,
-    private readonly presentationIntegrityService: PresentationIntegrityService,
+    private readonly presentationIntegrityService: PresentationIntegrityService = new PresentationIntegrityService(storage),
   ) {
     // r6 Task1: 打印后处理版本标识（进程级仅一次）。
     // @noppt/ai 的 POST_VERSION_SIG 当前未被 server 可用的类型入口导出（ai 包在另一侧改造中），
