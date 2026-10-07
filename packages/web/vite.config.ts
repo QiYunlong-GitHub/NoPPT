@@ -2,7 +2,37 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 
-// 大演示（10+ 页，每页大量 HTML/base64 图片）的 PUT 请求体较大，
+const manualChunks = (id: string): string | undefined => {
+  const normalized = id.replaceAll('\\\\', '/');
+
+  if (normalized.includes('/packages/ai/src/')) {
+    if (
+      normalized.includes('/templates/icon-registry.') ||
+      normalized.includes('/templates/svg-icons.') ||
+      normalized.includes('/templates/icons.')
+    ) {
+      return 'noppt-ai-icons';
+    }
+    if (normalized.includes('/templates/')) return 'noppt-ai-templates';
+    if (normalized.includes('/providers/')) return 'noppt-ai-providers';
+    return 'noppt-ai-runtime';
+  }
+  if (normalized.includes('/packages/core/src/')) return 'noppt-core';
+
+  if (!normalized.includes('/node_modules/')) return undefined;
+  if (/\/node_modules\/(react|react-dom|scheduler)(\/|$)/.test(normalized)) {
+    return 'vendor-react';
+  }
+  if (/\/node_modules\/react-router(-dom)?(\/|$)/.test(normalized)) {
+    return 'vendor-router';
+  }
+  if (/\/node_modules\/(zustand|immer)(\/|$)/.test(normalized)) {
+    return 'vendor-state';
+  }
+  if (/\/node_modules\/lucide-react(\/|$)/.test(normalized)) return 'vendor-icons';
+  return undefined;
+};
+
 // 为每个后端代理路径统一加上代理超时和错误日志，避免 Vite 转发时 EPIPE/EACCES
 const backendProxyOpts = {
   target: 'http://localhost:3001',
@@ -11,11 +41,7 @@ const backendProxyOpts = {
   timeout: 5 * 60 * 1000,
   configure: (proxy: any) => {
     proxy.on('error', (err: any, _req: any, _res: any) => {
-      console.error(
-        '[vite proxy error] code=%s message=%s',
-        err.code || '',
-        err.message || '',
-      );
+      console.error('[vite proxy error] code=%s message=%s', err.code || '', err.message || '');
     });
   },
 };
@@ -69,6 +95,11 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks,
+      },
+    },
   },
   test: {
     globals: true,
@@ -81,7 +112,7 @@ export default defineConfig({
     // 让 @testing-library/* 走 node require（与 vite-node 行为一致）即可正常加载。
     server: {
       deps: {
-        inline: [/^react($|\/)/],
+        inline: [/^react($|\/)/, 'pptxgenjs', 'jszip'],
       },
     },
     coverage: {
