@@ -22,7 +22,6 @@ import {
   resolveAttrForPage,
 } from '../../utils/reference-attribute-resolver';
 
-
 const SUPPLEMENT_TITLE_POOL = [
   '深入分析与洞察',
   '关键实施路径',
@@ -36,7 +35,11 @@ const SUPPLEMENT_TITLE_POOL = [
   '风险与注意事项',
 ];
 
-export function getPrimaryColor(style?: string, colorTheme?: ColorTheme, primaryColor?: string): string {
+export function getPrimaryColor(
+  style?: string,
+  colorTheme?: ColorTheme,
+  primaryColor?: string,
+): string {
   if (primaryColor && /^#[0-9a-fA-F]{6}$/.test(primaryColor)) return primaryColor;
   if (colorTheme && COLOR_THEMES[colorTheme]) return COLOR_THEMES[colorTheme];
   if (style && COLOR_THEMES[style]) return COLOR_THEMES[style];
@@ -60,11 +63,7 @@ export function clampSlidesToCount(
   if (target <= 0) target = 1;
   const flags = deriveStructureFlags(target, hints);
   // 内容页补位辅助：按 imagePreference 决定补位 slide 默认带图还是纯文字
-  const buildSupplementSlide = (
-    title: string,
-    cursor: number,
-    _asStructure = false,
-  ): SlidePlan => {
+  const buildSupplementSlide = (title: string, cursor: number, _asStructure = false): SlidePlan => {
     const keyPoints = ['核心要点展开分析', '相关数据支撑', '落地建议与参考'].slice(
       0,
       4 - (cursor % 3),
@@ -477,8 +476,7 @@ export function normalizePlanByImagePreference(
       return {
         ...s,
         needsImage: needs,
-        imagePrompt:
-          s.imagePrompt ?? (needs ? `${s.title || '内容'}（参考素材风格）` : undefined),
+        imagePrompt: s.imagePrompt ?? (needs ? `${s.title || '内容'}（参考素材风格）` : undefined),
         imageRatio:
           s.imageRatio ??
           (needs
@@ -565,7 +563,6 @@ export function normalizePlanByImagePreference(
   });
 }
 
-
 export function resolvePageReferenceStyleAttrs(
   slidePlan: SlidePlan,
   rva: ReferenceVisualAttributes | undefined,
@@ -624,8 +621,7 @@ export function resolvePageReferenceStyleAttrs(
   const iconStyle =
     resolveAttrForPage('iconStyle', rva, cat, base.iconStyle, DEF.iconStyle) ?? base.iconStyle;
   const fontFamily =
-    resolveAttrForPage('fontFamily', rva, cat, base.fontFamily, DEF.fontFamily) ??
-    base.fontFamily;
+    resolveAttrForPage('fontFamily', rva, cat, base.fontFamily, DEF.fontFamily) ?? base.fontFamily;
   const style = resolveAttrForPage('style', rva, cat, base.style, DEF.style) ?? base.style;
   const imagePreference =
     resolveAttrForPage(
@@ -664,7 +660,10 @@ export function resolvePageReferenceStyleAttrs(
  * 该函数就地修改 critique 对象，调用时机应在每次 critiqueSlide 返回后。
  */
 
-export function detectComparisonIntent(topic: string): { isComparison: boolean; triggerWords: string[] } {
+export function detectComparisonIntent(topic: string): {
+  isComparison: boolean;
+  triggerWords: string[];
+} {
   const text = topic.trim().toLowerCase();
   const triggers: Array<{ word: string; re: RegExp }> = [
     // 第 1 组：强对比词（100% 命中）

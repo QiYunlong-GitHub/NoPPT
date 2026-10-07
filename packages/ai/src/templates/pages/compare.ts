@@ -1,6 +1,8 @@
 import type { TemplateCtx } from './types';
 
-const piece10 = (ctx: TemplateCtx): string => `### content-compare（两栏对比 · 右栏浅底禁白字，强制主色字）
+const piece10 = (
+  ctx: TemplateCtx,
+): string => `### content-compare（两栏对比 · 右栏浅底禁白字，强制主色字）
 \`\`\`html
 <div style="${ctx.OUTER};">
   <h2 style="${ctx.GRAD_H2}">页面标题</h2>
@@ -26,7 +28,9 @@ const piece10 = (ctx: TemplateCtx): string => `### content-compare（两栏对�
 \`\`\`
 `;
 
-const piece13 = (ctx: TemplateCtx): string => `### comparison-deep-dive（双栏深度对比报告 · L1高级版式 · 进度条+徽章）
+const piece13 = (
+  ctx: TemplateCtx,
+): string => `### comparison-deep-dive（双栏深度对比报告 · L1高级版式 · 进度条+徽章）
 ⚠️ 图例说明（放在模板顶部，生成页面时也默认生成这一行便于阅读）：
   ▢ 灰色外框卡片 = 基准方案 / 现有方案　　▢ 主色外框卡片 = 升级方案 / 优势方案
   ✓ 绿色对勾图标 + 绿色"胜出"徽章 = 该维度右栏优势项（对应 advantageIndices）

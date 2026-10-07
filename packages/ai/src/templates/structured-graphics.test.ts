@@ -80,7 +80,6 @@ describe('structured-graphics · 受控 SVG 渲染器', () => {
       expect(renderChartSvg(null as any, opts)).toBe('');
     });
   });
-
   describe('renderCycleSvg', () => {
     it('输出环形节点与箭头', () => {
       const svg = renderCycleSvg(['采集', '清洗', '分析'], opts);

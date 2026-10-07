@@ -74,12 +74,16 @@ describe('stages 编排函数（导出契约）', () => {
 
 describe('renderSlides（边界行为锁定）', () => {
   it('空计划返回空数组，不触发任何生成', async () => {
-    const result = await renderSlides(makeDeps(), 'topic', makePlan(0), makeDesign());
+    // 钉死 legacy（LLM-HTML）路径：本组用例锁定的是 generateSlideHtmlSafe 的行为
+    const result = await renderSlides(makeDeps(), 'topic', makePlan(0), makeDesign(), {
+      deterministicDeckPreview: false,
+    } as any);
     expect(result).toEqual([]);
   });
 
   it('startIndex >= endIndex 时不渲染任何页', async () => {
     const result = await renderSlides(makeDeps(), 'topic', makePlan(3), makeDesign(), {
+      deterministicDeckPreview: false,
       startIndex: 2,
       endIndex: 2,
     } as any);
@@ -88,6 +92,7 @@ describe('renderSlides（边界行为锁定）', () => {
 
   it('endIndex 为 0 时不渲染任何页', async () => {
     const result = await renderSlides(makeDeps(), 'topic', makePlan(3), makeDesign(), {
+      deterministicDeckPreview: false,
       startIndex: 0,
       endIndex: 0,
     } as any);
@@ -95,7 +100,9 @@ describe('renderSlides（边界行为锁定）', () => {
   });
 
   it('非空计划：逐页走生成路径，返回与页数一致的 RenderedSlide', async () => {
-    const result = await renderSlides(makeDeps(), 'topic', makePlan(3), makeDesign());
+    const result = await renderSlides(makeDeps(), 'topic', makePlan(3), makeDesign(), {
+      deterministicDeckPreview: false,
+    } as any);
     expect(result).toHaveLength(3);
     for (const s of result) {
       expect(typeof s.html).toBe('string');
@@ -105,6 +112,7 @@ describe('renderSlides（边界行为锁定）', () => {
 
   it('endIndex 裁剪：只渲染区间内的页', async () => {
     const result = await renderSlides(makeDeps(), 'topic', makePlan(4), makeDesign(), {
+      deterministicDeckPreview: false,
       startIndex: 1,
       endIndex: 3,
     } as any);
@@ -114,13 +122,7 @@ describe('renderSlides（边界行为锁定）', () => {
 
 describe('assembleImages（边界行为锁定）', () => {
   it('空渲染结果返回空数组', async () => {
-    const result = await assembleImages(
-      makeDeps(),
-      'topic',
-      [],
-      makePlan(0),
-      makeDesign(),
-    );
+    const result = await assembleImages(makeDeps(), 'topic', [], makePlan(0), makeDesign());
     expect(result).toEqual([]);
   });
 
@@ -129,13 +131,7 @@ describe('assembleImages（边界行为锁定）', () => {
       { title: '页 1', html: '<div>a</div>', pageType: 'content' },
       { title: '页 2', html: '<div>b</div>', pageType: 'content' },
     ] as any;
-    const result = await assembleImages(
-      makeDeps(),
-      'topic',
-      rendered,
-      makePlan(2),
-      makeDesign(),
-    );
+    const result = await assembleImages(makeDeps(), 'topic', rendered, makePlan(2), makeDesign());
     expect(result).toHaveLength(2);
     expect(result[0].html).toBe('<div>a</div>');
     expect(result[1].html).toBe('<div>b</div>');

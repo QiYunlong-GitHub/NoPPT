@@ -13,10 +13,7 @@ import {
  * 回归样本：pres_mtzke4lj_ovu6r61 / slide-02 的 LLM 原始响应片段
  * （纯文字内容页：h2 + 4 个绝对定位几何装饰 + 4 项 ul + 内联 SVG，无 img）
  */
-const FIXTURE = readFileSync(
-  resolve(__dirname, '__fixtures__/pres_mtzke4lj-slide02.html'),
-  'utf8',
-);
+const FIXTURE = readFileSync(resolve(__dirname, '__fixtures__/pres_mtzke4lj-slide02.html'), 'utf8');
 
 /** 只借用原型方法，避免构造 LLM provider */
 function makeAgent(): any {
@@ -54,9 +51,9 @@ describe('后处理图片注入 · DOM 级最小侵入（pres_mtzke4lj 回归）
     // 只注入 1 处占位符
     expect((out.match(/NOPPT_IMAGE_PLACEHOLDER/g) || []).length).toBe(1);
     // h2 之前的 4 个几何装饰必须保留（旧实现会整段丢弃）
-    expect((out.match(/position:absolute|position: absolute/g) || []).length).toBeGreaterThanOrEqual(
-      4,
-    );
+    expect(
+      (out.match(/position:absolute|position: absolute/g) || []).length,
+    ).toBeGreaterThanOrEqual(4);
     expect(out).toContain('厄尔尼诺是赤道中东太平洋海温异常升高的气候现象');
     const text = visibleText(out);
     for (const kp of KEY_POINTS) expect(text).toContain(kp);
@@ -69,9 +66,10 @@ describe('后处理图片注入 · DOM 级最小侵入（pres_mtzke4lj 回归）
       '#e94560',
     );
     const { doc } = parseRoot(out);
-    const row = Array.from(doc.querySelectorAll('div')).find((d) =>
-      /display:\s*flex/.test(d.getAttribute('style') || '') &&
-      /gap:\s*40px/.test(d.getAttribute('style') || ''),
+    const row = Array.from(doc.querySelectorAll('div')).find(
+      (d) =>
+        /display:\s*flex/.test(d.getAttribute('style') || '') &&
+        /gap:\s*40px/.test(d.getAttribute('style') || ''),
     );
     expect(row).toBeTruthy();
     expect(row!.children.length).toBe(2); // 图列 + 文列，绝不能出现游离的第三个子项
@@ -96,9 +94,9 @@ describe('后处理图片注入 · DOM 级最小侵入（pres_mtzke4lj 回归）
   it('fail-safe：识别不到正文容器时不改动页面（宁可不配图也不破坏结构）', () => {
     const agent = makeAgent();
     const noBody = '<div style="display:flex;flex-direction:column"><h2>标题</h2></div>';
-    expect(agent.injectImagePlaceholderForContentSlide(noBody, 'content-image-left', '#e94560')).toBe(
-      noBody,
-    );
+    expect(
+      agent.injectImagePlaceholderForContentSlide(noBody, 'content-image-left', '#e94560'),
+    ).toBe(noBody);
   });
 
   it('保护版式（content-compare / content-value-showcase）永不注入', () => {

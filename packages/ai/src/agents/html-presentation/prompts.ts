@@ -289,11 +289,8 @@ export function resolveReferenceTextColors(
   if (!refAttrs) return { titleColor: undefined, bodyColor: undefined };
   const cat = pageTypeToCategory(pageType ?? '');
   const titleColor = resolveAttrForPage('titleColor', refAttrs, cat, undefined) as
-    | string
-    | undefined;
-  const bodyColor = resolveAttrForPage('bodyColor', refAttrs, cat, undefined) as
-    | string
-    | undefined;
+    string | undefined;
+  const bodyColor = resolveAttrForPage('bodyColor', refAttrs, cat, undefined) as string | undefined;
   return { titleColor, bodyColor };
 }
 
@@ -301,7 +298,10 @@ export function resolveReferenceTextColors(
  * 配图指令（S-6 · 硬约束版）。
  * 原函数：HTMLPresentationAgent.buildImageRequirementHint（纯函数，无 this 依赖）
  */
-export function buildImageRequirementHint(plan: SlidePlan, imagePreference: ImagePreference): string {
+export function buildImageRequirementHint(
+  plan: SlidePlan,
+  imagePreference: ImagePreference,
+): string {
   const prefText: Record<ImagePreference, string> = {
     all: '每页都配图（封面/目录/总结除外）',
     'content-only': '仅内容页配图，封面/目录/总结不放图',

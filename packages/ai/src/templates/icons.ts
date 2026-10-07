@@ -172,5 +172,13 @@ function buildLi(icon: string, text: string): string {
   return `<li style="display:flex;align-items:center;gap:16px;overflow-wrap:break-word;word-break:break-word;">${icon}<span style="line-height:1.4;flex:1;">${text}</span></li>`;
 }
 
-
-export { SEMANTIC_ICON_SEQUENCE, getSemanticIconByIndex, getIcons, getEmojiBigIcon, getCircleIcon, getCompareRightIcon, getCompareLeftIcon, buildLi };
+export {
+  SEMANTIC_ICON_SEQUENCE,
+  getSemanticIconByIndex,
+  getIcons,
+  getEmojiBigIcon,
+  getCircleIcon,
+  getCompareRightIcon,
+  getCompareLeftIcon,
+  buildLi,
+};

@@ -13,13 +13,11 @@ import {
 
 export const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 
-
 export function resolvePrimaryColor(ref?: string, user?: string, def = '#2563eb'): string {
   const norm = (v?: string): string | undefined =>
     v && HEX_RE.test(v) ? v.toLowerCase() : undefined;
   return norm(ref) ?? norm(user) ?? def;
 }
-
 
 /** 参考标题文字色（H1/H2/H3）三级解析：ref > user > default。允许近黑/白/灰。 */
 export function resolveTitleColor(ref?: string, user?: string, def = '#111827'): string {
@@ -28,7 +26,6 @@ export function resolveTitleColor(ref?: string, user?: string, def = '#111827'):
   return norm(ref) ?? norm(user) ?? def;
 }
 
-
 /** 参考正文文字色（li/p）三级解析：ref > user > default。允许近黑/白/灰。 */
 export function resolveBodyColor(ref?: string, user?: string, def = '#374151'): string {
   const norm = (v?: string): string | undefined =>
@@ -36,26 +33,22 @@ export function resolveBodyColor(ref?: string, user?: string, def = '#374151'): 
   return norm(ref) ?? norm(user) ?? def;
 }
 
-
 /**
  * deck 级参考主色护栏：判断两个 hex 主色是否「一致/相近」（RGB 欧氏距离阈值内）。
  * 用于避免把单一分类的偶然主色（如 summary 抽到的粉色）误判为 deck 级主色。
  */
 export const COLOR_CLOSE_THRESHOLD = 48; // 近似主色判定阈值（RGB 欧氏距离，理论最大 ~441）
 
-
 export function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace('#', '');
   return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
 }
-
 
 export function colorDistance(a: string, b: string): number {
   const [r1, g1, b1] = hexToRgb(a);
   const [r2, g2, b2] = hexToRgb(b);
   return Math.sqrt((r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2);
 }
-
 
 /**
  * 在候选主色中找出「被至少两个分类认可（彼此近似）」的众数颜色，作为 deck 级主色。
@@ -78,7 +71,6 @@ export function mostConsistentColor(colors: string[]): string | undefined {
   return bestCount >= 2 ? best : undefined;
 }
 
-
 /**
  * FR-4 四级查找链取「某页」的参考主色：分类 → 全局。
  * 无参考 / 该分类未上传 / 主色非法时返回 undefined（调用方回退原逻辑，向后兼容）。
@@ -100,7 +92,6 @@ export function resolveReferencePrimaryColor(
         : undefined;
   return candidate && HEX_RE.test(candidate) ? candidate.toLowerCase() : undefined;
 }
-
 
 /**
  * deck 级参考主色代表（供全 deck 兜底 / 主管线单源链使用）。
@@ -150,7 +141,6 @@ export function resolveDeckReferencePrimaryColor(
   return mostConsistentColor(catEntries.map((e) => e.color)) ?? undefined;
 }
 
-
 /**
  * 终局逐页主色三级链：页面分类参考主色 → deck 级参考主色 → fallback。
  * - 用于写盘前 finalGuard 逐页取色（ai.service postProcessPresentation）：某分类参考图缺失
@@ -171,7 +161,6 @@ export function resolveFinalPagePrimaryColor(
   if (deckRef) return deckRef;
   return fallback;
 }
-
 
 /**
  * 按页解析「配色策略」，作为后处理链（`detectHarmonizedPalette` / `sanitizeGradientColors`
@@ -209,7 +198,6 @@ export function resolveColorPolicyForPage(
   };
 }
 
-
 /**
  * 有参考撞色时，产出「豁免单色系红线」的策略文案；无撞色（单色/无参考）返回 ''（红线保持原样）。
  * 这是「有参考时豁免单色系红线」的唯一开关信号。
@@ -245,7 +233,6 @@ export function resolveAttrForPage<K extends keyof ReferenceStyleAttrs>(
   if (userValue !== undefined) return userValue;
   return defaultValue as ReferenceStyleAttrs[K];
 }
-
 
 export function getReferencePaletteForPage(
   attrs: ReferenceVisualAttributes,

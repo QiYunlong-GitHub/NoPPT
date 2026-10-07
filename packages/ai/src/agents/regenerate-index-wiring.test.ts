@@ -35,9 +35,7 @@ describe('regenerateSingleSlide 透传 pageIndexInCategory（防重生成路径�
     // 截获翻页序号的接线点：regenerateSingleSlide → generateSlideHtml 末位实参 pageIndexInCategory
     // 会透传给 formatReferenceOverrideForPage(refViz, pageType, pageIndexInCategory)。
     // 跨模块函数可被 vi.spyOn 稳定拦截（模块内同名调用会被打包器内联，改在跨模块边界断言）。
-    const spy = vi
-      .spyOn(refAttr as any, 'formatReferenceOverrideForPage')
-      .mockReturnValue('');
+    const spy = vi.spyOn(refAttr as any, 'formatReferenceOverrideForPage').mockReturnValue('');
 
     const plan: any = {
       slides: [

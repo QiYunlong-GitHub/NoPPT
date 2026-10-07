@@ -22,6 +22,18 @@ export const PRESENTATION_PLANNING_PROMPT = `你是一个专业的演示文稿�
       "pageType": "cover",
       "title": "幻灯片标题",
       "keyPoints": ["要点1", "要点2"],
+      "comparisonItems": [
+        { "contentId": "compare-1", "text": "对比项", "column": "left", "order": 0, "bullet": true }
+      ],
+      "metricItems": [
+        { "kind": "metric", "contentId": "metric-1", "order": 0, "label": "指标名称", "value": "42%" }
+      ],
+      "cardItems": [
+        { "contentId": "card-1", "title": "卡片标题", "body": "完整说明", "compact": false }
+      ],
+      "summaryItems": [
+        { "contentId": "summary-1", "text": "完整总结要点", "role": "point" }
+      ],
       "contentCategory": "vision",
       "narrativeRole": "opening",
       "needsImage": false,
@@ -47,8 +59,9 @@ export const PRESENTATION_PLANNING_PROMPT = `你是一个专业的演示文稿�
 }
 \`\`\`
 
-**字段说明：**
-- slides 数组中每一项都可含 layoutParams / styleTheme / metricValues / advantageIndices / showcaseMetrics；不需要时**省略该字段或填 null**（不要硬填空对象/空数组）。
+- **typed content contract（必须优先使用）**：content-compare 使用 \`comparisonItems\`（每项含唯一 \`contentId\`、\`text\`、\`column\`、\`order\`、\`bullet\`，左右数量必须相等）；content-stats-highlight 使用 \`metricItems\`（每项必须有非空 \`label\`/\`value\`，无法拆分时使用 \`kind:"omission"\` 并填写 \`originalText\`、\`reason\`、\`status:"needs_review"\`）；content-cards 使用 \`cardItems\`（必须保留非空 \`body\`，只有完整单句时可 \`compact:true\`）；summary 使用 \`summaryItems\` 并逐项承载全部要点。
+- \`contentId\` 在同一页内必须唯一且只使用字母、数字、\`_-.\`；不得使用空字符串、空文本节点或虚假占位内容。不得静默丢弃 \`keyPoints\`，旧计划适配时必须保留原文并标记 \`legacyDerived\`；允许省略时必须使用逐项 \`omitted\`/\`needs_review\` 状态和原因。
+
 - 当且仅当 pageType 触发 L1.5 刚性条件（如 comparison-deep-dive、value-showcase）时，对应字段才强制必填。
 - **contentCategory**（强烈建议填写）：本页内容语义类别，可选值：data-point（核心数据）、comparison（对比差异）、process（流程步骤）、problem（痛点挑战）、solution（方案特性）、evidence（证据案例）、vision（愿景理念）、story（用户故事）。该字段决定版式推荐和配图方向。
 - **narrativeRole**（建议填写）：本页在叙事弧线中的角色，可选值：opening（开场）、background（背景）、problem（问题）、solution（方案）、evidence（证据）、comparison（对比）、transition（转折）、closing（收尾）。
@@ -456,4 +469,3 @@ export const BACKGROUND_PLANNING_GUIDANCE = `
 
 JSON示例中每页添加"backgroundPrompt"字段（字符串类型），不需要背景图时填null或省略。
 `;
-

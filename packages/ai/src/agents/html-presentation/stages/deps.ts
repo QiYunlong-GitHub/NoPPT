@@ -14,4 +14,3 @@ export function switchStage(provider: AIModelProvider, stage: string): void {
   const sid = (provider as TraceableProvider).activeTraceSessionId;
   if (sid) setSessionStage(sid, stage);
 }
-

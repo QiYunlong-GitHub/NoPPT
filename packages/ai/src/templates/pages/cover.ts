@@ -22,7 +22,9 @@ const piece0 = (ctx: TemplateCtx): string => `### cover（封面页 · 海报级
 \`\`\`
 `;
 
-const piece1 = (ctx: TemplateCtx): string => `### cover-left（封面页 · 左对齐构图版本 · 当参考为左对齐构图时使用）
+const piece1 = (
+  ctx: TemplateCtx,
+): string => `### cover-left（封面页 · 左对齐构图版本 · 当参考为左对齐构图时使用）
 **当上方「参考版式结构指引 / 覆盖指令」标注左对齐构图时，使用本模板而非上面的居中封面；内容列左对齐、垂直居中，禁止居中三件套。**
 \`\`\`html
 <div style="width:100%;height:100%;overflow:hidden;position:relative;box-sizing:border-box;padding:${ctx.PY}px ${ctx.PX}px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;text-align:left;background-color:{{CANVAS_BG_COLOR}};font-family:${ctx.FONT_STACK_ACTIVE}">

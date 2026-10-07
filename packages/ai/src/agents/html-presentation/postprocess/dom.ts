@@ -91,9 +91,7 @@ export function ensureSemanticWrapping(html: string): string {
         s,
       );
     // 命中 3/4 以上特征，认定是 Badge 容器（避免误判普通 flex div）
-    const score = [hasInlineFlex, hasBadgePadding, hasRadius999, hasBgTint].filter(
-      Boolean,
-    ).length;
+    const score = [hasInlineFlex, hasBadgePadding, hasRadius999, hasBgTint].filter(Boolean).length;
     return score >= 3;
   };
 
@@ -534,7 +532,6 @@ export function removeColorCodeWatermark(html: string): string {
   return result;
 }
 
-
 export function fixVerticalWritingLists(html: string): string {
   let result = html;
 
@@ -581,4 +578,3 @@ export function fixVerticalWritingLists(html: string): string {
   });
   return result;
 }
-

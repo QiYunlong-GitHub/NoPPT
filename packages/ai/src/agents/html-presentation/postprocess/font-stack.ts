@@ -14,9 +14,7 @@ export function isDefaultSansPlaceholder(current: string, defaultSans: string): 
   const normalizeName = (s: string) => normalizeFontName(s);
   const currentParts = cleaned.split(',').map(normalizeName).filter(Boolean);
   if (currentParts.length === 0) return false;
-  const defaultSansNames = new Set(
-    defaultSans.split(',').map(normalizeName).filter(Boolean),
-  );
+  const defaultSansNames = new Set(defaultSans.split(',').map(normalizeName).filter(Boolean));
   return currentParts.every((p) => defaultSansNames.has(p));
 }
 
@@ -28,9 +26,7 @@ export function isDefaultLegacyMonoPlaceholder(current: string, legacyMono: stri
   const currentParts = cleaned.split(',').map(normalizeName).filter(Boolean);
   if (currentParts.length === 0) return false;
   if (currentParts.length < 5) return false;
-  const legacyMonoNames = new Set(
-    legacyMono.split(',').map(normalizeName).filter(Boolean),
-  );
+  const legacyMonoNames = new Set(legacyMono.split(',').map(normalizeName).filter(Boolean));
   return currentParts.every((p) => legacyMonoNames.has(p));
 }
 

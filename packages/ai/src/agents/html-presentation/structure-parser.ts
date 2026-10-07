@@ -19,12 +19,10 @@ export const chineseNumbers: Record<string, number> = {
   十: 10,
 };
 
-
 export const parseNumber = (str: string): number => {
   if (/^\d+$/.test(str)) return parseInt(str);
   return chineseNumbers[str] || 0;
 };
-
 
 export const extractSlideCount = (text: string): number | null => {
   const spec = extractSlideCountSpec(text);
@@ -33,7 +31,6 @@ export const extractSlideCount = (text: string): number | null => {
   if (spec.min != null && spec.max != null) return Math.floor((spec.min + spec.max) / 2);
   return null;
 };
-
 
 export const extractPageStructureHints = (text: string): PageStructureHints => {
   const t = (text || '').toString();
@@ -181,7 +178,6 @@ export const extractSlideCountSpec = (text: string): SlideCountSpec | null => {
   return null;
 };
 
-
 export function pLimit(concurrency: number) {
   const queue: Array<() => Promise<any>> = [];
   let active = 0;
@@ -217,4 +213,3 @@ export function getFontFamilyDescription(family: 'sans' | 'serif' | 'mono' = 'sa
       return 'sans 无衬线体（系统默认 UI 字体，现代扁平化、通用商务风格，推荐绝大多数场景）';
   }
 }
-

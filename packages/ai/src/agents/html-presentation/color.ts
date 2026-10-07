@@ -148,7 +148,6 @@ export function assertHueClose(
   };
 }
 
-
 export const COLOR_THEMES: Record<ColorTheme | string, string> = {
   blue: '#2563eb',
   purple: '#7c3aed',

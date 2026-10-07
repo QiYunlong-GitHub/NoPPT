@@ -10,6 +10,7 @@ import * as planUtils from '../html-presentation/plan-utils';
 import * as htmlSanitize from '../html-presentation/html-sanitize';
 import * as palette from '../html-presentation/palette';
 import * as stages from '../html-presentation/stages';
+import * as deck from '../html-presentation/deck';
 
 const expectFns = (ns: Record<string, unknown>, names: readonly string[]): void => {
   for (const n of names) {
@@ -122,6 +123,36 @@ describe('导出面快照 · A/B/C 拆分后符号可达', () => {
       'modifySlide',
       'modifyElement',
       'modifyGlobal',
+    ]);
+  });
+
+  it('Deck 中间层：转换器与布局模板符号可达', () => {
+    expectFns(deck as unknown as Record<string, unknown>, [
+      'planToDeck',
+      'buildDeck',
+      'slidePlanToDeckSlide',
+      'buildLayoutContext',
+      'buildDeckMaster',
+      'buildDeckTheme',
+      'buildDeckMeta',
+      'darkenHex',
+      'layoutSlideNodes',
+    ]);
+    expect((deck as unknown as Record<string, unknown>).DECK_LAYOUT_BUILDERS).toBeTypeOf('object');
+    // 33 种 pageType 全部有布局模板
+    expect(Object.keys(deck.DECK_LAYOUT_BUILDERS)).toHaveLength(33);
+  });
+
+  it('barrel 把 Deck 符号再导出到原路径 html-presentation-agent', () => {
+    expectFns(agentNs as unknown as Record<string, unknown>, [
+      'planToDeck',
+      'buildDeck',
+      'slidePlanToDeckSlide',
+      'buildDeckMaster',
+      'buildDeckTheme',
+      'buildDeckMeta',
+      'darkenHex',
+      'layoutSlideNodes',
     ]);
   });
 });
