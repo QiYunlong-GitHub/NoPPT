@@ -55,9 +55,16 @@ describe('presentation store（行为锁定）', () => {
   it('暴露关键 actions（均为函数）', () => {
     const s = usePresentationStore.getState() as any;
     for (const fn of [
-      'setPresentation', 'updatePresentation', 'addSlide', 'removeSlide',
-      'duplicateSlide', 'moveSlide', 'selectSlide', 'updateSlide',
-      'markUnsaved', 'closeCurrentPresentation',
+      'setPresentation',
+      'updatePresentation',
+      'addSlide',
+      'removeSlide',
+      'duplicateSlide',
+      'moveSlide',
+      'selectSlide',
+      'updateSlide',
+      'markUnsaved',
+      'closeCurrentPresentation',
     ]) {
       expect(typeof s[fn], `${fn} 应为函数`).toBe('function');
     }

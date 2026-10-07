@@ -75,9 +75,7 @@ describe('reconstructPresentation（行为锁定）', () => {
   });
 
   it('无 full 快照时返回 null', () => {
-    const history: HistoryEntry[] = [
-      { type: 'slide', slideId: 's-0', html: '<div>x</div>' },
-    ];
+    const history: HistoryEntry[] = [{ type: 'slide', slideId: 's-0', html: '<div>x</div>' }];
     expect(reconstructPresentation(history, 0)).toBeNull();
   });
 

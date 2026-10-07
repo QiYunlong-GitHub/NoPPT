@@ -9,8 +9,9 @@ import type {
   CritiqueConfig,
   LogConfig,
 } from '@noppt/ai';
-import { useSettingsStore } from '@/stores/settings';
-import { translate } from '@/i18n';
+import { storage } from '@/utils/storage';
+import { getActiveLocale } from '@/i18n/localeState';
+import { translate } from '@/i18n/translate';
 
 export interface PresentationListItem {
   id: string;
@@ -60,98 +61,257 @@ export interface AILogEntry {
   error?: string;
 }
 
+export interface ApiParser<T> {
+  (value: unknown): T;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function requireRecord(value: unknown, label: string): Record<string, unknown> {
+  if (!isRecord(value)) throw new Error(`Invalid ${label} response`);
+  return value;
+}
+
+function requireString(value: unknown, field: string, label: string): string {
+  if (typeof value !== 'string') throw new Error(`Invalid ${label} response: ${field}`);
+  return value;
+}
+
+function requireFiniteNumber(value: unknown, field: string, label: string): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new Error(`Invalid ${label} response: ${field}`);
+  }
+  return value;
+}
+
+export function parseWorkspaceInfo(value: unknown): WorkspaceInfo {
+  const record = requireRecord(value, 'workspace');
+  requireString(record.id, 'id', 'workspace');
+  requireString(record.name, 'name', 'workspace');
+  requireString(record.path, 'path', 'workspace');
+  requireFiniteNumber(record.createdAt, 'createdAt', 'workspace');
+  requireFiniteNumber(record.updatedAt, 'updatedAt', 'workspace');
+  requireFiniteNumber(record.presentationCount, 'presentationCount', 'workspace');
+  return value as WorkspaceInfo;
+}
+
+export function parsePresentation(value: unknown): Presentation {
+  const record = requireRecord(value, 'presentation');
+  if (!Array.isArray(record.slides)) throw new Error('Invalid presentation response: slides');
+  record.slides.forEach((slide, index) => {
+    const item = requireRecord(slide, `presentation slide ${index}`);
+    requireString(item.id, 'id', 'presentation slide');
+    requireString(item.title, 'title', 'presentation slide');
+    requireString(item.html, 'html', 'presentation slide');
+  });
+  requireString(record.id, 'id', 'presentation');
+  requireString(record.title, 'title', 'presentation');
+  return value as Presentation;
+}
+
+export function parsePresentationList(value: unknown): PresentationListItem[] {
+  if (!Array.isArray(value)) throw new Error('Invalid presentation list response');
+  value.forEach((item, index) => {
+    const record = requireRecord(item, `presentation list item ${index}`);
+    requireString(record.id, 'id', 'presentation list item');
+    requireString(record.title, 'title', 'presentation list item');
+    requireFiniteNumber(record.createdAt, 'createdAt', 'presentation list item');
+    requireFiniteNumber(record.updatedAt, 'updatedAt', 'presentation list item');
+    requireFiniteNumber(record.slideCount, 'slideCount', 'presentation list item');
+  });
+  return value as PresentationListItem[];
+}
+
+export function parseAsset(value: unknown): AssetInfo {
+  const record = requireRecord(value, 'asset');
+  requireString(record.id, 'id', 'asset');
+  requireString(record.name, 'name', 'asset');
+  requireString(record.url, 'url', 'asset');
+  if (record.type !== 'image' && record.type !== 'video')
+    throw new Error('Invalid asset response: type');
+  requireFiniteNumber(record.size, 'size', 'asset');
+  requireFiniteNumber(record.createdAt, 'createdAt', 'asset');
+  return value as AssetInfo;
+}
+
+export function parseAssetList(value: unknown): AssetInfo[] {
+  if (!Array.isArray(value)) throw new Error('Invalid asset list response');
+  return value.map(parseAsset);
+}
+
+export function parseChatMessages(value: unknown): ChatMessage[] {
+  if (!Array.isArray(value)) throw new Error('Invalid chat response');
+  value.forEach((item, index) => {
+    const record = requireRecord(item, `chat message ${index}`);
+    requireString(record.id, 'id', 'chat message');
+    requireString(record.content, 'content', 'chat message');
+    if (!['user', 'assistant', 'system'].includes(String(record.role))) {
+      throw new Error('Invalid chat message response: role');
+    }
+    if (!['current', 'global', 'selection'].includes(String(record.scope))) {
+      throw new Error('Invalid chat message response: scope');
+    }
+  });
+  return value as ChatMessage[];
+}
+
+export function parseSuccessResponse<T extends { success: boolean }>(value: unknown): T {
+  const record = requireRecord(value, 'success');
+  if (typeof record.success !== 'boolean') throw new Error('Invalid success response');
+  return value as T;
+}
+
 // 开发环境直连后端 localhost:3001，绕过 Vite 代理（避免 Windows 下 http-proxy 转发大请求体时报 EACCES）
 const API_BASE = import.meta.env.DEV ? 'http://localhost:3001/api' : '/api';
 
 /** 当前界面语言对应的 Accept-Language 头，使后端返回的错误文案跟随设置页语言。 */
 function localeHeaders(): Record<string, string> {
-  const locale = useSettingsStore.getState().interfaceSettings.language;
+  const locale = getActiveLocale();
   return { 'Accept-Language': locale };
 }
 
-async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
+/** Build normal REST headers without changing caller-provided values. */
+export function buildApiHeaders(
+  callerHeaders?: HeadersInit,
+  includeJsonContentType = true,
+): Headers {
+  const headers = new Headers(callerHeaders);
+  if (includeJsonContentType && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+  if (!headers.has('Accept-Language')) {
+    headers.set('Accept-Language', localeHeaders()['Accept-Language']);
+  }
+  const configuredApiKey = import.meta.env.VITE_NOPPT_API_KEY?.trim();
+  if (configuredApiKey && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${configuredApiKey}`);
+  }
+  return headers;
+}
+
+async function request<T>(
+  url: string,
+  options: RequestInit = {},
+  parser?: ApiParser<T>,
+): Promise<T> {
   const response = await fetch(`${API_BASE}${url}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-      ...localeHeaders(),
-    },
     ...options,
+    headers: buildApiHeaders(options.headers),
   });
 
   if (!response.ok) {
     throw new Error(`API Error: ${response.status} ${response.statusText}`);
   }
 
-  return response.json();
+  let payload: unknown;
+  try {
+    payload = await response.json();
+  } catch {
+    throw new Error('Invalid API JSON response');
+  }
+  return parser ? parser(payload) : (payload as T);
 }
 
 export const workspaceApi = {
   get(): Promise<WorkspaceInfo> {
-    return request<WorkspaceInfo>('/workspace');
+    return request<WorkspaceInfo>('/workspace', {}, parseWorkspaceInfo);
   },
   update(name: string): Promise<WorkspaceInfo> {
-    return request<WorkspaceInfo>('/workspace', {
-      method: 'PUT',
-      body: JSON.stringify({ name }),
-    });
+    return request<WorkspaceInfo>(
+      '/workspace',
+      {
+        method: 'PUT',
+        body: JSON.stringify({ name }),
+      },
+      parseWorkspaceInfo,
+    );
   },
 };
 
 export const presentationApi = {
   list(): Promise<PresentationListItem[]> {
-    return request<PresentationListItem[]>('/presentations');
+    return request<PresentationListItem[]>('/presentations', {}, parsePresentationList);
   },
   get(id: string): Promise<Presentation> {
-    return request<Presentation>(`/presentations/${id}`);
+    return request<Presentation>(`/presentations/${id}`, {}, parsePresentation);
   },
   create(data?: { title?: string; width?: number; height?: number }): Promise<Presentation> {
-    return request<Presentation>('/presentations', {
-      method: 'POST',
-      body: JSON.stringify(data || {}),
-    });
+    return request<Presentation>(
+      '/presentations',
+      {
+        method: 'POST',
+        body: JSON.stringify(data || {}),
+      },
+      parsePresentation,
+    );
   },
   save(id: string, presentation: Presentation): Promise<Presentation> {
-    return request<Presentation>(`/presentations/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(presentation),
-    });
+    return request<Presentation>(
+      `/presentations/${id}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(presentation),
+      },
+      parsePresentation,
+    );
   },
   /**
    * 轻量更新元信息（标题、描述），避免发送整个大体积 Presentation 对象
    */
   updateMeta(id: string, meta: { title?: string; description?: string }): Promise<Presentation> {
-    return request<Presentation>(`/presentations/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(meta),
-    });
+    return request<Presentation>(
+      `/presentations/${id}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(meta),
+      },
+      parsePresentation,
+    );
   },
   /**
    * 后端内部完成复制：避免前端把大 slides JSON 在 HTTP 上往返
    */
   duplicate(id: string): Promise<Presentation> {
-    return request<Presentation>(`/presentations/${id}/duplicate`, {
-      method: 'POST',
-    });
+    return request<Presentation>(
+      `/presentations/${id}/duplicate`,
+      {
+        method: 'POST',
+      },
+      parsePresentation,
+    );
   },
   remove(id: string): Promise<{ success: boolean }> {
-    return request<{ success: boolean }>(`/presentations/${id}`, {
-      method: 'DELETE',
-    });
+    return request<{ success: boolean }>(
+      `/presentations/${id}`,
+      {
+        method: 'DELETE',
+      },
+      parseSuccessResponse,
+    );
   },
   clearAll(): Promise<{ success: boolean; count: number }> {
-    return request<{ success: boolean; count: number }>('/presentations', {
-      method: 'DELETE',
-    });
+    return request<{ success: boolean; count: number }>(
+      '/presentations',
+      {
+        method: 'DELETE',
+      },
+      parseSuccessResponse,
+    );
   },
   getChatHistory(id: string): Promise<ChatMessage[]> {
-    return request<ChatMessage[]>(`/presentations/${id}/chat`);
+    return request<ChatMessage[]>(`/presentations/${id}/chat`, {}, parseChatMessages);
   },
   saveChatHistory(id: string, messages: ChatMessage[]): Promise<{ success: boolean }> {
-    return request<{ success: boolean }>(`/presentations/${id}/chat`, {
-      method: 'PUT',
-      body: JSON.stringify(messages),
-    });
+    return request<{ success: boolean }>(
+      `/presentations/${id}/chat`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(messages),
+      },
+      parseSuccessResponse,
+    );
   },
 };
 
@@ -227,10 +387,14 @@ export interface GeneratePresentationParams {
 
 export const aiApi = {
   generatePresentation(data: GeneratePresentationParams): Promise<Presentation> {
-    return request<Presentation>('/ai/generate', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+    return request<Presentation>(
+      '/ai/generate',
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+      parsePresentation,
+    );
   },
 
   planPresentation(data: GeneratePresentationParams): Promise<PresentationPlan> {
@@ -243,10 +407,14 @@ export const aiApi = {
   generateFromPlan(
     data: GeneratePresentationParams & { plan: PresentationPlan },
   ): Promise<Presentation> {
-    return request<Presentation>('/ai/generate-from-plan', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+    return request<Presentation>(
+      '/ai/generate-from-plan',
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+      parsePresentation,
+    );
   },
 
   generateDesignProposals(
@@ -305,10 +473,14 @@ export const aiApi = {
       slides: RenderedSlide[];
     },
   ): Promise<Presentation> {
-    return request<Presentation>('/ai/finalize', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+    return request<Presentation>(
+      '/ai/finalize',
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+      parsePresentation,
+    );
   },
 
   editSlide(data: {
@@ -368,7 +540,7 @@ export const aiApi = {
 export const assetsApi = {
   list(presentationId: string, type?: 'image' | 'video'): Promise<AssetInfo[]> {
     const query = type ? `?type=${type}` : '';
-    return request<AssetInfo[]>(`/assets/${presentationId}${query}`);
+    return request<AssetInfo[]>(`/assets/${presentationId}${query}`, {}, parseAssetList);
   },
   upload(presentationId: string, type: 'image' | 'video', file: File): Promise<AssetInfo> {
     const formData = new FormData();
@@ -376,18 +548,31 @@ export const assetsApi = {
     formData.append('type', type);
     return fetch(`${API_BASE}/assets/${presentationId}/upload`, {
       method: 'POST',
-      headers: localeHeaders(),
+      headers: buildApiHeaders(undefined, false),
       body: formData,
-    }).then((res) => res.json());
+    }).then(async (res) => {
+      if (!res.ok) throw new Error(`API Error: ${res.status} ${res.statusText}`);
+      let payload: unknown;
+      try {
+        payload = await res.json();
+      } catch {
+        throw new Error('Invalid API JSON response');
+      }
+      return parseAsset(payload);
+    });
   },
   remove(
     presentationId: string,
     type: 'image' | 'video',
     filename: string,
   ): Promise<{ success: boolean }> {
-    return request<{ success: boolean }>(`/assets/${presentationId}/${type}/${filename}`, {
-      method: 'DELETE',
-    });
+    return request<{ success: boolean }>(
+      `/assets/${presentationId}/${type}/${filename}`,
+      {
+        method: 'DELETE',
+      },
+      parseSuccessResponse,
+    );
   },
 };
 
@@ -415,7 +600,20 @@ export interface DraftPrefill {
   expiresAt: number;
 }
 
-/** 草稿读取失败时抛出的可读错误（区分过期 / 不存在 / 越权）。 */
+export function parseDraftPrefill(value: unknown): DraftPrefill {
+  const record = requireRecord(value, 'draft');
+  requireString(record.draftId, 'draftId', 'draft');
+  requireString(record.topic, 'topic', 'draft');
+  requireFiniteNumber(record.referenceLimit, 'referenceLimit', 'draft');
+  if (typeof record.referenceTruncated !== 'boolean')
+    throw new Error('Invalid draft response: referenceTruncated');
+  requireFiniteNumber(record.referenceOriginalChars, 'referenceOriginalChars', 'draft');
+  if (record.mode !== 'auto' && record.mode !== 'guided')
+    throw new Error('Invalid draft response: mode');
+  requireFiniteNumber(record.expiresAt, 'expiresAt', 'draft');
+  return value as DraftPrefill;
+}
+
 export class DraftFetchError extends Error {
   public readonly kind: 'expired' | 'not_found' | 'forbidden' | 'unknown';
   constructor(kind: DraftFetchError['kind'], message: string) {
@@ -445,10 +643,16 @@ export const draftApi = {
             : body?.error === 'forbidden_scope' || body?.error === 'forbidden'
               ? 'forbidden'
               : 'unknown';
-      const locale = useSettingsStore.getState().interfaceSettings.language;
+      const locale = getActiveLocale();
       throw new DraftFetchError(kind, body?.message || translate(locale, '草稿读取失败'));
     }
-    return response.json();
+    let payload: unknown;
+    try {
+      payload = await response.json();
+    } catch {
+      throw new DraftFetchError('unknown', translate(getActiveLocale(), '草稿读取失败'));
+    }
+    return parseDraftPrefill(payload);
   },
 };
 
@@ -459,7 +663,10 @@ export const logsApi = {
 };
 
 export interface AppConfig {
-  apiConfig: Record<string, { apiKey: string; baseUrl: string; models: string[] }>;
+  apiConfig: Record<
+    string,
+    { apiKey?: string; userCode?: string; baseUrl: string; models: string[] }
+  >;
   defaultModelProvider: string;
   modelRouting: ModelRoutingConfig;
   interfaceSettings: {
@@ -494,7 +701,7 @@ export interface AppConfig {
     providers: Record<
       string,
       {
-        apiKey: string;
+        apiKey?: string;
         baseUrl: string;
         gatewayVendor?: string;
         models: Array<{
@@ -507,19 +714,33 @@ export interface AppConfig {
   };
 }
 
+export function parsePublicConfig<T extends Partial<AppConfig>>(value: unknown): T {
+  return requireRecord(value, 'config') as T;
+}
+
+export const parseConfig: ApiParser<AppConfig> = (value) => parsePublicConfig<AppConfig>(value);
+
 export const configApi = {
   get(): Promise<AppConfig> {
-    return request<AppConfig>('/config');
+    return request<AppConfig>('/config', {}, parseConfig);
   },
   save(config: Partial<AppConfig>): Promise<AppConfig> {
-    return request<AppConfig>('/config', {
-      method: 'PUT',
-      body: JSON.stringify(config),
-    });
+    return request<AppConfig>(
+      '/config',
+      {
+        method: 'PUT',
+        body: JSON.stringify(config),
+      },
+      parseConfig,
+    );
   },
   reset(): Promise<AppConfig> {
-    return request<AppConfig>('/config/reset', {
-      method: 'POST',
-    });
+    return request<AppConfig>(
+      '/config/reset',
+      {
+        method: 'POST',
+      },
+      parseConfig,
+    );
   },
 };
