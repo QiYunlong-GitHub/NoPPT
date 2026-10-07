@@ -1,4 +1,3 @@
-
 /**
  * 修复卡片强制 height:100% 导致的大面积留白。
  * 在 display:grid 容器中，如果子卡片设置了 height:100%，配合 align-content:stretch
@@ -35,7 +34,6 @@ export function removeForcedCardHeight(html: string): string {
     },
   );
 }
-
 
 /**
  * B3L 专用：O(N) 裸文本快速探测（与 Server 端 _serverHasBareText 等价）。
@@ -158,7 +156,6 @@ export function _coreHasBareText(html: string): boolean {
   }
   return false;
 }
-
 
 /**
  * enforceBareTextToParagraphs —— 裸文本终级兜底（栈式深度优先扫描）。
@@ -458,4 +455,3 @@ export function enforceBareTextToParagraphs(html: string): string {
  *   Step 3：li≥5 时，H2 标题紧凑（font/margin/line-height 降级）
  *   Step 4：极限兜底，内层文本容器增加 max-height + overflow-y:auto（可视不裁切）
  * ========================================================================== */
-

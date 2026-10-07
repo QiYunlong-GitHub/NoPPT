@@ -19,6 +19,23 @@ describe('html-allowlist（server/web 单一真源 · 防漂移回归）', () =>
     }
   });
 
+  it('ALLOWED_ATTRIBUTES 必须放行 canonical Deck/HTML identity metadata', () => {
+    for (const attr of [
+      'data-canonical-root',
+      'data-logical-canvas',
+      'data-logical-width',
+      'data-logical-height',
+      'data-content-id',
+      'data-deck-node-id',
+      'data-role',
+      'data-column',
+      'data-order',
+      'data-bullet',
+    ]) {
+      expect(ALLOWED_ATTRIBUTES).toContain(attr);
+    }
+  });
+
   it('ALLOWED_CSS_PROPERTIES 必须放行 inset（前端剥离导致母版层归零的根因）', () => {
     expect(ALLOWED_CSS_PROPERTIES.has('inset')).toBe(true);
   });

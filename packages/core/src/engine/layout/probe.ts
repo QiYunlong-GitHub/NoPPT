@@ -1,14 +1,6 @@
-import {
-  parseStyleDeclarations,
-} from '../visual-fixes';
+import { parseStyleDeclarations } from '../visual-fixes';
 
-import {
-  setDecl,
-  delDecl,
-  getDecl,
-  transformStyleAttr,
-  findMatchingClose,
-} from './dom';
+import { setDecl, delDecl, getDecl, transformStyleAttr, findMatchingClose } from './dom';
 /** 解析 style 中 flex: 0 0 XX% 的百分比（未找到返回 null） */
 export function parseFlexBasisPercent(styleVal: string): number | null {
   const decls = parseStyleDeclarations(styleVal);
@@ -25,7 +17,6 @@ export function parseFlexBasisPercent(styleVal: string): number | null {
   return null;
 }
 
-
 /** 判断 UL style 是否是单列 flex（非 grid） */
 export function isSingleColumnFlexUl(styleVal: string): boolean {
   const decls = parseStyleDeclarations(styleVal);
@@ -34,7 +25,6 @@ export function isSingleColumnFlexUl(styleVal: string): boolean {
   const flexDir = (getDecl(decls, 'flex-direction') || '').toLowerCase();
   return flexDir === 'column' || display === 'flex'; // 没写 flex-direction 默认 column（我们的布局都是 column）
 }
-
 
 /** 解析 grid-template-columns: repeat(N,1fr) 中的列数 N（未匹配返回 null） */
 export function parseGridRepeatCols(styleVal: string): number | null {
@@ -47,7 +37,6 @@ export function parseGridRepeatCols(styleVal: string): number | null {
   if (m) return parseInt(m[1], 10);
   return null;
 }
-
 
 /** FR-5：探测「H2 -> 卡片 grid (N>=3 列) -> 底部 img」的 stats-grid-bottom-image 布局。
  *  成功返回 probe；否则返回 null（调用方再回退到 UL/OL 探测）。 */
@@ -114,7 +103,6 @@ export function probeStatsGridBottomImage(html: string): VerticalLayoutProbe | n
   };
 }
 
-
 /** 把 UL style 从单列 flex → 双列 Grid；并返回 style 字符串（已 transform） */
 export function convertUlTo2ColGrid(ulOpenTag: string): string {
   return transformStyleAttr(ulOpenTag, (decls) => {
@@ -140,7 +128,6 @@ export function convertUlTo2ColGrid(ulOpenTag: string): string {
   });
 }
 
-
 /** 使单个 li 样式更紧凑（双列模式）：padding/字号/icon 缩小一挡 */
 export function tightenLiStyle(liOpenTag: string): string {
   return transformStyleAttr(liOpenTag, (decls) => {
@@ -160,7 +147,6 @@ export function tightenLiStyle(liOpenTag: string): string {
     return changed;
   });
 }
-
 
 /** 缩小 li 内的文字 span 字号：24px → 20px；28px → 22px */
 export function tightenTextSpanInLi(spanOpenTag: string): string {
@@ -183,7 +169,6 @@ export function tightenTextSpanInLi(spanOpenTag: string): string {
     return changed;
   });
 }
-
 
 /** 缩小 li 内图标容器（40px → 36px；20px 字号 → 18px） */
 export function tightenIconSpanInLi(spanOpenTag: string): string {
@@ -213,7 +198,6 @@ export function tightenIconSpanInLi(spanOpenTag: string): string {
     return changed;
   });
 }
-
 
 /** 压缩 H2 标题（仅当 li≥5 时触发） */
 export function tightenH2(h2OpenTag: string): string {
@@ -247,7 +231,6 @@ export function tightenH2(h2OpenTag: string): string {
   });
 }
 
-
 /** 探测 H2 后垂直布局中「图片容器 + 列表」或「卡片 grid + 底部图片」的模式：
  *  - 'top'    →  图片(flex:0 0 XX%) 在列表之前（真正的上图下文）
  *  - 'bottom' →  列表/卡片grid 在图片之前（LLM把顺序调换了，即"下文上图"，DOM顺序bottom化）
@@ -266,7 +249,11 @@ export interface VerticalLayoutProbe {
  *  - 在 afterH2 最近的一级（未遇到 UL/OL 前）里，若发现一对兄弟 div：
  *      ① flex:0 0 XX%（含 <img>）     ② flex:0 0 YY%（含 <ul/ol>）   或顺序相反，
  *    且两者都挂在同一个「flex row 容器」下 → 认定为水平排布，跳过垂直压缩。 */
-export function isHorizontalImageSide(afterH2: string, imgRelIdx: number, listRelIdx: number): boolean {
+export function isHorizontalImageSide(
+  afterH2: string,
+  imgRelIdx: number,
+  listRelIdx: number,
+): boolean {
   // 找两个 flex:0 0 XX% 的子容器各自的 <div 起始位置，
   // 允许 imageWrap 在 list 前或后（图左文右 / 文左图右）。
   // 先找 imgWrap：imgRelIdx 前最后一个 <div ... style="...flex:0 0 XX%...">（满足 parseFlexBasisPercent）。
@@ -343,7 +330,6 @@ export function isHorizontalImageSide(afterH2: string, imgRelIdx: number, listRe
   return true;
 }
 
-
 /** 在片段里找"第一个" flex:0 0 XX% 开标签（用于在已知列之后定位第二个分栏 div） */
 export function findFirstFlexBasisDiv(text: string): { start: number; pct: number } | null {
   const re = /<div\b([^>]*)>/gi;
@@ -358,7 +344,6 @@ export function findFirstFlexBasisDiv(text: string): { start: number; pct: numbe
   return null;
 }
 
-
 export function findLastFlexBasisDiv(text: string): { start: number; pct: number } | null {
   const re = /<div\b([^>]*)>/gi;
   let best: { start: number; pct: number } | null = null;
@@ -372,7 +357,6 @@ export function findLastFlexBasisDiv(text: string): { start: number; pct: number
   }
   return best;
 }
-
 
 export function findLastFlexRowParent(text: string): number | null {
   // 找最后一个 display:flex / display:inline-flex 的开标签，且 flex-direction ≠ column。
@@ -392,7 +376,6 @@ export function findLastFlexRowParent(text: string): number | null {
   }
   return bestIdx;
 }
-
 
 export function probeVerticalImageLayout(html: string): VerticalLayoutProbe | null {
   const h2Re = /<h2\b([^>]*)>[\s\S]*?<\/h2>/i;
@@ -451,7 +434,6 @@ export function probeVerticalImageLayout(html: string): VerticalLayoutProbe | nu
   return { mode, liCount, ulTagName: tag, ulOpenGlobalIdx: ulOpenAbs, layoutKind: 'ul-list' };
 }
 
-
 export function preventContentImageTopOverflow(html: string): string {
   // ------------------- ① 特征匹配：TOP or BOTTOM 垂直图片列表布局 -------------------
   // FR-5：先探测「卡片 grid + 底部图片」stats-grid-bottom-image；再回退到 UL/OL 老布局
@@ -501,7 +483,7 @@ export function preventContentImageTopOverflow(html: string): string {
   // FR-5：stats-grid 模式统一 32% + margin-top:24px（不按列数阶梯变化）
   if (liCount >= 3) {
     let targetPct = 40;
-    let marginSide: 'margin-top' | 'margin-bottom' =
+    const marginSide: 'margin-top' | 'margin-bottom' =
       mode === 'top' ? 'margin-bottom' : 'margin-top';
     let newMarginVal = '20px';
     if (layoutKind === 'stats-grid') {
@@ -626,4 +608,3 @@ export function preventContentImageTopOverflow(html: string): string {
 
   return repaired ? output : html;
 }
-

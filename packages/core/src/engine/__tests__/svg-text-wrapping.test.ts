@@ -36,7 +36,9 @@ describe('enforceTextWrapping · 不得误伤 SVG', () => {
     expect(out).toContain('<h2 style="overflow-wrap:break-word;word-break:break-word;">标题</h2>');
     expect(out).toContain('<p style="overflow-wrap:break-word;word-break:break-word;">段落</p>');
     expect(out).toContain('<li style="overflow-wrap:break-word;word-break:break-word;">要点</li>');
-    expect(out).toContain('<pre style="overflow-wrap:break-word;word-break:break-word;">code</pre>');
+    expect(out).toContain(
+      '<pre style="overflow-wrap:break-word;word-break:break-word;">code</pre>',
+    );
     expect(out).toContain(
       '<p style="color:#111;overflow-wrap:break-word;word-break:break-word">样式段落</p>',
     );

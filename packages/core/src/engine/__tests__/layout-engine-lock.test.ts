@@ -4,6 +4,7 @@
 // 统一由公开入口 LayoutEngine.normalizeAISlide 调用，故采用「黑盒管线」方式锁定。
 import { describe, it, expect } from 'vitest';
 import { LayoutEngine, isCoverLikeHtml, cleanupEmptyInlineTags } from '../layout-engine';
+import type { Slide } from '../../models/slide';
 
 const mkSlide = (html: string) =>
   ({
@@ -15,7 +16,7 @@ const mkSlide = (html: string) =>
     index: 0,
     createdAt: 0,
     updatedAt: 0,
-  }) as any;
+  }) as Slide;
 
 describe('layout-engine 行为锁定（拆分前基线）', () => {
   describe('isCoverLikeHtml', () => {

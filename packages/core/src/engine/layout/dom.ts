@@ -1,12 +1,6 @@
-import {
-  parseStyleDeclarations,
-} from '../visual-fixes';
+import { parseStyleDeclarations } from '../visual-fixes';
 
-import {
-  CONTAINER_STYLE_KEYS,
-  CONTAINER_PADDING_PATTERN,
-  defaultPadYx,
-} from './constants';
+import { CONTAINER_STYLE_KEYS, CONTAINER_PADDING_PATTERN, defaultPadYx } from './constants';
 export function removeEmptyDefaultContainer(html: string): string {
   const firstDivMatch = html.match(/^<div\b([^>]*)>[\s\S]*?<\/div>/i);
   if (!firstDivMatch) return html;
@@ -26,7 +20,6 @@ export function removeEmptyDefaultContainer(html: string): string {
   return afterFirstDiv;
 }
 
-
 export function extractBackgroundStyles(styleStr: string): Record<string, string> | null {
   const bgKeys = [
     'background-image',
@@ -43,7 +36,6 @@ export function extractBackgroundStyles(styleStr: string): Record<string, string
   }
   return Object.keys(bgStyles).length > 0 ? bgStyles : null;
 }
-
 
 export function analyzeTopLevelStructure(html: string): {
   isSingleDiv: boolean;
@@ -76,7 +68,6 @@ export function analyzeTopLevelStructure(html: string): {
   }
   return { isSingleDiv: false, hasAbsoluteChildren };
 }
-
 
 export function mergeStrayElementsIntoContainer(html: string): string {
   const openTagEnd = html.indexOf('>');
@@ -117,7 +108,6 @@ export function mergeStrayElementsIntoContainer(html: string): string {
   return beforeClose + stray + closeTag;
 }
 
-
 export function stripContainerStylesFromUserElements(html: string): string {
   return html.replace(/<div([^>]*class="[^"]*noppt-[^"]*"[^>]*)>/gi, (match, attrs) => {
     const styleMatch = attrs.match(/style="([^"]*)"/i);
@@ -136,7 +126,6 @@ export function stripContainerStylesFromUserElements(html: string): string {
     return `<div${newAttrs}>`;
   });
 }
-
 
 export function wrapWithContainer(
   inner: string,
@@ -169,7 +158,6 @@ export function wrapWithContainer(
   return `<div style="${styles.join(';')};">${inner}</div>`;
 }
 
-
 export function removeDangerousContent(html: string): string {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, '')
@@ -177,7 +165,6 @@ export function removeDangerousContent(html: string): string {
     .replace(/on\w+="[^"]*"/gi, '')
     .replace(/on\w+='[^']*'/gi, '');
 }
-
 
 export function cleanupEmptyDivs(html: string): string {
   let result = html;
@@ -203,7 +190,6 @@ export function cleanupEmptyDivs(html: string): string {
   return result;
 }
 
-
 export function hasVisualStyle(styleStr: string): boolean {
   const s = styleStr.toLowerCase();
   if (
@@ -215,7 +201,6 @@ export function hasVisualStyle(styleStr: string): boolean {
   if (/box-shadow\s*:/.test(s) && !/box-shadow\s*:\s*none/i.test(s)) return true;
   return false;
 }
-
 
 /**
  * 清理没有视觉样式的空 <p></p> / <span></span>（幂等）。
@@ -240,7 +225,6 @@ export function cleanupEmptyInlineTags(html: string): string {
   }
   return result;
 }
-
 
 export function findMatchingCloseDiv(html: string, openPos: number): number {
   let depth = 1;
@@ -267,13 +251,15 @@ export function findMatchingCloseDiv(html: string, openPos: number): number {
   return -1;
 }
 
-
 export function stringifyDecls(decls: Array<{ key: string; value: string }>): string {
   return decls.map((d) => `${d.key}:${d.value}`).join(';');
 }
 
-
-export function setDecl(decls: Array<{ key: string; value: string }>, key: string, value: string): void {
+export function setDecl(
+  decls: Array<{ key: string; value: string }>,
+  key: string,
+  value: string,
+): void {
   const idx = decls.findIndex((d) => d.key === key);
   if (idx >= 0) decls[idx].value = value;
   else decls.push({ key, value });
@@ -284,10 +270,12 @@ export function delDecl(decls: Array<{ key: string; value: string }>, key: strin
   if (idx >= 0) decls.splice(idx, 1);
 }
 
-export function getDecl(decls: Array<{ key: string; value: string }>, key: string): string | undefined {
+export function getDecl(
+  decls: Array<{ key: string; value: string }>,
+  key: string,
+): string | undefined {
   return decls.find((d) => d.key === key)?.value;
 }
-
 
 export function transformStyleAttr(
   tagStr: string,
@@ -300,7 +288,6 @@ export function transformStyleAttr(
     return `style="${stringifyDecls(decls)}"`;
   });
 }
-
 
 /** 辅助：在 html 中从 openIdx（<tagname...> 的下标）开始寻找对应闭合 </tagname> 下标（返回闭合标签在整串 html 中的起始下标） */
 export function findMatchingClose(html: string, openIdx: number, tagName: string): number {
@@ -326,4 +313,3 @@ export function findMatchingClose(html: string, openIdx: number, tagName: string
   }
   return -1;
 }
-
