@@ -14,7 +14,7 @@ import type { GeneratePresentationRequest } from '../ai/ai.service';
 // Nest 依赖 design:paramtypes 元数据做构造注入，type-only 导入会导致元数据丢失。
 import { ApiKeyService } from '../auth/api-key.service';
 import type { McpAuth } from '../auth/api-key.guard';
-import { authenticateRequest } from '../auth/api-key.guard';
+import { authenticateRequest, PublicRoute } from '../auth/api-key.guard';
 import { RateLimitService } from '../auth/rate-limit.service';
 import { enforceRateLimit } from '../auth/rate-limit.guard';
 import { McpError, toMcpError } from '../../common/mcp-errors';
@@ -97,18 +97,11 @@ const ExportArgsSchema = z.object({ presentationId: z.string().min(1) });
  * 用于「IM 拟题 + Web 确认生成」形态——Hermes 自拟主题与 RAG 素材后存草稿，
  * 拿回深链交给用户，由用户在 NoPPT Web 配置页确认后才走原生流水线。
  */
-const PrepareDraftArgsSchema = z.object({
+const PrepareDraftArgsSchema = z.strictObject({
   topic: z.string().min(1, 'topic 必填').max(500),
+  slideCount: z.number().int().min(1).max(MAX_SLIDES),
   referenceText: z.string().optional(),
-  /** 素材来源标识（如「企业知识库 / RAG」「飞书对话上下文」），仅用于前端展示 */
-  referenceSource: z.string().max(100).optional(),
-  slideCount: z.number().int().min(1).max(MAX_SLIDES).optional(),
-  style: z.enum(STYLE_ENUM).optional(),
-  audience: z.string().max(200).optional(),
-  colorTheme: z.enum(COLOR_THEME_ENUM).optional(),
-  fontFamily: z.enum(['sans', 'serif', 'mono']).optional(),
-  iconStyle: z.string().max(50).optional(),
-  mode: z.enum(['auto', 'guided']).optional(),
+  mode: z.literal('auto').default('auto'),
 });
 
 function ok(payload: Record<string, unknown>): ToolResult {
@@ -151,6 +144,7 @@ function parseArgs<T extends z.ZodTypeAny>(schema: T, raw: unknown): z.infer<T> 
   return res.data;
 }
 
+@PublicRoute()
 @Injectable()
 @Controller('mcp')
 export class McpController {
@@ -164,7 +158,6 @@ export class McpController {
 
   /**
    * `POST /api/mcp`：stateless Streamable HTTP。
-   * 认证失败（E1xxx）→ HTTP 401；其余错误 → HTTP 200 + `isError:true`（规格 3.2）。
    */
   @Post()
   async handleMcp(@Req() req: Request, @Res() res: Response): Promise<void> {
@@ -182,7 +175,6 @@ export class McpController {
     try {
       ctx = buildMcpContext(auth, req.headers as Record<string, unknown>);
     } catch (e) {
-      // 作用域段非法（如身份头含中文/路径穿越字符）→ E4002
       const err = toMcpError(e);
       const status = err.code === 'E4002' ? 400 : 500;
       if (!res.headersSent) res.status(status).json(err.toBody(locale));
@@ -197,16 +189,17 @@ export class McpController {
     res.on('close', () => {
       void transport.close().catch(() => undefined);
       void server.close().catch(() => undefined);
+      void ctx.dispose().catch(() => undefined);
     });
 
     try {
       await server.connect(transport);
-      // SDK 期望 Node 原生 IncomingMessage；Express 的 Request 在结构上兼容
       await transport.handleRequest(
         req as unknown as IncomingMessage,
         res as unknown as ServerResponse,
       );
     } catch (e) {
+      void ctx.dispose().catch(() => undefined);
       this.logger.error(`MCP 请求处理失败：${e instanceof Error ? e.message : String(e)}`);
       if (!res.headersSent)
         res
@@ -382,26 +375,17 @@ export class McpController {
           '素材长度按 slideCount 分档自动裁剪（每页约 800 字，上限 20000）。',
         inputSchema: {
           type: 'object',
-          required: ['topic'],
+          required: ['topic', 'slideCount'],
+          additionalProperties: false,
           properties: {
             topic: { type: 'string', maxLength: 500, description: '自拟的演示主题（≤500 字）' },
-            referenceText: { type: 'string', description: 'RAG / 对话上下文整理出的权威素材文本' },
-            referenceSource: {
-              type: 'string',
-              maxLength: 100,
-              description: '素材来源标识，如「企业知识库 / RAG」，仅前端展示',
-            },
             slideCount: { type: 'integer', minimum: 1, maximum: MAX_SLIDES },
-            style: { type: 'string', enum: [...STYLE_ENUM] },
-            audience: { type: 'string', maxLength: 200 },
-            colorTheme: { type: 'string', enum: [...COLOR_THEME_ENUM] },
-            fontFamily: { type: 'string', enum: ['sans', 'serif', 'mono'] },
-            iconStyle: { type: 'string', maxLength: 50 },
+            referenceText: { type: 'string', description: 'RAG / 对话上下文整理出的权威素材文本' },
             mode: {
               type: 'string',
-              enum: ['auto', 'guided'],
+              enum: ['auto'],
               default: 'auto',
-              description: '配置页预选的生成模式，默认全自动',
+              description: '固定为全自动；草稿仅停留在配置页等待用户确认',
             },
           },
         },
@@ -413,7 +397,7 @@ export class McpController {
 
   private async generate(
     rawArgs: Record<string, unknown>,
-    auth: McpAuth,
+    _auth: McpAuth,
     ctx: McpContext,
   ): Promise<Record<string, unknown>> {
     const args = parseArgs(GenerateArgsSchema, rawArgs);
@@ -531,16 +515,10 @@ export class McpController {
       {
         topic: args.topic,
         referenceText: args.referenceText,
-        style: args.style,
-        audience: args.audience,
         slideCount: args.slideCount,
-        colorTheme: args.colorTheme,
-        fontFamily: args.fontFamily,
-        iconStyle: args.iconStyle,
-        mode: args.mode,
+        mode: 'auto',
       },
       { tenant: ctx.tenantId, user: ctx.userKey },
-      args.referenceSource,
     );
 
     await ctx.audit({
@@ -557,21 +535,9 @@ export class McpController {
       truncated: rec.meta.truncated,
     });
 
-    return {
-      draftId: rec.draftId,
-      openUrl: buildOpenUrl(rec),
-      expiresAt: new Date(rec.expiresAt).toISOString(),
-      mode: rec.params.mode,
-      topic: rec.params.topic,
-      meta: {
-        referenceTextChars: rec.meta.referenceTextChars,
-        originalChars: rec.meta.originalChars,
-        limitApplied: rec.meta.limitApplied,
-        truncated: rec.meta.truncated,
-        source: rec.meta.source,
-      },
-      note: '仅备料，未生成演示。请把 openUrl 发给用户，由其在 NoPPT Web 配置页确认后生成。',
-    };
+    // The MCP boundary intentionally exposes only the config deep link. Draft
+    // diagnostics stay server-side and are fetched by Web after confirmation.
+    return { openUrl: buildOpenUrl(rec) };
   }
 
   private async getPresentation(
@@ -639,7 +605,7 @@ export class McpController {
 
   private async editSlide(
     rawArgs: Record<string, unknown>,
-    auth: McpAuth,
+    _auth: McpAuth,
     ctx: McpContext,
   ): Promise<Record<string, unknown>> {
     const args = parseArgs(EditSlideArgsSchema, rawArgs);
@@ -654,7 +620,7 @@ export class McpController {
 
   private async editElement(
     rawArgs: Record<string, unknown>,
-    auth: McpAuth,
+    _auth: McpAuth,
     ctx: McpContext,
   ): Promise<Record<string, unknown>> {
     const args = parseArgs(EditElementArgsSchema, rawArgs);
@@ -669,7 +635,7 @@ export class McpController {
 
   private async editGlobal(
     rawArgs: Record<string, unknown>,
-    auth: McpAuth,
+    _auth: McpAuth,
     ctx: McpContext,
   ): Promise<Record<string, unknown>> {
     const args = parseArgs(EditGlobalArgsSchema, rawArgs);

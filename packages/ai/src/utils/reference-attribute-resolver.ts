@@ -1,7 +1,4 @@
-import {
-  resolveReferenceComposition,
-  describeVisualFeatures,
-} from './reference/composition';
+import { resolveReferenceComposition, describeVisualFeatures } from './reference/composition';
 export {
   HEX_RE,
   resolvePrimaryColor,
@@ -19,10 +16,7 @@ export {
   resolveAttrForPage,
   getReferencePaletteForPage,
 } from './reference/color';
-export {
-  resolveReferenceComposition,
-  describeVisualFeatures,
-} from './reference/composition';
+export { resolveReferenceComposition, describeVisualFeatures } from './reference/composition';
 // 参考文件属性优先级解析（Task 1 / FR-0 / FR-3 / FR-4 / C-15）
 // 纯函数模块，无私有方法，便于 Vitest 直接 import 测试（不依赖 agent 实例）。
 import {
@@ -293,6 +287,7 @@ export function buildReferenceContext(rva?: ReferenceVisualAttributes): Referenc
     hasReference: true,
     source,
     appliedFields: appliedFields.size ? Array.from(appliedFields) : undefined,
+    visualAttributes: rva,
   };
 }
 
@@ -672,4 +667,3 @@ export function resolveReferenceSeedImage(
   const fromGlobal = rva?.global?.referenceImageUrl;
   return fromCat || fromGlobal || legacyReferenceImage || undefined;
 }
-

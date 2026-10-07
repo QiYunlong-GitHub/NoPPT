@@ -1,6 +1,10 @@
 import { join } from 'path';
 import type { StorageService } from '../../common/storage.service';
-import { createScopedStorage, sanitizeScopeSegment } from '../../common/storage.service';
+import {
+  createScopedStorage,
+  getStorageService,
+  sanitizeScopeSegment,
+} from '../../common/storage.service';
 import { readMcpEnv } from '../../common/env';
 import type { McpAuth } from '../auth/api-key.guard';
 import { LogsService } from '../logs/logs.service';
@@ -46,6 +50,16 @@ export interface McpContext {
   configService: ConfigService;
   /** 审计落盘（作用域内 `workspace/mcp-audit.jsonl`） */
   audit: (entry: McpAuditEntry) => Promise<void>;
+  /**
+   * Acquire an ownership token for work that may outlive the request. Each
+   * returned release function is idempotent and disposal starts only after all
+   * owners have released the context.
+   */
+  acquire: () => () => Promise<void>;
+  /** Release the request owner; safe to call repeatedly from close/error paths. */
+  release: () => Promise<void>;
+  /** Idempotent request-owner disposer (kept separate from job ownership). */
+  dispose: () => Promise<void>;
   /** 只读预览基址：`{webUrl}/mcp-preview/{tenant}/{user}` */
   previewBase: string;
 }
@@ -63,6 +77,38 @@ export function resolveUserKey(headers: Record<string, unknown>, recordUserKey?:
   return sanitizeScopeSegment(candidate, 'userKey');
 }
 
+export interface McpContextOwnership {
+  acquire: () => () => Promise<void>;
+  release: () => Promise<void>;
+  dispose: () => Promise<void>;
+}
+
+/** Shared ownership primitive for request-scoped resources and queued work. */
+export function createMcpContextOwnership(destroy: () => Promise<void>): McpContextOwnership {
+  let nextOwner = 1;
+  const owners = new Set<number>([0]);
+  let disposePromise: Promise<void> | null = null;
+
+  const releaseOwner = async (owner: number): Promise<void> => {
+    if (!owners.delete(owner) || owners.size > 0) return;
+    if (!disposePromise) disposePromise = destroy();
+    await disposePromise;
+  };
+  const acquire = (): (() => Promise<void>) => {
+    if (owners.size === 0) throw new Error('MCP context has already been disposed');
+    const owner = nextOwner++;
+    owners.add(owner);
+    let released = false;
+    return async () => {
+      if (released) return;
+      released = true;
+      await releaseOwner(owner);
+    };
+  };
+  const dispose = (): Promise<void> => releaseOwner(0);
+  return { acquire, release: dispose, dispose };
+}
+
 export function buildMcpContext(auth: McpAuth, headers: Record<string, unknown>): McpContext {
   const tenantId = sanitizeScopeSegment(auth.tenantId || 'default', 'tenantId');
   const userKey = resolveUserKey(headers, auth.record?.userKey);
@@ -71,7 +117,7 @@ export function buildMcpContext(auth: McpAuth, headers: Record<string, unknown>)
   const logsService = new LogsService(storage);
   // ConfigService 的 configPath 固定为 `data/config.json`（服务器级模型配置），
   // 不随作用域变化——符合规格 2.4.3「config.json 不随用户隔离」。
-  const configService = new ConfigService(storage);
+  const configService = new ConfigService(getStorageService());
   const auditService = new AuditService(storage, configService, logsService);
   const aiService = new AiService(storage, logsService, auditService, configService);
   const presentationService = new PresentationService(storage);
@@ -86,6 +132,8 @@ export function buildMcpContext(auth: McpAuth, headers: Record<string, unknown>)
   };
 
   const webUrl = readMcpEnv().webUrl;
+  const ownership = createMcpContextOwnership(() => auditService.destroy());
+
   return {
     keyId: auth.keyId,
     tenantId,
@@ -95,6 +143,7 @@ export function buildMcpContext(auth: McpAuth, headers: Record<string, unknown>)
     presentationService,
     configService,
     audit,
+    ...ownership,
     previewBase: `${webUrl}/mcp-preview/${tenantId}/${userKey}`,
   };
 }

@@ -46,7 +46,6 @@ export function enforceImageContainerStyles(html: string): string {
   });
 }
 
-
 export function ensureImageProperWrapper(html: string): string {
   if (!html) return html;
   // 匹配：块级关闭标签 → 裸 img → 根容器关闭标签
@@ -80,7 +79,6 @@ export function ensureImageProperWrapper(html: string): string {
   });
 }
 
-
 export function ensureImageRatio(html: string, plan: SlidePlan): string {
   const expectedRatio = plan.imageRatio || PAGE_TYPE_DEFAULT_IMAGE_RATIO[plan.pageType];
   if (!expectedRatio) return html;
@@ -89,4 +87,3 @@ export function ensureImageRatio(html: string, plan: SlidePlan): string {
     return `<img${attrs} data-image-ratio="${expectedRatio}">`;
   });
 }
-

@@ -9,10 +9,12 @@ import type {
 } from '@noppt/ai';
 import { storage } from '@/utils/storage';
 import { configApi } from '@/utils/api';
-import { t } from '@/i18n';
+import { translate } from '@/i18n/translate';
+import { getActiveLocale } from '@/i18n/localeState';
+
+const t = (key: string): string => translate(getActiveLocale(), key);
 
 export type ModelProvider = 'openai' | 'anthropic' | 'ollama' | 'freeai' | 'v0' | 'company-gateway';
-
 export type ImageProvider =
   'openai' | 'qwen' | 'seedream' | 'freeai' | 'ollama' | 'company-gateway';
 
@@ -40,6 +42,8 @@ interface ApiProviderConfig {
   apiKey: string;
   baseUrl: string;
   models: string[];
+  /** 公司 API 网关域账号，作为请求头 X-Sany-User-Code 透传，仅 company-gateway 生效。 */
+  userCode?: string;
 }
 
 export interface ImageProviderConfig {
@@ -379,7 +383,7 @@ const defaultSettings: Omit<
     },
     'company-gateway': {
       apiKey: '',
-      baseUrl: 'https://your-company-gateway.example.com/ai-api',
+      baseUrl: 'https://ai-gtw.sany.com.cn/openai/v1',
       models: [],
     },
   },
@@ -569,7 +573,7 @@ function migrateOldConfig(config: any): any {
   return migrated;
 }
 
-function mergeConfig(base: any, saved: any): any {
+export function mergeConfig(base: any, saved: any): any {
   if (!saved) return base;
   saved = migrateOldConfig(saved);
   const result = { ...base };
@@ -598,37 +602,35 @@ function mergeConfig(base: any, saved: any): any {
   return result;
 }
 
+const settingsLoadSequence = { current: 0 };
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   ...defaultSettings,
   configSource: 'default',
-
   loadSettings: async () => {
+    const loadSequence = ++settingsLoadSequence.current;
     let source: ConfigSource = 'default';
     let loadedConfig: any = defaultSettings;
-
+    const saved = storage.get<Partial<SettingsState>>(STORAGE_KEY, {});
+    const localConfig = Object.keys(saved).length ? mergeConfig(defaultSettings, saved) : null;
     try {
       const serverConfig = await configApi.get();
       if (serverConfig) {
-        loadedConfig = mergeConfig(defaultSettings, serverConfig);
+        // The server intentionally omits secrets; layer its public fields over local values.
+        loadedConfig = mergeConfig(localConfig || defaultSettings, serverConfig);
         source = 'file';
+        if (loadSequence !== settingsLoadSequence.current) return;
         storage.set(STORAGE_KEY, loadedConfig);
       }
     } catch (e) {
       console.log('[Settings] Failed to load config from server, trying local storage:', e);
     }
 
-    if (source === 'default') {
-      try {
-        const saved = storage.get<Partial<SettingsState>>(STORAGE_KEY, {});
-        if (saved && Object.keys(saved).length > 0) {
-          loadedConfig = mergeConfig(defaultSettings, saved);
-          source = 'local';
-        }
-      } catch (e) {
-        console.error('[Settings] Failed to load settings from local storage:', e);
-      }
+    if (source === 'default' && localConfig) {
+      loadedConfig = localConfig;
+      source = 'local';
     }
 
+    if (loadSequence !== settingsLoadSequence.current) return;
     set({
       ...loadedConfig,
       configSource: source,

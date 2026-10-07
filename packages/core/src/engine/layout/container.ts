@@ -1,13 +1,7 @@
-import {
-  parseStyleDeclarations,
-} from '../visual-fixes';
+import { parseStyleDeclarations } from '../visual-fixes';
 
-import {
-  DEFAULT_HTML,
-} from './constants';
-import {
-  defaultPadYx,
-} from './constants';
+import { DEFAULT_HTML } from './constants';
+import { defaultPadYx } from './constants';
 import {
   removeEmptyDefaultContainer,
   extractBackgroundStyles,
@@ -16,9 +10,7 @@ import {
   stripContainerStylesFromUserElements,
   wrapWithContainer,
 } from './dom';
-import {
-  isCoverLikeHtml,
-} from './cover';
+import { isCoverLikeHtml } from './cover';
 export function normalizeOuterContainer(html: string): string {
   let result = html.trim();
   if (!result) return DEFAULT_HTML;
@@ -36,7 +28,7 @@ export function normalizeOuterContainer(html: string): string {
   if (firstOuter) {
     const tagName = firstOuter[1];
     const attrs = firstOuter[2] || '';
-    const cls = (attrs.match(/class="([^"]*)"/i) || [, ''])[1];
+    const cls = (attrs.match(/class="([^"]*)"/i) || ['', ''])[1];
     if (!/noppt-/.test(cls)) {
       const styleMatch = attrs.match(/style="([^"]*)"/i);
       const existingStyle = (styleMatch ? styleMatch[1] : '').trim();
@@ -118,7 +110,7 @@ export function normalizeOuterContainer(html: string): string {
   const isSlideRootWrapperTag = (tagName: string, attrs: string): boolean => {
     const tn = tagName.toLowerCase();
     if (tn !== 'div' && tn !== 'section' && tn !== 'article') return false;
-    if (/noppt-/.test((attrs.match(/class="([^"]*)"/i) || [, ''])[1])) return false;
+    if (/noppt-/.test((attrs.match(/class="([^"]*)"/i) || ['', ''])[1])) return false;
     const styleMatch = attrs.match(/style="([^"]*)"/i);
     if (!styleMatch) return false;
     const st: Record<string, string> = {};
@@ -218,4 +210,3 @@ export function normalizeOuterContainer(html: string): string {
   void mergeStrayElementsIntoContainer;
   return wrapped;
 }
-

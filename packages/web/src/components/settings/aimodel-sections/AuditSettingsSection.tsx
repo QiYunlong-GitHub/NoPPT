@@ -1,13 +1,5 @@
 import { t } from '@/i18n';
-import {
-  ShieldCheck,
-  AlertTriangle,
-  FileCode2,
-  Eye,
-  Wrench,
-  Gauge,
-  RotateCw,
-} from 'lucide-react';
+import { ShieldCheck, AlertTriangle, FileCode2, Eye, Wrench, Gauge, RotateCw } from 'lucide-react';
 import type { AIModelSettingsStore } from './types';
 
 interface AuditSettingsSectionProps {
@@ -122,14 +114,10 @@ function AuditReviewSettings({ settings }: { settings: AIModelSettingsStore }) {
           <div className="flex-1 pr-4">
             <div className="flex items-center gap-2 mb-1">
               <Wrench className="w-4 h-4 text-green-600 dark:text-green-400" />
-              <p className="text-sm font-medium text-slate-900 dark:text-white">
-                {t('自动修复')}
-              </p>
+              <p className="text-sm font-medium text-slate-900 dark:text-white">{t('自动修复')}</p>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              {t(
-                '对可自动修复的问题（如卡片强制高度、图标错误包裹等）直接修改 HTML 并二次验证',
-              )}
+              {t('对可自动修复的问题（如卡片强制高度、图标错误包裹等）直接修改 HTML 并二次验证')}
             </p>
           </div>
           <button
@@ -147,15 +135,11 @@ function AuditReviewSettings({ settings }: { settings: AIModelSettingsStore }) {
         <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
           <div className="flex items-center gap-2 mb-2">
             <Gauge className="w-4 h-4 text-orange-600 dark:text-orange-400" />
-            <p className="text-sm font-medium text-slate-900 dark:text-white">
-              {t('严格级别')}
-            </p>
+            <p className="text-sm font-medium text-slate-900 dark:text-white">{t('严格级别')}</p>
           </div>
           <select
             value={settings.auditSettings.strictness}
-            onChange={(e) =>
-              settings.updateAuditSettings({ strictness: e.target.value as any })
-            }
+            onChange={(e) => settings.updateAuditSettings({ strictness: e.target.value as any })}
             className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
           >
             <option value="strict">{t('严格 - 高标准，适合正式汇报')}</option>
@@ -225,9 +209,7 @@ function AuditEngineSettings({ settings }: { settings: AIModelSettingsStore }) {
               }`}
             >
               <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-medium text-slate-900 dark:text-white">
-                  {name}
-                </span>
+                <span className="text-sm font-medium text-slate-900 dark:text-white">{name}</span>
                 <input
                   type="checkbox"
                   checked={settings.auditSettings.engines[key]}

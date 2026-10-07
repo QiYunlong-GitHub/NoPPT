@@ -198,9 +198,7 @@ export function enforceBodyFontSize(html: string, options?: { round?: 1 | 2 }): 
       if (isCoverPage && /<h1[^>]*>/i.test(inner)) return m;
       // 决策 4：封面副标题豁免（h1 之后、font-size ≥ 24px 的 p 整块保留，含 inner，不 clamp）
       if (isCoverPage && upper === 'P' && h1CloseIdx >= 0 && offset >= h1CloseIdx) {
-        const fs = parseFloat(
-          (attrs.match(/font-size\s*:\s*(\d+(?:\.\d+)?)px/i) || [])[1] || '0',
-        );
+        const fs = parseFloat((attrs.match(/font-size\s*:\s*(\d+(?:\.\d+)?)px/i) || [])[1] || '0');
         if (fs >= 24) return m;
       }
       // 1) 开标签自身 attrs 中的 style → clamp（传真实 tagHint 与 attrs，启用 heading/metric 豁免）

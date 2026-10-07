@@ -1,47 +1,46 @@
-import { Controller, Get, Post, Param, Res, Body, NotFoundException } from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Param, Post, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { existsSync } from 'fs';
 import type { PresentationPlan } from '@noppt/ai';
-import { AuditService } from './audit.service';
+import type { McpAuth } from '../auth/api-key.guard';
+import { CurrentAuth } from '../auth/api-key.guard';
+import { withRestContext } from '../../common/rest-context';
 
-@Controller('api/audit')
+@Controller('audit')
 export class AuditController {
-  constructor(private readonly auditService: AuditService) {}
-
   @Post('presentation/:id')
-  async auditPresentation(
+  auditPresentation(
     @Param('id') id: string,
-    @Body() body?: { plan?: PresentationPlan; engines?: Record<string, boolean> },
+    @Body() body: { plan?: PresentationPlan; engines?: Record<string, boolean> } | undefined,
+    @CurrentAuth() auth?: McpAuth,
   ) {
-    return this.auditService.auditPresentation(id, {
-      plan: body?.plan,
-      engines: body?.engines,
-    });
+    return withRestContext(auth, ({ auditService }) =>
+      auditService.auditPresentation(id, { plan: body?.plan, engines: body?.engines }),
+    );
   }
 
   @Get('presentation/:id/report')
-  getReport(@Param('id') id: string) {
-    const report = this.auditService.getReport(id);
-    if (!report) {
-      throw new NotFoundException('尚未生成审核报告');
-    }
+  async getReport(@Param('id') id: string, @CurrentAuth() auth?: McpAuth) {
+    const report = await withRestContext(auth, ({ auditService }) => auditService.getReport(id));
+    if (!report) throw new NotFoundException('尚未生成审核报告');
     return report;
   }
 
   @Get('presentation/:id/screenshot/:slideIndex')
-  getScreenshot(
+  async getScreenshot(
     @Param('id') id: string,
     @Param('slideIndex') slideIndex: string,
     @Res() res: Response,
-  ) {
-    const index = parseInt(slideIndex, 10);
-    if (Number.isNaN(index)) {
-      throw new NotFoundException('无效的幻灯片索引');
-    }
-    const path = this.auditService.getScreenshotPath(id, index);
-    if (!path || !existsSync(path)) {
+    @CurrentAuth() auth?: McpAuth,
+  ): Promise<void> {
+    const index = Number.parseInt(slideIndex, 10);
+    if (Number.isNaN(index)) throw new NotFoundException('无效的幻灯片索引');
+    const screenshotPath = await withRestContext(auth, ({ auditService }) =>
+      auditService.getScreenshotPath(id, index),
+    );
+    if (!screenshotPath || !existsSync(screenshotPath)) {
       throw new NotFoundException('截图不存在');
     }
-    res.sendFile(path);
+    res.sendFile(screenshotPath);
   }
 }

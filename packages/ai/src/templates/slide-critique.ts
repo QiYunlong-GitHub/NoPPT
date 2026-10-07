@@ -334,29 +334,17 @@ export function fixOverallScore(rawOverallScore: unknown, scores: CritiqueScores
   return Math.max(0, Math.min(10, safeWeighted));
 }
 
-export async function critiqueSlide(
+/**
+ * 评审核心（与呈现方式无关）：接收已构建好的 chat messages，调用 LLM 并解析/归一/降级为 `SlideCritique`。
+ * 抽出此函数后，`critiqueSlide`（HTML 路径）与 `critiqueDeckSlide`（Deck/Plan 节点树路径）可复用同一套
+ * JSON 解析、评分归一与分级降级逻辑，避免重复实现。
+ */
+export async function critiqueByContent(
   provider: AIModelProvider,
-  slideTitle: string,
-  slideHtml: string,
-  pageType: string,
-  designContext: { style: string; primaryColor: string; fontFamily: string; iconStyle: string },
+  messages: ChatMessage[],
   options: CritiqueOptions = {},
 ): Promise<SlideCritique> {
   const threshold = options.threshold ?? DEFAULT_THRESHOLD;
-
-  const messages: ChatMessage[] = [
-    { role: 'system', content: buildCritiqueSystemPrompt() },
-    {
-      role: 'user',
-      content: buildCritiqueUserPrompt(
-        slideTitle,
-        slideHtml,
-        pageType,
-        designContext,
-        options.referenceContext,
-      ),
-    },
-  ];
 
   let raw: any;
   let rawness = '';
@@ -440,6 +428,30 @@ export async function critiqueSlide(
     quickWins,
     rawReport: JSON.stringify(raw, null, 2),
   };
+}
+
+export async function critiqueSlide(
+  provider: AIModelProvider,
+  slideTitle: string,
+  slideHtml: string,
+  pageType: string,
+  designContext: { style: string; primaryColor: string; fontFamily: string; iconStyle: string },
+  options: CritiqueOptions = {},
+): Promise<SlideCritique> {
+  const messages: ChatMessage[] = [
+    { role: 'system', content: buildCritiqueSystemPrompt() },
+    {
+      role: 'user',
+      content: buildCritiqueUserPrompt(
+        slideTitle,
+        slideHtml,
+        pageType,
+        designContext,
+        options.referenceContext,
+      ),
+    },
+  ];
+  return critiqueByContent(provider, messages, options);
 }
 
 export function buildCritiqueFeedback(critique: SlideCritique): string {

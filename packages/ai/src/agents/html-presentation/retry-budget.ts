@@ -7,7 +7,12 @@ import type { RetryEntry } from './types';
 
 export const MAX_RETRY_PER_SLIDE = 3;
 
-export const CHANNEL_BUDGET: Record<string, number> = { critique: 1, placeholder: 1, triage: 1, audit: 1 };
+export const CHANNEL_BUDGET: Record<string, number> = {
+  critique: 1,
+  placeholder: 1,
+  triage: 1,
+  audit: 1,
+};
 
 export const retryBudget = new Map<string, Map<number, RetryEntry>>();
 

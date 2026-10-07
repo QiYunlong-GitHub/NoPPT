@@ -49,8 +49,55 @@ export class LogsService {
     await this.storage.appendToLogFile(logFile, entry);
   }
 
+  /**
+   * Append a privacy-safe visual-integrity evidence event. Unlike legacy AI traces,
+   * this path is deliberately allowlisted and never persists prompts, HTML, keys,
+   * or provider responses.
+   */
+  async logIntegrityEvent(presentationId: string, event: Record<string, unknown>): Promise<void> {
+    const eventType = typeof event.eventType === 'string' ? event.eventType : 'audit';
+    const safeEvent = sanitizeIntegrityEvent(event);
+    await this.logAICall(presentationId, eventType, safeEvent);
+  }
   getAILogs(presentationId: string): AILogEntry[] {
     const logFile = join(this.storage.getPresentationDir(presentationId), 'ai-log.jsonl');
     return this.storage.readLogFile(logFile);
   }
+}
+
+const INTEGRITY_ALLOWED_KEYS = new Set([
+  'eventType', 'presentationId', 'slideIndex', 'runId', 'phase', 'source', 'pageType',
+  'viewport', 'logicalCanvas', 'expected', 'observed', 'emptyRequiredNodes',
+  'outOfBoundsNodes', 'clippedNodes', 'parity', 'font', 'status', 'fixAction',
+  'artifactPath', 'durationMs', 'errorCode',
+]);
+const INTEGRITY_NESTED_KEYS = new Set([
+  'width', 'height', 'profile', 'content', 'state', 'declaredFamily', 'resolvedFamily',
+  'declaredWeight', 'resolvedWeight', 'fallbackUsed', 'metricDelta', 'metricStatus',
+  'maxMetricDelta', 'weightState', 'reason',
+]);
+
+function sanitizeIntegrityValue(value: unknown, nested = false): unknown {
+  if (value === null || typeof value === 'number' || typeof value === 'boolean') return value;
+  if (typeof value === 'string') return value.length > 160 ? `[redacted:${value.length}]` : value;
+  if (Array.isArray(value)) return value.slice(0, 20).map((item) => sanitizeIntegrityValue(item, true));
+  if (typeof value !== 'object') return undefined;
+  const result: Record<string, unknown> = {};
+  for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+    if (/api.?key|token|secret|password|sensitive|external.?response|full.?material|^html$|^request$|^response$|^raw$/iu.test(key)) continue;
+    if (nested && !INTEGRITY_NESTED_KEYS.has(key)) continue;
+    const safe = sanitizeIntegrityValue(child, true);
+    if (safe !== undefined) result[key] = safe;
+  }
+  return result;
+}
+
+function sanitizeIntegrityEvent(event: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(event)) {
+    if (!INTEGRITY_ALLOWED_KEYS.has(key)) continue;
+    const safe = sanitizeIntegrityValue(value, key === 'font' || key === 'viewport' || key === 'logicalCanvas' || key === 'expected' || key === 'observed');
+    if (safe !== undefined) result[key] = safe;
+  }
+  return result;
 }

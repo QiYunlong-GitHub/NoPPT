@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { StorageService } from '../../common/storage.service';
 import { join } from 'path';
-import { existsSync } from 'fs';
 
 export interface Workspace {
   id: string;
@@ -10,6 +9,13 @@ export interface Workspace {
   createdAt: number;
   updatedAt: number;
   presentationCount: number;
+}
+
+interface WorkspaceMeta {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
 }
 
 @Injectable()
@@ -22,7 +28,7 @@ export class WorkspaceService {
     const presentationCount = this.storage.listDir(presentationsDir).length;
 
     const metaFile = join(workspaceDir, 'workspace.json');
-    const meta = this.storage.readJsonFile(metaFile, null);
+    const meta = this.storage.readJsonFile<WorkspaceMeta | null>(metaFile, null);
 
     if (!meta) {
       const newMeta = {
@@ -49,7 +55,7 @@ export class WorkspaceService {
   async updateWorkspaceName(name: string): Promise<Workspace> {
     const workspaceDir = this.storage.getWorkspaceDir();
     const metaFile = join(workspaceDir, 'workspace.json');
-    const meta = this.storage.readJsonFile(metaFile, null);
+    const meta = this.storage.readJsonFile<WorkspaceMeta | null>(metaFile, null);
 
     if (!meta) {
       const newMeta = {

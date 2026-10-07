@@ -77,9 +77,7 @@ export function TextSection(props: PropertyPanelSharedProps) {
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-2">{t('字体')}</label>
             <select
-              value={
-                selectionStyles?.fontFamily ? matchFontFamily(selectionStyles.fontFamily) : ''
-              }
+              value={selectionStyles?.fontFamily ? matchFontFamily(selectionStyles.fontFamily) : ''}
               onChange={(e) => onSelectionFontFamily?.(e.target.value)}
               disabled={!selectionStyles}
               className="w-full text-sm text-slate-700 px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed bg-white"
@@ -123,9 +121,7 @@ export function TextSection(props: PropertyPanelSharedProps) {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-2">
-              {t('文字样式')}
-            </label>
+            <label className="block text-xs font-medium text-slate-600 mb-2">{t('文字样式')}</label>
             <div className="grid grid-cols-4 gap-2">
               <button
                 onClick={() => onSelectionBold?.()}
@@ -179,9 +175,7 @@ export function TextSection(props: PropertyPanelSharedProps) {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-2">
-              {t('对齐方式')}
-            </label>
+            <label className="block text-xs font-medium text-slate-600 mb-2">{t('对齐方式')}</label>
             <div className="grid grid-cols-4 gap-2">
               <button
                 onClick={() => onSelectionAlign?.('left')}
@@ -235,9 +229,7 @@ export function TextSection(props: PropertyPanelSharedProps) {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-2">
-              {t('文字颜色')}
-            </label>
+            <label className="block text-xs font-medium text-slate-600 mb-2">{t('文字颜色')}</label>
             <div className="flex items-center gap-2">
               <input
                 type="color"
@@ -253,9 +245,7 @@ export function TextSection(props: PropertyPanelSharedProps) {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-2">
-              {t('背景颜色')}
-            </label>
+            <label className="block text-xs font-medium text-slate-600 mb-2">{t('背景颜色')}</label>
             <div className="flex items-center gap-2">
               <input
                 type="color"
@@ -462,9 +452,7 @@ export function TextSection(props: PropertyPanelSharedProps) {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-2">
-              {t('文字样式')}
-            </label>
+            <label className="block text-xs font-medium text-slate-600 mb-2">{t('文字样式')}</label>
             <div className="grid grid-cols-4 gap-2">
               <button
                 onClick={() => {
@@ -563,9 +551,7 @@ export function TextSection(props: PropertyPanelSharedProps) {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-2">
-              {t('文字颜色')}
-            </label>
+            <label className="block text-xs font-medium text-slate-600 mb-2">{t('文字颜色')}</label>
             <DescriptorColorInput
               descriptor={propertyDescriptorMap.color}
               value={descriptorValues.color || localStyles.color || ''}
@@ -578,9 +564,7 @@ export function TextSection(props: PropertyPanelSharedProps) {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-2">
-              {t('背景颜色')}
-            </label>
+            <label className="block text-xs font-medium text-slate-600 mb-2">{t('背景颜色')}</label>
             <DescriptorColorInput
               descriptor={propertyDescriptorMap.backgroundColor}
               value={descriptorValues.backgroundColor || localStyles.backgroundColor || ''}
@@ -593,9 +577,7 @@ export function TextSection(props: PropertyPanelSharedProps) {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-2">
-              {t('对齐方式')}
-            </label>
+            <label className="block text-xs font-medium text-slate-600 mb-2">{t('对齐方式')}</label>
             <div className="grid grid-cols-4 gap-2">
               {(['left', 'center', 'right', 'justify'] as const).map((align) => {
                 const currentAlign = descriptorValues.textAlign || localStyles.textAlign;

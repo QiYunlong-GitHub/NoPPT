@@ -35,27 +35,10 @@ export function inferImagePreferenceFromPresentation(result: {
   const slides = result.slides || [];
   if (slides.length === 0) return 'content-only';
   const hasImg = (h: string) => /<img\b/i.test(h);
-  const isStructureLike = (
-    idx: number,
-    s: { title?: string; pageType?: string; html: string },
-  ) => {
-    if (s.pageType === 'cover' || s.pageType === 'toc' || s.pageType === 'summary') return true;
-    if (idx === 0) return true; // 第一张按封面看
-    if (idx === slides.length - 1) return true; // 最后一张按总结看
-    return /font-size:\s*[7-9]\dpx|font-size:\s*1\d{2,}px|<h1\b|目录|总结|感谢|开启.*纪元|结论/i.test(
-      `${s.title} ${s.html}`,
-    );
-  };
-  const structureIdxs = slides.map((s, i) => isStructureLike(i, s));
-  const contentIdxs = structureIdxs.map((x) => !x);
-  const contentSlides = slides.filter((_, i) => contentIdxs[i]);
   const first = slides[0];
   const last = slides[slides.length - 1];
   const coverHasImage = hasImg(first.html);
   const summaryHasImage = hasImg(last.html);
-  const contentWithImage = contentSlides.filter((s) => hasImg(s.html)).length;
-  const contentImageRatio =
-    contentSlides.length > 0 ? contentWithImage / contentSlides.length : 0;
   const totalWithImage = slides.filter((s) => hasImg(s.html)).length;
   const totalRatio = totalWithImage / slides.length;
   if (totalRatio === 0) return 'none';
@@ -157,9 +140,7 @@ export function injectOrphanImageIntoSlide(
     'flex:0 0 55%;display:flex;flex-direction:column;gap:16px;min-height:0;min-width:0;overflow:hidden;justify-content:space-evenly;',
   );
   contentCol.appendChild(body);
-  const row = makeDiv(
-    'flex:1;display:flex;gap:40px;align-items:stretch;min-height:0;min-width:0;',
-  );
+  const row = makeDiv('flex:1;display:flex;gap:40px;align-items:stretch;min-height:0;min-width:0;');
   row.appendChild(imageCol);
   row.appendChild(contentCol);
   outer.appendChild(row);
@@ -174,15 +155,12 @@ export function injectOrphanImageIntoSlide(
 export interface OrphanRescueStorage {
   getImagesDir(presentationId: string): string;
   listDir(dir: string): string[];
+  getPublicBase?: () => string;
 }
 
 export interface OrphanRescueDeps {
   storage: OrphanRescueStorage;
-  injectOrphanImageIntoSlide: (
-    html: string,
-    url: string,
-    opts?: { pageType?: string },
-  ) => string;
+  injectOrphanImageIntoSlide: (html: string, url: string, opts?: { pageType?: string }) => string;
   injectOrphanImageIntoBackground: (
     html: string,
     url: string,
@@ -244,8 +222,9 @@ export function rescueOrphanImages(
       }
 
       let orphanIdx = 0;
+      const publicBase = storage.getPublicBase?.() ?? '/data/workspace';
       const orphanUrlAt = (i: number) =>
-        `/data/workspace/presentations/${result.id}/assets/images/${orphans[i]}`;
+        `${publicBase}/presentations/${result.id}/assets/images/${orphans[i]}`;
 
       // B-3 · step2：all 模式优先回填封面（第一张 cover-like）和总结（最后一张 summary-like）
       const singleSlideMode = result.slides.length === 1;
@@ -297,7 +276,8 @@ export function rescueOrphanImages(
           if (
             /data-layout\s*=\s*["']?toc\b/i.test(slide.html) ||
             /目录|table\s*of\s*contents|大纲/i.test(slide.html)
-          ) continue;
+          )
+            continue;
           if (/<img\b/i.test(slide.html)) continue;
           if (pref !== 'all' && !singleSlideMode) {
             const isCoverLike =

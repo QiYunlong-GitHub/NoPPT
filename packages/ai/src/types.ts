@@ -1,5 +1,15 @@
+import type { DeckSlide } from '@noppt/core/deck';
+
 export type ModelProvider =
-  'openai' | 'anthropic' | 'ollama' | 'custom' | 'freeai' | 'v0' | 'company-gateway';
+  | 'openai'
+  | 'anthropic'
+  | 'ollama'
+  | 'custom'
+  | 'freeai'
+  | 'v0'
+  | 'qwen'
+  | 'seedream'
+  | 'company-gateway';
 
 export type ModelRole = 'system' | 'user' | 'assistant';
 
@@ -29,8 +39,10 @@ export interface ChatOptions {
   maxTokens?: number;
   topP?: number;
   stream?: boolean;
+  /** Optional cancellation signal; never serialized into provider request bodies or traces. */
+  signal?: AbortSignal;
   /** 透传到底层请求体的额外字段（如关闭思考的 enable_thinking / chat_template_kwargs 等）。 */
-  extraBody?: Record<string, any>;
+  extraBody?: Record<string, unknown>;
 }
 
 export interface ChatResponse {
@@ -45,7 +57,7 @@ export interface ChatResponse {
   reasoningContent?: string;
   /** choices[0].finish_reason，如 length（截断）/ stop / tool_calls，用于空内容诊断与重试。 */
   finishReason?: string;
-  raw?: any;
+  raw?: unknown;
 }
 
 export interface ModelConfig {
@@ -56,6 +68,8 @@ export interface ModelConfig {
   defaultOptions?: Partial<ChatOptions>;
   /** 内容生成模型关闭思考（使正文直出 content），对非思考模型该参数被忽略。 */
   disableThinking?: boolean;
+  /** 公司 API 网关（company-gateway）的域账号，作为请求头 X-Sany-User-Code 透传，仅对该 provider 生效。 */
+  userCode?: string;
 }
 
 export interface GeneratedOutline {
@@ -176,13 +190,31 @@ export interface ChartSeries {
   color?: string;
   points: ChartSeriesPoint[];
 }
+/**
+ * 图表类型。
+ *
+ * 前四种（bar/line/pie/donut）是既有枚举，保持向后兼容；
+ * 后五种借鉴 python-pptx `XL_CHART_TYPE`（AREA/RADAR/XY_SCATTER/BUBBLE）
+ * 与 PptxGenJS `ChartType`（area/radar/scatter/bubble + Combo）补齐。
+ */
+export type ChartKind =
+  'bar' | 'line' | 'pie' | 'donut' | 'area' | 'radar' | 'scatter' | 'bubble' | 'combo';
+
 export interface ChartSpec {
-  kind: 'bar' | 'line' | 'pie' | 'donut';
-  series: ChartSeries[]; // bar/line 可多序列；pie/donut 单序列
+  kind: ChartKind;
+  series: ChartSeries[]; // bar/line/area 可多序列；pie/donut 单序列
   unit?: string; // 如 '%' / '万' / 'ms'
   showLegend?: boolean; // 默认 true（多序列）
   showValues?: boolean; // 默认 true
-  stacked?: boolean; // bar 专用：堆叠
+  stacked?: boolean; // bar / area：堆叠
+  /** 100% 堆叠（bar / area 专用，借鉴 XL_CHART_TYPE 的 *_STACKED_100）。 */
+  percentStacked?: boolean;
+  /** 折线平滑（PptxGenJS `lineSmooth`）。 */
+  smooth?: boolean;
+  /** 组合图：逐 series 指定子类型（缺省按 bar → line → area 轮换）。 */
+  seriesKinds?: Array<'bar' | 'line' | 'area'>;
+  /** 组合图：第二条及以后的 series 走次坐标轴。 */
+  secondaryAxis?: boolean;
 }
 
 export type ArchNodeVariant = 'box' | 'cylinder' | 'ellipse' | 'cloud';
@@ -201,10 +233,70 @@ export interface ArchitectureSpec {
   nodes?: ArchNode[];
 }
 
+export interface ContentBase {
+  contentId: string;
+  legacyDerived?: boolean;
+  sourceIndex?: number;
+}
+
+export interface ComparisonItem extends ContentBase {
+  text: string;
+  column: 'left' | 'right';
+  order: number;
+  bullet: boolean;
+}
+
+export type MetricItem =
+  | (ContentBase & {
+      kind: 'metric';
+      order: number;
+      label: string;
+      value: string;
+      description?: string;
+      trend?: 'up' | 'down' | 'flat';
+      /** Original legacy source text retained so adaptation can be reversed or audited. */
+      originalText?: string;
+    })
+  | (ContentBase & {
+      kind: 'omission';
+      order: number;
+      originalText: string;
+      reason: 'value_not_separable' | 'label_not_provided' | 'description_not_provided';
+      status: 'omitted' | 'needs_review';
+    });
+
+export interface CardItem extends ContentBase {
+  title?: string;
+  body: string;
+  compact?: boolean;
+}
+
+export interface SummaryItem extends ContentBase {
+  text: string;
+  role?: 'point' | 'action' | 'takeaway';
+}
+
+export interface ContentOmission extends ContentBase {
+  originalText?: string;
+  reason: string;
+  status: 'omitted' | 'needs_review';
+}
+
+export interface LegacyColumnManifest {
+  column: 'left' | 'right';
+  order: number;
+}
+
 export interface SlidePlan {
   pageType: SlidePageType;
   title: string;
   keyPoints: string[];
+  comparisonItems?: ComparisonItem[];
+  metricItems?: MetricItem[];
+  cardItems?: CardItem[];
+  summaryItems?: SummaryItem[];
+  omissions?: ContentOmission[];
+  legacyColumnManifest?: LegacyColumnManifest[];
   imagePrompt?: string;
   imageRatio?: ImageRatio;
   needsImage: boolean;
@@ -251,6 +343,8 @@ export interface DesignProposal {
 export interface RenderedSlide {
   title: string;
   html: string;
+  /** Deck is the semantic/geometric source paired with canonical HTML. */
+  deck?: DeckSlide;
   pageType: SlidePageType;
   imagePrompt?: string;
   imageRatio?: string;
@@ -296,6 +390,10 @@ type CommonImageSizes =
 export type ImageSize = CommonImageSizes | (string & {});
 
 export interface ImageGenerationOptions {
+  /** Optional tracing scene label; never sent to provider request bodies. */
+  scene?: string;
+  /** Optional cancellation signal; never serialized into provider request bodies or traces. */
+  signal?: AbortSignal;
   model?: string;
   size?: ImageSize;
   quality?: 'standard' | 'hd';
@@ -373,10 +471,10 @@ export interface PresentationGenerationOptions {
   backgroundEnabled?: boolean;
   iconStyle?: IconStyle;
   imageOptions?: ImageGenerationOptions & { enabled: boolean };
-  imageProvider?: any;
-  planningProvider?: any;
-  contentProvider?: any;
-  editingProvider?: any;
+  imageProvider?: object;
+  planningProvider?: object;
+  contentProvider?: object;
+  editingProvider?: object;
   referenceImage?: string;
   referenceHtml?: string;
   /** 已由 server 侧提取并组装好的参考视觉属性（4 类 HTML + 4 类图片 VLM 合并结果），
@@ -403,6 +501,12 @@ export interface PresentationGenerationOptions {
     slides: RenderedSlide[],
     ctx: { plan: PresentationPlan; design: DesignProposal; traceSessionId?: string },
   ) => Promise<RenderedSlide[]>;
+  /**
+   * 确定性 Deck 渲染器开关（feature flag）。
+   * - 不传 / true（**默认**）：走确定性渲染管线（`planToDeck` → `deckSlideToHtml` → `critiqueDeckSlide`）。
+   * - false：回退既有 LLM-HTML 路径（`generateSlideHtmlSafe`），供灰度排障与存量行为锁定用例使用。
+   */
+  deterministicDeckPreview?: boolean;
 }
 
 export type RouteStage = 'planning' | 'content' | 'editing' | 'audit' | 'auditVlm';
@@ -668,4 +772,5 @@ export interface ReferenceContext {
   hasReference: boolean;
   source?: 'html' | 'image' | 'none';
   appliedFields?: string[];
+  visualAttributes?: ReferenceVisualAttributes;
 }

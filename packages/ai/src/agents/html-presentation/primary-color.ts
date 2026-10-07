@@ -47,4 +47,3 @@ export function resolveProposalPrimaryColor(opts: {
     return COLOR_THEMES[opts.userColorTheme] as string;
   return '#2563eb';
 }
-

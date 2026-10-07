@@ -9,11 +9,20 @@
 // 说明：组件依赖 zustand 全局 store（无需 Provider），i18n 走 `t()` 直接调用，
 //       因此可在 jsdom 下直接渲染。
 // ================================================================
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import AIGenerateModal from '../AIGenerateModal';
+import { useUIStore } from '@/stores/ui';
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+  useUIStore.setState({ showAIGenerateModal: false, aiPrefill: null });
+});
+
+beforeEach(() => {
+  useUIStore.setState({ showAIGenerateModal: false, aiPrefill: null });
+});
 
 describe('AIGenerateModal（行为锁定）', () => {
   it('open=false 时不渲染任何内容', () => {
@@ -34,5 +43,26 @@ describe('AIGenerateModal（行为锁定）', () => {
   it('渲染出的根节点非空（弹窗主体已挂载）', () => {
     const { container } = render(<AIGenerateModal open onClose={vi.fn()} />);
     expect(container.firstChild).toBeTruthy();
+  });
+
+  it('Hermes 预填只进入 auto config，未确认前不触发生成请求', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    useUIStore.getState().setAIPrefill({
+      topic: '厄尔尼诺：现象、影响与应对',
+      referenceText: 'IMPORTANT-FIRST',
+      referenceLimit: 3200,
+      referenceTruncated: false,
+      referenceOriginalChars: 15,
+      mode: 'auto',
+    });
+
+    render(<AIGenerateModal open onClose={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('厄尔尼诺：现象、影响与应对')).toBeTruthy();
+    });
+    expect(screen.getByText('🚀 一键生成')).toBeTruthy();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

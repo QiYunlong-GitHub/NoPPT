@@ -8,36 +8,14 @@
  *   **绝不回传异常堆栈、config.json 的模型 apiKey 或 baseUrl**（NFR-4）。
  */
 
+import type { McpErrorCode } from './mcp-error-codes';
 import { translate } from '../i18n/translate';
 import { zhByCode } from '../i18n/messages/zh-CN';
 import type { Locale, MessageParams } from '../i18n/types';
 
-export type McpErrorCode =
-  | 'E1001'
-  | 'E1002'
-  | 'E1003'
-  | 'E1004'
-  | 'E1005'
-  | 'E1006'
-  | 'E2001'
-  | 'E2002'
-  | 'E3001'
-  | 'E3002'
-  | 'E3003'
-  | 'E3004'
-  | 'E3005'
-  | 'E4001'
-  | 'E4002'
-  | 'E5001'
-  | 'E5002'
-  | 'E5003'
-  | 'E5004'
-  | 'E5005'
-  | 'E5006'
-  | 'E5007'
-  | 'E5008';
+export type { McpErrorCode } from './mcp-error-codes';
 
-/** `error` 字段枚举值：调用方据此分支处理，不解析 message 文案。 */
+/** `error` 字段枚举值:调用方据此分支处理，不解析 message 文案。 */
 export const MCP_ERROR_NAMES: Record<McpErrorCode, string> = {
   E1001: 'missing_authorization',
   E1002: 'invalid_api_key',
@@ -124,8 +102,6 @@ export function isMcpError(e: unknown): e is McpError {
  */
 export function toMcpError(e: unknown): McpError {
   if (isMcpError(e)) return e;
-  const message = e instanceof Error ? e.message : String(e);
-  // 非 McpError 一律降级为 E5005，文案由 zhByCode 渲染（不回传原始异常细节）
   return new McpError('E5005');
 }
 

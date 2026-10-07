@@ -2,8 +2,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { authenticateRequest, extractBearer } from './api-key.guard';
+import type { ExecutionContext } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { authenticateRequest, extractBearer, ApiKeyGuard } from './api-key.guard';
 import { ApiKeyService } from './api-key.service';
+import { PublicRoute } from './public-metadata.decorator';
 import { McpError } from '../../common/mcp-errors';
 
 /** TC-104 补充：Bearer 校验流程与 E1001/E1002/E1003 分类。 */
@@ -78,5 +81,54 @@ describe('M2 authenticateRequest', () => {
       expect(body.error).toBe('missing_authorization');
       expect(JSON.stringify(body)).not.toContain('at ');
     }
+  });
+});
+
+describe('ApiKeyGuard route boundaries', () => {
+  let tmpRoot: string;
+  let cwdSpy: ReturnType<typeof vi.spyOn>;
+  let service: ApiKeyService;
+
+  beforeEach(() => {
+    tmpRoot = mkdtempSync(join(tmpdir(), 'noppt-guard-boundary-test-'));
+    cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue(tmpRoot);
+    service = new ApiKeyService();
+  });
+
+  afterEach(() => {
+    cwdSpy.mockRestore();
+    rmSync(tmpRoot, { recursive: true, force: true });
+  });
+
+  it('bypasses only handlers/classes explicitly marked with public metadata', async () => {
+    class PublicController {}
+    PublicRoute()(PublicController);
+    const handler = () => undefined;
+    const context = {
+      getHandler: () => handler,
+      getClass: () => PublicController,
+      switchToHttp: () => ({ getRequest: () => ({ headers: {} }) }),
+    } as unknown as ExecutionContext;
+
+    await expect(new ApiKeyGuard(service, new Reflector()).canActivate(context)).resolves.toBe(
+      true,
+    );
+  });
+
+  it('rejects an unannotated normal REST request with structured 401 data', async () => {
+    class NormalController {}
+    const context = {
+      getHandler: () => () => undefined,
+      getClass: () => NormalController,
+      switchToHttp: () => ({ getRequest: () => ({ headers: {} }) }),
+    } as unknown as ExecutionContext;
+
+    const error = await new ApiKeyGuard(service, new Reflector())
+      .canActivate(context)
+      .catch((e: unknown) => e);
+    expect(error).toMatchObject({ status: 401 });
+    expect((error as { getResponse: () => unknown }).getResponse()).toMatchObject({
+      error: 'missing_authorization',
+    });
   });
 });

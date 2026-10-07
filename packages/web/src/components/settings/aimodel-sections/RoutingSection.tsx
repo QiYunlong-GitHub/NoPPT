@@ -56,9 +56,7 @@ export function RoutingSection({
                           <p className="text-sm font-medium text-slate-900 dark:text-white">
                             {stage.name}
                           </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {stage.desc}
-                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">{stage.desc}</p>
                         </div>
                       </div>
                     </td>

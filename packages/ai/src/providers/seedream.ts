@@ -1,4 +1,5 @@
 import { BaseProvider, truncate } from './base';
+import { asResponseRecord, responseString } from './response-helpers';
 import type {
   ChatMessage,
   ChatOptions,
@@ -71,9 +72,14 @@ export class SeedreamProvider extends BaseProvider {
     });
 
     const startTime = Date.now();
-    const fullOptions: ImageGenerationOptions = { ...(options || {}), model, size, n };
-    const scene = (options as any)?.scene as string | undefined;
-    const writeTrace = (extra: any) => {
+    const traceOptions = { ...options };
+    delete traceOptions.signal;
+    const fullOptions: ImageGenerationOptions = { ...traceOptions, model, size, n };
+    const scene = options?.scene;
+    const writeTrace = (extra: {
+      response?: { images: GeneratedImage[]; raw?: unknown };
+      error?: { message: string; stack?: string };
+    }) => {
       const endedAt = Date.now();
       this.recordTrace({
         type: 'image',
@@ -104,6 +110,7 @@ export class SeedreamProvider extends BaseProvider {
           response_format: 'url',
           watermark: false,
         }),
+        signal: options?.signal,
       });
 
       if (!response.ok) {
@@ -118,48 +125,53 @@ export class SeedreamProvider extends BaseProvider {
         throw err;
       }
 
-      const data = await response.json();
+      const data = asResponseRecord(await response.json());
       const duration = Date.now() - startTime;
+      const items = Array.isArray(data.data)
+        ? data.data.filter(
+            (item): item is Record<string, unknown> =>
+              typeof item === 'object' && item !== null && !Array.isArray(item),
+          )
+        : [];
 
       this.logResponse('generateImage', {
         durationMs: duration,
-        model: data.model,
-        created: data.created,
-        hasData: !!data.data,
-        dataLength: data.data?.length,
-        firstItemKeys: data.data?.[0] ? Object.keys(data.data[0]) : [],
+        model: responseString(data, 'model'),
+        created: responseString(data, 'created'),
+        hasData: items.length > 0,
+        dataLength: items.length,
+        firstItemKeys: items[0] ? Object.keys(items[0]) : [],
         usage: data.usage,
       });
 
       const results: GeneratedImage[] = [];
-      if (data.data && Array.isArray(data.data)) {
-        for (let i = 0; i < data.data.length; i++) {
-          const item = data.data[i];
-          let imageUrl = item.url || item.b64_json || '';
-          if (imageUrl) {
-            imageUrl = imageUrl
-              .trim()
-              .replace(/^`|`$/g, '')
-              .trim()
-              .replace(/^["']|["']$/g, '')
-              .trim();
-          }
-          console.log(
-            `[LLM:${this.name}] Extracted image URL ${i + 1}:`,
-            imageUrl ? imageUrl.substring(0, 150) + '...' : 'EMPTY',
-          );
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        let imageUrl = responseString(item, 'url') ?? responseString(item, 'b64_json') ?? '';
+        const base64 = responseString(item, 'b64_json');
+        if (imageUrl) {
+          imageUrl = imageUrl
+            .trim()
+            .replace(/^`|`$/g, '')
+            .trim()
+            .replace(/^["']|["']$/g, '')
+            .trim();
+        }
+        console.log(
+          `[LLM:${this.name}] Extracted image URL ${i + 1}:`,
+          imageUrl ? imageUrl.substring(0, 150) + '...' : 'EMPTY',
+        );
 
-          if (imageUrl) {
-            results.push({
-              url:
-                imageUrl.startsWith('data:') || imageUrl.startsWith('http')
-                  ? imageUrl
-                  : item.b64_json
-                    ? `data:image/png;base64,${item.b64_json}`
-                    : imageUrl,
-              revisedPrompt: item.revised_prompt,
-            });
-          }
+        if (imageUrl) {
+          results.push({
+            url:
+              imageUrl.startsWith('data:') || imageUrl.startsWith('http')
+                ? imageUrl
+                : base64
+                  ? `data:image/png;base64,${base64}`
+                  : imageUrl,
+            revisedPrompt: responseString(item, 'revised_prompt'),
+          });
         }
       }
 

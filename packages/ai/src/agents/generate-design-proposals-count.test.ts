@@ -64,7 +64,9 @@ describe('generateDesignProposals proposalCount（F-1~F-4 + AC-6）', () => {
     const { agent, planningProvider } = buildAgent();
     mockReturnJson(planningProvider, buildProposalsArray(1));
 
-    const renderSpy = vi.spyOn(renderMod as any, 'renderSlides').mockResolvedValue([FAKE_FIRST_SLIDE]);
+    const renderSpy = vi
+      .spyOn(renderMod as any, 'renderSlides')
+      .mockResolvedValue([FAKE_FIRST_SLIDE]);
 
     const out = await (agent as any).generateDesignProposals(
       't',
@@ -87,7 +89,9 @@ describe('generateDesignProposals proposalCount（F-1~F-4 + AC-6）', () => {
     const { agent, planningProvider } = buildAgent();
     mockReturnJson(planningProvider, buildProposalsArray(3));
 
-    const renderSpy = vi.spyOn(renderMod as any, 'renderSlides').mockResolvedValue([FAKE_FIRST_SLIDE]);
+    const renderSpy = vi
+      .spyOn(renderMod as any, 'renderSlides')
+      .mockResolvedValue([FAKE_FIRST_SLIDE]);
 
     const out = await (agent as any).generateDesignProposals('t', DUMMY_PLAN, {}, undefined);
     const prompt = (planningProvider.chat as any).mock.calls[0][0][0].content as string;
@@ -124,7 +128,9 @@ describe('generateDesignProposals proposalCount（F-1~F-4 + AC-6）', () => {
     const { agent, planningProvider } = buildAgent();
     (planningProvider.chat as any).mockRejectedValue(new Error('boom'));
 
-    const renderSpy = vi.spyOn(renderMod as any, 'renderSlides').mockResolvedValue([FAKE_FIRST_SLIDE]);
+    const renderSpy = vi
+      .spyOn(renderMod as any, 'renderSlides')
+      .mockResolvedValue([FAKE_FIRST_SLIDE]);
 
     const out1 = await (agent as any).generateDesignProposals(
       't',
@@ -177,7 +183,9 @@ describe('generateDesignProposals proposalCount（F-1~F-4 + AC-6）', () => {
     const { agent, planningProvider } = buildAgent();
     mockReturnJson(planningProvider, buildProposalsArray(30));
 
-    const renderSpy = vi.spyOn(renderMod as any, 'renderSlides').mockResolvedValue([FAKE_FIRST_SLIDE]);
+    const renderSpy = vi
+      .spyOn(renderMod as any, 'renderSlides')
+      .mockResolvedValue([FAKE_FIRST_SLIDE]);
 
     const out = await (agent as any).generateDesignProposals(
       't',

@@ -21,10 +21,7 @@ export function PresentationListModal({
       >
         <div className="flex items-center justify-between p-5 border-b border-slate-200">
           <h3 className="text-base font-semibold text-slate-800">{t('打开演示')}</h3>
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-slate-100 rounded-lg transition-colors"
-          >
+          <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-lg transition-colors">
             <X className="w-5 h-5 text-slate-500" />
           </button>
         </div>
@@ -53,9 +50,7 @@ export function PresentationListModal({
                     </div>
                   </div>
                   {item.id === currentId && (
-                    <span className="text-xs text-blue-600 font-medium shrink-0">
-                      {t('当前')}
-                    </span>
+                    <span className="text-xs text-blue-600 font-medium shrink-0">{t('当前')}</span>
                   )}
                 </button>
               ))}

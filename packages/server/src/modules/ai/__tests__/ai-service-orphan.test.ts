@@ -23,7 +23,11 @@ function makeResult(opts: {
   return {
     id: 'P1',
     imagePreference: opts.imagePreference,
-    slides: opts.slides.map((s, i) => ({ id: `s${i}`, title: s.title ?? `slide${i}`, html: s.html })),
+    slides: opts.slides.map((s, i) => ({
+      id: `s${i}`,
+      title: s.title ?? `slide${i}`,
+      html: s.html,
+    })),
   } as any;
 }
 
@@ -118,7 +122,10 @@ describe('AiService · 孤儿配图救援（rescueOrphanImages）', () => {
       imagePreference: 'all',
       slides: [
         { html: CONTENT(), title: '封面' },
-        { html: `<div><img src="x.png"><h2>已配图</h2><p>正文足够长用于测试孤儿救援跳过已含图页面逻辑</p></div>`, title: '已含图' },
+        {
+          html: `<div><img src="x.png"><h2>已配图</h2><p>正文足够长用于测试孤儿救援跳过已含图页面逻辑</p></div>`,
+          title: '已含图',
+        },
         { html: CONTENT(), title: '总结' },
       ],
     });
@@ -134,7 +141,10 @@ describe('AiService · 孤儿配图救援（rescueOrphanImages）', () => {
       imagePreference: 'all',
       slides: [
         { html: CONTENT(), title: '封面' },
-        { html: `<div data-layout="toc"><h2>目录</h2><p>目录页正文足够长用于测试孤儿救援对目录页的跳过行为</p></div>`, title: '目录' },
+        {
+          html: `<div data-layout="toc"><h2>目录</h2><p>目录页正文足够长用于测试孤儿救援对目录页的跳过行为</p></div>`,
+          title: '目录',
+        },
         { html: CONTENT(), title: '总结' },
       ],
     });

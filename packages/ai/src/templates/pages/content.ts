@@ -1,6 +1,8 @@
 import type { TemplateCtx } from './types';
 
-const piece3 = (ctx: TemplateCtx): string => `### content-image-left（左图右文 · 55:45比例 · 卡片条化）
+const piece3 = (
+  ctx: TemplateCtx,
+): string => `### content-image-left（左图右文 · 55:45比例 · 卡片条化）
 **本模板为最终版式准绳：图片容器 flex:0 0 45% 且绝对不得有 margin；文字列 flex:0 0 55%；除替换文字内容外，不要改动结构与尺寸比例。**
 \`\`\`html
 <div style="${ctx.OUTER};">
@@ -34,7 +36,9 @@ const piece3 = (ctx: TemplateCtx): string => `### content-image-left（左图右
 \`\`\`
 `;
 
-const piece4 = (ctx: TemplateCtx): string => `### content-image-right（右图左文 · 55:45比例 · 卡片条化）
+const piece4 = (
+  ctx: TemplateCtx,
+): string => `### content-image-right（右图左文 · 55:45比例 · 卡片条化）
 **本模板为最终版式准绳：图片容器 flex:0 0 45% 且绝对不得有 margin；文字列 flex:0 0 55%；除替换文字内容外，不要改动结构与尺寸比例。**
 \`\`\`html
 <div style="${ctx.OUTER};">
@@ -86,7 +90,9 @@ const piece5 = (ctx: TemplateCtx): string => `### content-image-top（上图下�
 \`\`\`
 `;
 
-const piece6 = (ctx: TemplateCtx): string => `### content-image-top（上图下文 · 要点 ≥ 4 → 双列 Grid）
+const piece6 = (
+  ctx: TemplateCtx,
+): string => `### content-image-top（上图下文 · 要点 ≥ 4 → 双列 Grid）
 要点数 ≥ 4 时必须用以下双列 Grid 版本（图片更扁 21:9 + 图片更矮 33% + li padding/字号/icon 更紧凑）：
 \`\`\`html
 <div style="${ctx.OUTER};">
@@ -167,7 +173,9 @@ const piece11 = (ctx: TemplateCtx): string => `### content-timeline（时间轴�
 \`\`\`
 `;
 
-const piece14 = (ctx: TemplateCtx): string => `### content-zigzag（Z字形图文交错 · L1高级版式 · 三段式）
+const piece14 = (
+  ctx: TemplateCtx,
+): string => `### content-zigzag（Z字形图文交错 · L1高级版式 · 三段式）
 \`\`\`html
 <div style="${ctx.OUTER};" data-layout="content-zigzag">
   <h2 style="${ctx.GRAD_H2}">页面标题（Z字三段式）</h2>
@@ -218,7 +226,9 @@ const piece14 = (ctx: TemplateCtx): string => `### content-zigzag（Z字形图�
 ⚠️ 注意：content-zigzag 中仅第一段保留真实 img 占位符（NOPPT_IMAGE_PLACEHOLDER），后两段用 emoji+渐变色块代替，避免触发"每页多图占位符"违规。
 `;
 
-const piece17 = (ctx: TemplateCtx): string => `### content-image-background（大图背景+玻璃卡片叠层 · L1高级版式 · backdrop-filter玻璃拟态）
+const piece17 = (
+  ctx: TemplateCtx,
+): string => `### content-image-background（大图背景+玻璃卡片叠层 · L1高级版式 · backdrop-filter玻璃拟态）
 \`\`\`html
 <div style="${ctx.OUTER};padding:0;" data-layout="content-image-background">
   <!-- 全屏背景图（先占位，等实际图替换）-->

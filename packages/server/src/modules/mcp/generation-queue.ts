@@ -31,6 +31,8 @@ export interface McpJob {
   createdAt: number;
   startedAt?: number;
   finishedAt?: number;
+  /** Queue ownership is released in runJob finally or if a queued job is evicted. */
+  contextRelease?: () => Promise<void>;
 }
 
 export type JobRunner = (
@@ -55,6 +57,7 @@ export class GenerationQueue {
   private running = 0;
   private seq = 0;
   private timer?: NodeJS.Timeout;
+  private stopped = false;
 
   constructor(options?: Partial<GenerationQueueOptions>) {
     const env = readMcpEnv();
@@ -74,9 +77,19 @@ export class GenerationQueue {
     args: Record<string, unknown>,
     runner: JobRunner,
   ): string {
+    if (this.stopped) throw new McpError('E5005', '任务队列已关闭');
+    const contextRelease = ctx.acquire?.();
     this.seq += 1;
     const jobId = `j_${Date.now().toString(36)}_${this.seq.toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-    const job: McpJob = { jobId, tool, status: 'queued', ctx, args, createdAt: Date.now() };
+    const job: McpJob = {
+      jobId,
+      tool,
+      status: 'queued',
+      ctx,
+      args,
+      createdAt: Date.now(),
+      contextRelease,
+    };
     this.jobs.set(jobId, job);
     this.runners.set(jobId, runner);
     this.evict();
@@ -111,6 +124,7 @@ export class GenerationQueue {
   }
 
   private pump(): void {
+    if (this.stopped) return;
     while (this.running < this.options.maxConcurrent) {
       let next: McpJob | undefined;
       for (const job of this.jobs.values()) {
@@ -141,8 +155,20 @@ export class GenerationQueue {
       job.finishedAt = Date.now();
       this.running = Math.max(0, this.running - 1);
       this.runners.delete(job.jobId);
+      await this.releaseJobContext(job);
       this.evict();
       this.pump();
+    }
+  }
+
+  private async releaseJobContext(job: McpJob): Promise<void> {
+    const release = job.contextRelease;
+    job.contextRelease = undefined;
+    if (!release) return;
+    try {
+      await release();
+    } catch {
+      // Request/job cleanup must not change the recorded job result.
     }
   }
 
@@ -167,8 +193,11 @@ export class GenerationQueue {
   }
 
   private remove(jobId: string): void {
+    const job = this.jobs.get(jobId);
+    if (!job || job.status === 'running') return;
     this.jobs.delete(jobId);
     this.runners.delete(jobId);
+    void this.releaseJobContext(job);
   }
 
   /** 清空（测试用）。 */
@@ -181,5 +210,15 @@ export class GenerationQueue {
   onModuleDestroy(): void {
     if (this.timer) clearInterval(this.timer);
     this.timer = undefined;
+    if (this.stopped) return;
+    this.stopped = true;
+    for (const job of this.jobs.values()) {
+      if (job.status !== 'queued') continue;
+      job.status = 'failed';
+      job.error = { code: 'E5005', message: '任务队列已关闭，任务未执行' };
+      job.finishedAt = Date.now();
+      this.runners.delete(job.jobId);
+      void this.releaseJobContext(job);
+    }
   }
 }

@@ -1,12 +1,25 @@
-import { useState } from 'react';
-import { X, Download, FileCode, FileText, Image, Loader2, Package } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import {
+  X,
+  Download,
+  FileCode,
+  FileText,
+  Image,
+  Loader2,
+  Package,
+  Presentation as PresentationIcon,
+} from 'lucide-react';
 import { useUIStore } from '@/stores/ui';
 import { usePresentationStore } from '@/stores/presentation';
 import { useSettingsStore } from '@/stores/settings';
 import { toHtmlLang, useI18n } from '@/i18n';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
-import JSZip from 'jszip';
+import { presentationToDeck, collectNotesById } from '@/export/presentation-to-deck';
+import {
+  escapeHtmlText,
+  normalizeExportFilename,
+  sanitizeExportSlideHtml,
+  withTemporaryElement,
+} from '@/utils/export-security';
 
 export default function ExportModal() {
   const { t } = useI18n();
@@ -15,6 +28,23 @@ export default function ExportModal() {
   const showToast = useUIStore((s) => s.showToast);
 
   const [exporting, setExporting] = useState<string | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    closeButtonRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !exporting) {
+        event.preventDefault();
+        setExportModal(false);
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      previouslyFocused?.focus?.();
+    };
+  }, [exporting, setExportModal]);
 
   const exportFormats = [
     {
@@ -45,6 +75,13 @@ export default function ExportModal() {
       icon: Image,
       color: 'text-green-500 bg-green-50',
     },
+    {
+      id: 'pptx',
+      name: 'PPTX',
+      desc: t('可编辑的 PowerPoint 文件，含备注与母版'),
+      icon: PresentationIcon,
+      color: 'text-blue-600 bg-blue-50',
+    },
   ];
 
   const handleExport = async (formatId: string) => {
@@ -64,6 +101,9 @@ export default function ExportModal() {
           break;
         case 'png':
           await exportPNG();
+          break;
+        case 'pptx':
+          await exportPPTX();
           break;
       }
       showToast(t('导出成功！'), 'success');
@@ -113,7 +153,7 @@ export default function ExportModal() {
 
     const processSlideHtml = async (html: string): Promise<string> => {
       const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = html;
+      tempDiv.innerHTML = sanitizeExportSlideHtml(html);
 
       const allElements = tempDiv.querySelectorAll('*');
       allElements.forEach((el) => {
@@ -186,7 +226,7 @@ export default function ExportModal() {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${presentation.title}</title>
+  <title>${escapeHtmlText(presentation.title)}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: #f1f5f9; padding: 40px 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
@@ -198,17 +238,18 @@ export default function ExportModal() {
   </style>
 </head>
 <body>
-  <h1 style="text-align: center; margin-bottom: 40px; color: #1e293b;">${presentation.title}</h1>
+  <h1 style="text-align: center; margin-bottom: 40px; color: #1e293b;">${escapeHtmlText(presentation.title)}</h1>
   ${slidesHTML}
 </body>
 </html>`;
 
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-    downloadBlob(blob, `${presentation.title}.html`);
+    downloadBlob(blob, `${normalizeExportFilename(presentation.title)}.html`);
   };
 
   const exportZIP = async () => {
     if (!presentation) return;
+    const { default: JSZip } = await import('jszip');
 
     const zip = new JSZip();
     const assetsFolder = zip.folder('assets');
@@ -229,8 +270,9 @@ export default function ExportModal() {
       const parts = url.split('/');
       const originalName = parts[parts.length - 1] || (isImage ? 'image.png' : 'video.mp4');
       const cleanName = decodeURIComponent(originalName.split('?')[0]);
-      processedAssets.set(url, cleanName);
-      return cleanName;
+      const safeName = normalizeExportFilename(cleanName, isImage ? 'image.png' : 'video.mp4');
+      processedAssets.set(url, safeName);
+      return safeName;
     };
 
     const extractBackgroundUrls = (cssText: string): string[] => {
@@ -248,7 +290,7 @@ export default function ExportModal() {
 
     const processSlideHtml = async (html: string): Promise<string> => {
       const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = html;
+      tempDiv.innerHTML = sanitizeExportSlideHtml(html);
 
       const allElements = tempDiv.querySelectorAll('*');
       allElements.forEach((el) => {
@@ -342,7 +384,7 @@ export default function ExportModal() {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${presentation.title}</title>
+  <title>${escapeHtmlText(presentation.title)}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: #f1f5f9; padding: 40px 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
@@ -354,7 +396,7 @@ export default function ExportModal() {
   </style>
 </head>
 <body>
-  <h1 style="text-align: center; margin-bottom: 40px; color: #1e293b;">${presentation.title}</h1>
+  <h1 style="text-align: center; margin-bottom: 40px; color: #1e293b;">${escapeHtmlText(presentation.title)}</h1>
   ${slidesHTML}
 </body>
 </html>`;
@@ -362,11 +404,15 @@ export default function ExportModal() {
     zip.file('index.html', html);
 
     const zipBlob = await zip.generateAsync({ type: 'blob' });
-    downloadBlob(zipBlob, `${presentation.title}.zip`);
+    downloadBlob(zipBlob, `${normalizeExportFilename(presentation.title)}.zip`);
   };
 
   const exportPDF = async () => {
     if (!presentation) return;
+    const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+      import('jspdf'),
+      import('html2canvas'),
+    ]);
 
     const slideWidth = presentation.width || 1280;
     const slideHeight = presentation.height || 720;
@@ -386,28 +432,27 @@ export default function ExportModal() {
       slideEl.style.position = 'relative';
       slideEl.style.background = '#fff';
       slideEl.style.overflow = 'hidden';
-      slideEl.innerHTML = slide.html;
+      slideEl.innerHTML = sanitizeExportSlideHtml(slide.html);
 
-      document.body.appendChild(slideEl);
-
-      const canvas = await html2canvas(slideEl, {
-        scale: 1.5,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-      });
-
-      document.body.removeChild(slideEl);
+      const canvas = await withTemporaryElement(slideEl, (element) =>
+        html2canvas(element, {
+          scale: 1.5,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+        }),
+      );
 
       const imgData = canvas.toDataURL('image/png');
       if (i > 0) pdf.addPage();
       pdf.addImage(imgData, 'PNG', 0, 0, slideWidth, slideHeight);
     }
 
-    pdf.save(`${presentation.title}.pdf`);
+    pdf.save(`${normalizeExportFilename(presentation.title)}.pdf`);
   };
 
   const exportPNG = async () => {
     if (!presentation) return;
+    const { default: html2canvas } = await import('html2canvas');
 
     const slideWidth = presentation.width || 1280;
     const slideHeight = presentation.height || 720;
@@ -420,40 +465,77 @@ export default function ExportModal() {
       slideEl.style.position = 'relative';
       slideEl.style.background = '#fff';
       slideEl.style.overflow = 'hidden';
-      slideEl.innerHTML = slide.html;
+      slideEl.innerHTML = sanitizeExportSlideHtml(slide.html);
 
-      document.body.appendChild(slideEl);
-      const canvas = await html2canvas(slideEl, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
+      const canvas = await withTemporaryElement(slideEl, (element) =>
+        html2canvas(element, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+        }),
+      );
+
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((result) => {
+          if (result) resolve(result);
+          else reject(new Error('PNG export returned an empty blob'));
+        }, 'image/png');
       });
-      document.body.removeChild(slideEl);
-
-      canvas.toBlob((blob) => {
-        if (blob) {
-          downloadBlob(blob, `${presentation.title}_第${i + 1}页.png`);
-        }
-      }, 'image/png');
+      downloadBlob(blob, `${normalizeExportFilename(presentation.title)}_第${i + 1}页.png`);
 
       await new Promise((r) => setTimeout(r, 200));
     }
   };
 
+  /**
+   * PPTX 导出：Presentation → Deck → PptxGenJS。
+   * `pptxgenjs` 体积约 400KB（含 JSZip），用动态 import 避免拖慢首屏。
+   */
+  const exportPPTX = async () => {
+    if (!presentation) return;
+    const { exportDeckToPptx } = await import('@/export/pptx/deck-to-pptx');
+    const sanitizedPresentation = {
+      ...presentation,
+      slides: presentation.slides.map((slide) => ({
+        ...slide,
+        html: sanitizeExportSlideHtml(slide.html),
+      })),
+    };
+    const deck = presentationToDeck(sanitizedPresentation, {
+      width: presentation.width || 1280,
+      height: presentation.height || 720,
+    });
+    await exportDeckToPptx(deck, {
+      fileName: `${normalizeExportFilename(presentation.title)}.pptx`,
+      notesById: collectNotesById(presentation),
+      compression: true,
+    });
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+      <div
+        className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="export-modal-title"
+      >
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
               <Download className="w-5 h-5 text-slate-600" />
             </div>
             <div>
-              <h3 className="font-semibold text-slate-900">{t('导出演示文稿')}</h3>
+              <h3 id="export-modal-title" className="font-semibold text-slate-900">
+                {t('导出演示文稿')}
+              </h3>
               <p className="text-xs text-slate-500">{t('选择导出格式')}</p>
             </div>
           </div>
           <button
+            type="button"
+            ref={closeButtonRef}
+            aria-label={t('关闭导出对话框')}
             onClick={() => setExportModal(false)}
             className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
           >
@@ -464,6 +546,7 @@ export default function ExportModal() {
         <div className="p-4 space-y-2">
           {exportFormats.map((format) => (
             <button
+              type="button"
               key={format.id}
               onClick={() => handleExport(format.id)}
               disabled={exporting !== null}

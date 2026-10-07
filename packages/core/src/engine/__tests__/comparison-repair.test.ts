@@ -13,6 +13,7 @@
 // ============================================================================
 import { describe, it, expect } from 'vitest';
 import { LayoutEngine } from '../layout-engine';
+import type { Slide } from '../../models/slide';
 
 const mkSlide = (html: string) =>
   ({
@@ -24,7 +25,7 @@ const mkSlide = (html: string) =>
     index: 0,
     createdAt: 0,
     updatedAt: 0,
-  }) as any;
+  }) as Slide;
 
 const normalize = (html: string): string => LayoutEngine.normalizeAISlide(mkSlide(html)).html;
 

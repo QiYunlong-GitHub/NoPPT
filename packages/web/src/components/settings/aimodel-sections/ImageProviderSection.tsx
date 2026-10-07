@@ -32,9 +32,7 @@ export function ImageProviderSection({
   return (
     <section className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
       <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-          {t('AI 图片生成')}
-        </h2>
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{t('AI 图片生成')}</h2>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
           {t('配置所有6个图片生成服务商，支持多模型、多尺寸、像素范围配置')}
         </p>
@@ -273,9 +271,7 @@ function ImageProviderApiFields({
           </label>
           <select
             value={activeImageProvider?.gatewayVendor || 'openai'}
-            onChange={(e) =>
-              updateActiveImageProvider({ gatewayVendor: e.target.value as any })
-            }
+            onChange={(e) => updateActiveImageProvider({ gatewayVendor: e.target.value as any })}
             className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
           >
             <option value="openai">{t('OpenAI 兼容格式')}</option>

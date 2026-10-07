@@ -17,11 +17,13 @@ import { ApiKeyService } from './api-key.service';
 import type { ApiKeyRecord, CreateKeyInput, PublicApiKeyRecord } from './api-key.service';
 import { envStr } from '../../common/env';
 import { getConfigLocale, translate } from '../../i18n/locale';
+import { PublicRoute } from './public-metadata.decorator';
 
 /**
  * API Key 管理接口（规格 3.1 / UC-1）。
  * 全部受 `x-admin-key` 头保护，值取自环境变量 `NOPPT_ADMIN_KEY`。
  */
+@PublicRoute()
 @Controller('keys')
 export class KeysController {
   constructor(private readonly apiKeyService: ApiKeyService) {}

@@ -25,6 +25,11 @@
       "types": "./dist/cjs/templates/index.d.ts",
       "require": "./dist/cjs/templates/index.js",
       "import": "./dist/cjs/templates/index.js"
+    },
+    "./templates/browser-icons": {
+      "types": "./dist/cjs/templates/browser-icons.d.ts",
+      "require": "./dist/cjs/templates/browser-icons.js",
+      "import": "./dist/cjs/templates/browser-icons.js"
     }
   },
   "scripts": {

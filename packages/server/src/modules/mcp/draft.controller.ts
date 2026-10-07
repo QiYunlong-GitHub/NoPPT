@@ -10,6 +10,7 @@ import {
 } from './draft-store';
 import type { DraftPrefillView } from './draft-store';
 import { getRequestLocale, translate } from '../../i18n/locale';
+import { PublicRoute } from '../auth/public-metadata.decorator';
 
 /**
  * 生成草稿读取：`GET /api/drafts/:draftId?tenant=&user=&token=`
@@ -26,6 +27,7 @@ import { getRequestLocale, translate } from '../../i18n/locale';
  *
  * 响应一律手写（不用 Nest 异常过滤器）：错误体只含 `error` / `message`，**不回传堆栈**。
  */
+@PublicRoute()
 @Controller('drafts')
 export class DraftController {
   @Get(':draftId')

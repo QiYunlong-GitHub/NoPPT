@@ -1,5 +1,11 @@
 import { BaseProvider, formatMessages, truncate } from './base';
 import type { ChatMessage, ChatOptions, ChatResponse, ModelConfig, ContentPart } from '../types';
+import {
+  asResponseRecord,
+  isResponseRecord,
+  responseRecords,
+  responseString,
+} from './response-helpers';
 
 export interface V0ProviderConfig {
   apiKey: string;
@@ -18,6 +24,31 @@ interface V0ChatResponse {
       content: string;
     }>;
   };
+}
+
+function parseV0ChatResponse(value: unknown): V0ChatResponse {
+  const record = asResponseRecord(value);
+  const id = responseString(record, 'id');
+  const webUrl = responseString(record, 'webUrl');
+  if (!id || !webUrl) throw new Error('Invalid v0 response: missing chat identity');
+
+  const latest = record.latestVersion;
+  let latestVersion: V0ChatResponse['latestVersion'];
+  if (isResponseRecord(latest)) {
+    const files = responseRecords(latest, 'files')
+      .map((file) => {
+        const name = responseString(file, 'name');
+        const content = responseString(file, 'content');
+        return name && content !== undefined ? { name, content } : undefined;
+      })
+      .filter((file): file is { name: string; content: string } => Boolean(file));
+    latestVersion = {
+      id: responseString(latest, 'id') ?? '',
+      demoUrl: responseString(latest, 'demoUrl'),
+      files,
+    };
+  }
+  return { id, webUrl, latestVersion };
 }
 
 function extractTextContent(content: string | ContentPart[]): string {
@@ -70,7 +101,7 @@ export class V0Provider extends BaseProvider {
     const startTime = Date.now();
 
     try {
-      const body: Record<string, any> = {
+      const body: Record<string, unknown> = {
         message: userMessage,
         modelConfiguration: {
           modelId: this.config.model || 'v0-1.5-md',
@@ -88,6 +119,7 @@ export class V0Provider extends BaseProvider {
           Authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify(body),
+        signal: options?.signal,
       });
 
       if (!response.ok) {
@@ -101,7 +133,7 @@ export class V0Provider extends BaseProvider {
         throw new Error(errorMsg);
       }
 
-      const data = (await response.json()) as V0ChatResponse;
+      const data = parseV0ChatResponse(await response.json());
       const duration = Date.now() - startTime;
 
       let content = '';
@@ -247,7 +279,7 @@ export class V0Provider extends BaseProvider {
         throw new Error(errorMsg);
       }
 
-      const data = await response.json();
+      const data = parseV0ChatResponse(await response.json());
       this.logResponse('getChatById', {
         durationMs: duration,
         chatId: data.id,
@@ -289,7 +321,7 @@ export class V0Provider extends BaseProvider {
         throw new Error(errorMsg);
       }
 
-      const data = await response.json();
+      const data = parseV0ChatResponse(await response.json());
       this.logResponse('sendMessage', {
         durationMs: duration,
         chatId: data.id,

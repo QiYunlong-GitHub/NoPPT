@@ -120,7 +120,7 @@ export class FidelityAuditEngine {
             fixSuggestion:
               'Add overflow:hidden/auto, increase container size, or reduce content size',
             fixable: true,
-            metadata: rec,
+            metadata: rec as unknown as Record<string, unknown>,
           });
         }
 
@@ -138,7 +138,7 @@ export class FidelityAuditEngine {
               ? 'Adjust positioning or z-index to prevent content occlusion'
               : 'Review layout to reduce overlap',
             fixable: true,
-            metadata: rec,
+            metadata: rec as unknown as Record<string, unknown>,
           });
         }
 
@@ -153,7 +153,7 @@ export class FidelityAuditEngine {
             message: `Text in <${rec.tagName}> is truncated (scrollWidth: ${rec.scrollWidth}px, clientWidth: ${rec.clientWidth}px)`,
             fixSuggestion: 'Increase container width, allow wrapping, or reduce text content',
             fixable: true,
-            metadata: rec,
+            metadata: rec as unknown as Record<string, unknown>,
           });
         }
 
@@ -169,7 +169,7 @@ export class FidelityAuditEngine {
             fixSuggestion:
               'Check image URL, ensure resource is accessible, or replace with a valid image',
             fixable: false,
-            metadata: rec,
+            metadata: rec as unknown as Record<string, unknown>,
           });
         }
 

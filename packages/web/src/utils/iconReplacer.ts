@@ -1,4 +1,4 @@
-import { renderSvgIcon, resolveIconByIndex } from '@noppt/ai/templates';
+import { renderSvgIcon, resolveIconByIndex } from '@noppt/ai/templates/browser-icons';
 
 export type IconStyle =
   | 'auto'

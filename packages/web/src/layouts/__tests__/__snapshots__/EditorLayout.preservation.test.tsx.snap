@@ -1,0 +1,58 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`presentation visual integrity · Web preservation baseline > keeps export fallback behavior stable for seeded legal mixed presentations > seeded-export-fallback-cases 1`] = `
+[
+  {
+    "count": 2,
+    "pageTypes": [
+      undefined,
+      undefined,
+    ],
+    "seed": 20903,
+    "source": "html",
+  },
+  {
+    "count": 1,
+    "pageTypes": [
+      "content-cards",
+    ],
+    "seed": 2654435769,
+    "source": "plan",
+  },
+  {
+    "count": 2,
+    "pageTypes": [
+      "content-cards",
+      undefined,
+    ],
+    "seed": 305419896,
+    "source": "plan",
+  },
+  {
+    "count": 2,
+    "pageTypes": [
+      "content-cards",
+      undefined,
+    ],
+    "seed": 3735928559,
+    "source": "plan",
+  },
+]
+`;
+
+exports[`presentation visual integrity · Web preservation baseline > records unavailable live editor/browser service as unverified without changing export assertions > web-unverified-environment 1`] = `
+{
+  "browser": {
+    "reason": "EditorLayout live viewport is not started in the unit baseline.",
+    "status": "unverified",
+  },
+  "font": {
+    "reason": "Unit DOM cannot prove resolved font metrics.",
+    "status": "unverified",
+  },
+  "service": {
+    "reason": "Task 0 recorded the API service as unavailable.",
+    "status": "unverified",
+  },
+}
+`;

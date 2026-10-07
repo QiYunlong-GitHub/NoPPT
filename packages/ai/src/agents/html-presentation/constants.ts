@@ -45,7 +45,6 @@ export const BODY_CLAMP_TAGS = [
 ];
 // ==================================================================
 
-
 export function replaceImagePlaceholderWithRealSrc(
   html: string,
   realSrc: string,
@@ -79,4 +78,3 @@ export function replaceImagePlaceholderWithRealSrc(
     return `<img ${attrs.join(' ')}>`;
   });
 }
-

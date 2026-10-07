@@ -332,8 +332,7 @@ export function enforceHeadingColorOnLightBg(
         const colorPart = '#' + raw.substring(0, 6).toLowerCase();
         const alphaPart = raw.substring(6, 8).toLowerCase();
         // 如果颜色部分 == 主色 或 == 主色 darker，且 alpha ≤ 20% → 浅（视觉几乎白）
-        if ((colorPart === pLow || colorPart === dLow) && alphaLowEnough(alphaPart))
-          return 'light';
+        if ((colorPart === pLow || colorPart === dLow) && alphaLowEnough(alphaPart)) return 'light';
         // 其他深透明色=判 unknown 保守
         return 'unknown';
       }

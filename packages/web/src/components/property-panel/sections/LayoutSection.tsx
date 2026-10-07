@@ -106,9 +106,7 @@ export function LayoutSection(props: PropertyPanelSharedProps) {
               title={t('页面水平居中')}
             >
               <AlignHorizontalJustifyCenter className="w-4 h-4 text-blue-600 mx-auto" />
-              <span className="text-xs text-blue-600 font-medium block mt-1">
-                {t('水平居中')}
-              </span>
+              <span className="text-xs text-blue-600 font-medium block mt-1">{t('水平居中')}</span>
             </button>
             <button
               onClick={() =>
@@ -118,9 +116,7 @@ export function LayoutSection(props: PropertyPanelSharedProps) {
               title={t('页面垂直居中')}
             >
               <AlignVerticalJustifyCenter className="w-4 h-4 text-blue-600 mx-auto" />
-              <span className="text-xs text-blue-600 font-medium block mt-1">
-                {t('垂直居中')}
-              </span>
+              <span className="text-xs text-blue-600 font-medium block mt-1">{t('垂直居中')}</span>
             </button>
           </div>
         </div>

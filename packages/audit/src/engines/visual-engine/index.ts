@@ -3,7 +3,13 @@ import * as path from 'path';
 import * as fs from 'fs';
 import type { AuditContext, AuditEngineResult, AuditIssue } from '../../types';
 import { SlideRenderer } from './slide-renderer';
-import { checkFontAndIcons } from './font-icon-check';
+import { checkFontAndIcons, createFontProfile } from './font-icon-check';
+import {
+  DEFAULT_VISUAL_VIEWPORTS,
+  runVisualValidation,
+  type VisualValidationReport,
+} from './visual-validation';
+import type { FontProfile } from './font-icon-check';
 import { runVlmCritique } from './vlm-critique';
 import type { AIModelProvider } from '@noppt/ai';
 import {
@@ -34,10 +40,56 @@ export interface PerSlideVisualMetrics {
     fontSizeLevels: number;
     iconStyles: string[];
     iconStyleConsistent: boolean;
+    state: 'resolved' | 'fallback' | 'unverified' | 'failed';
+    profile: FontProfile;
+    declaredFamily: string;
+    resolvedFamily: string;
+    declaredWeight: number | string;
+    resolvedWeight?: number | string;
+    fontSize?: number;
+    lineHeight?: number;
+    domMetrics: {
+      scrollWidth?: number;
+      clientWidth?: number;
+      scrollHeight?: number;
+      clientHeight?: number;
+    };
+    fontChecks?: Record<string, boolean>;
+    weightState: 'matched' | 'mismatch' | 'unverified';
+    fallbackUsed: boolean;
+    metricStatus: 'ok' | 'warn' | 'fail';
+    maxMetricDelta: number;
+    metricDeltas: { width: number; height: number; canvas: number };
+    reason?: string;
   };
+  layoutProfile?: string;
   screenshotPath?: string;
 }
 
+interface VisualIssueCollectionInput {
+  slideIndex: number;
+  contrast: Awaited<ReturnType<typeof computeFigureGroundContrast>>;
+  harmony: ReturnType<typeof computeColorHarmony>;
+  colorfulness: ReturnType<typeof computeColorfulness>;
+  entropy: ReturnType<typeof computeSubbandEntropy>;
+  fontIcons: Awaited<ReturnType<typeof checkFontAndIcons>>;
+  issues: AuditIssue[];
+}
+
+interface RenderedSlideAuditInput {
+  renderer: SlideRenderer;
+  slides: AuditContext['presentation']['slides'];
+  viewport: { width: number; height: number };
+  fontProfile: FontProfile;
+  defaultLayoutProfile: string;
+  perSlide: PerSlideVisualMetrics[];
+  complexities: number[];
+  screenshotPaths: string[];
+  issues: AuditIssue[];
+  vlmScores: number[];
+  context: AuditContext;
+  tempDir: string;
+}
 export class VisualAuditEngine {
   private renderer: SlideRenderer | null = null;
   private tempDir: string;
@@ -105,79 +157,86 @@ export class VisualAuditEngine {
     }
 
     const viewport = context.config.viewport || { width: 1280, height: 720 };
+    const fontProfile: FontProfile = createFontProfile(
+      context.designContext?.fontFamily || 'system-ui, sans-serif',
+      400,
+      { source: context.designContext ? 'design-context' : 'computed-default' },
+    );
+    const defaultLayoutProfile = viewport.width < 1000
+      ? 'narrow'
+      : viewport.width > 1400
+        ? 'wide'
+        : 'standard';
 
-    for (let i = 0; i < slides.length; i++) {
-      const slide = slides[i];
-      const page = await renderer.renderSlide(slide.html);
-      try {
-        if (viewport.width !== 1280 || viewport.height !== 720) {
-          await page.setViewportSize({ width: viewport.width, height: viewport.height });
-        }
+    let visualValidation: VisualValidationReport;
+    try {
+      visualValidation = await runVisualValidation(context.presentation, {
+        presentationId: context.presentation.id,
+        runId: context.runId,
+        artifactRoot: path.join(this.tempDir, 'visual-validation'),
+        viewports: DEFAULT_VISUAL_VIEWPORTS,
+        resizeSequence: [
+          DEFAULT_VISUAL_VIEWPORTS[0],
+          DEFAULT_VISUAL_VIEWPORTS[1],
+          DEFAULT_VISUAL_VIEWPORTS[2],
+          DEFAULT_VISUAL_VIEWPORTS[1],
+          DEFAULT_VISUAL_VIEWPORTS[0],
+        ],
+        renderer,
+      });
+    } catch (error) {
+      visualValidation = {
+        runId: context.runId || `visual-${Date.now()}`,
+        presentationId: context.presentation.id,
+        status: 'unverified',
+        pageCount: slides.length,
+        viewportSequence: DEFAULT_VISUAL_VIEWPORTS.map((item) => `${item.width}x${item.height}`),
+        browser: { status: 'unverified', reason: error instanceof Error ? error.message : String(error) },
+        slides: [],
+        unverified: [{ code: 'visual_validation_failed', detail: error instanceof Error ? error.message : String(error) }],
+        reportPath: path.join(this.tempDir, 'visual-validation', 'visual-validation-report.json'),
+        markdownReportPath: path.join(this.tempDir, 'visual-validation', 'visual-validation-report.md'),
+      };
+    }
 
-        const screenshotPath = path.join(this.tempDir, `slide-${i}.png`);
-        await renderer.captureScreenshot(page, screenshotPath);
-        screenshotPaths.push(screenshotPath);
-
-        const imageData = await renderer.getImageData(page);
-
-        const [contrast, harmony, colorfulness, entropy, fontIcons] = await Promise.all([
-          computeFigureGroundContrast(imageData, page),
-          Promise.resolve(computeColorHarmony(imageData)),
-          Promise.resolve(computeColorfulness(imageData)),
-          Promise.resolve(computeSubbandEntropy(imageData)),
-          checkFontAndIcons(page),
-        ]);
-
-        complexities.push(entropy.entropy);
-
-        perSlide.push({
-          slideIndex: i,
-          contrast: {
-            mean: contrast.mean,
-            min: contrast.min,
-            max: contrast.max,
-            lowContrastTextCount: contrast.text.lowContrastPairs.length,
-          },
-          harmony: {
-            bestTemplate: harmony.bestTemplate,
-            bestDistance: harmony.bestDistance,
-            score: harmony.score,
-          },
-          colorfulness: colorfulness.colorfulness,
-          entropy: entropy.entropy,
-          fonts: {
-            fontFamilyCount: fontIcons.fontFamilyCount,
-            fontSizeLevels: fontIcons.fontSizeLevels,
-            iconStyles: fontIcons.iconStyles,
-            iconStyleConsistent: fontIcons.iconStyleConsistent,
-          },
-          screenshotPath,
+    for (const slideResult of visualValidation.slides) {
+      if (slideResult.status === 'fail') {
+        const metric = slideResult.metrics.find((item) => item.requiredClipped > 0 || item.emptyRequiredNodes > 0 || item.horizontalOverflow || item.titleOverlap || item.parity === 'fail' || item.font.status === 'failed');
+        const code = metric?.parity === 'fail'
+          ? 'parity_mismatch'
+          : metric?.emptyRequiredNodes
+            ? 'empty_required_node'
+            : metric?.font.status === 'failed'
+              ? 'font_metric_exceeded'
+              : 'required_clipped';
+        issues.push({
+          ruleId: `visual-validation-${code}`,
+          severity: 'error',
+          engine: 'visual',
+          slideIndex: slideResult.slideIndex,
+          message: `第 ${slideResult.slideIndex + 1} 页视觉验证失败：${slideResult.error || 'required visual checks did not pass'}`,
+          fixSuggestion: '保留隔离候选和截图证据，修复后重新执行全部 viewport 与 resize checks。',
+          fixable: false,
+          metadata: { code, visualValidation: true, artifactPath: visualValidation.reportPath },
         });
-
-        this.collectPerSlideIssues(i, contrast, harmony, colorfulness, entropy, fontIcons, issues);
-
-        if (this.vlmProvider) {
-          try {
-            const vlmResult = await runVlmCritique(
-              this.vlmProvider,
-              screenshotPath,
-              i,
-              slide.title,
-              undefined,
-              context.referenceContext,
-            );
-            if (vlmResult.issues.length > 0) {
-              issues.push(...vlmResult.issues);
-            }
-            if (vlmResult.score > 0) {
-              vlmScores.push(vlmResult.score);
-            }
-          } catch {}
-        }
-      } finally {
-        await page.close();
+      } else if (slideResult.status === 'unverified') {
+        issues.push({
+          ruleId: 'visual-validation-unverified',
+          severity: 'warn',
+          engine: 'visual',
+          slideIndex: slideResult.slideIndex,
+          message: `第 ${slideResult.slideIndex + 1} 页视觉验证未完成：${slideResult.error || visualValidation.browser.reason || 'browser/font evidence unavailable'}`,
+          fixSuggestion: '在可用 Chromium、字体和资源环境中重新执行视觉验证。',
+          fixable: false,
+          metadata: { code: 'visual_evidence_unverified', visualValidation: true, artifactPath: visualValidation.reportPath },
+        });
       }
     }
+
+    await this.collectRenderedSlideEvidence({
+      renderer, slides, viewport, fontProfile, defaultLayoutProfile, perSlide, complexities,
+      screenshotPaths, issues, vlmScores, context, tempDir: this.tempDir,
+    });
 
     const hrv = computeVisualHrv(complexities);
     if (complexities.length >= 2 && hrv.rmssd < 0.15) {
@@ -194,7 +253,7 @@ export class VisualAuditEngine {
     }
 
     const scores = this.computeWeightedScore(perSlide, hrv.score);
-    let metricScore = scores.total;
+    const metricScore = scores.total;
     let total = metricScore;
 
     if (vlmScores.length > 0) {
@@ -219,25 +278,93 @@ export class VisualAuditEngine {
       durationMs: Date.now() - startTime,
       raw: {
         perSlide,
+        fontEvidence: perSlide.map((slide) => ({
+          slideIndex: slide.slideIndex,
+          state: slide.fonts.state,
+          profile: slide.fonts.profile,
+          declaredFamily: slide.fonts.declaredFamily,
+          resolvedFamily: slide.fonts.resolvedFamily,
+          declaredWeight: slide.fonts.declaredWeight,
+          resolvedWeight: slide.fonts.resolvedWeight,
+          fontSize: slide.fonts.fontSize,
+          lineHeight: slide.fonts.lineHeight,
+          domMetrics: slide.fonts.domMetrics,
+          fontChecks: slide.fonts.fontChecks,
+          weightState: slide.fonts.weightState,
+          fallbackUsed: slide.fonts.fallbackUsed,
+          metricStatus: slide.fonts.metricStatus,
+          maxMetricDelta: slide.fonts.maxMetricDelta,
+          metricDeltas: slide.fonts.metricDeltas,
+          layoutProfile: slide.layoutProfile,
+          reason: slide.fonts.reason,
+        })),
         pacing: hrv,
         componentScores: scores,
         metricScore,
         vlmScores,
         vlmEnabled: !!this.vlmProvider,
         screenshots: screenshotPaths,
+        visualValidation,
       },
     };
   }
 
-  private collectPerSlideIssues(
-    slideIndex: number,
-    contrast: Awaited<ReturnType<typeof computeFigureGroundContrast>>,
-    harmony: ReturnType<typeof computeColorHarmony>,
-    colorfulness: ReturnType<typeof computeColorfulness>,
-    entropy: ReturnType<typeof computeSubbandEntropy>,
-    fontIcons: Awaited<ReturnType<typeof checkFontAndIcons>>,
-    issues: AuditIssue[],
-  ): void {
+  private async collectRenderedSlideEvidence(input: RenderedSlideAuditInput): Promise<void> {
+    const { renderer, slides, viewport, fontProfile, defaultLayoutProfile, perSlide, complexities, screenshotPaths, issues, vlmScores, context, tempDir } = input;
+    for (let i = 0; i < slides.length; i++) {
+      const slide = slides[i];
+      const page = await renderer.renderSlide(slide.html);
+      try {
+        if (viewport.width !== 1280 || viewport.height !== 720) await page.setViewportSize(viewport);
+        const screenshotPath = path.join(tempDir, `slide-${i}.png`);
+        await renderer.captureScreenshot(page, screenshotPath);
+        screenshotPaths.push(screenshotPath);
+        const imageData = await renderer.getImageData(page);
+        const [contrast, harmony, colorfulness, entropy, fontIcons] = await Promise.all([
+          computeFigureGroundContrast(imageData, page),
+          Promise.resolve(computeColorHarmony(imageData)),
+          Promise.resolve(computeColorfulness(imageData)),
+          Promise.resolve(computeSubbandEntropy(imageData)),
+          checkFontAndIcons(page, fontProfile),
+        ]);
+        complexities.push(entropy.entropy);
+        perSlide.push({
+          slideIndex: i,
+          contrast: { mean: contrast.mean, min: contrast.min, max: contrast.max, lowContrastTextCount: contrast.text.lowContrastPairs.length },
+          harmony: { bestTemplate: harmony.bestTemplate, bestDistance: harmony.bestDistance, score: harmony.score },
+          colorfulness: colorfulness.colorfulness,
+          entropy: entropy.entropy,
+          fonts: {
+            fontFamilyCount: fontIcons.fontFamilyCount, fontSizeLevels: fontIcons.fontSizeLevels, iconStyles: fontIcons.iconStyles,
+            iconStyleConsistent: fontIcons.iconStyleConsistent, state: fontIcons.font.state, profile: fontIcons.font.profile,
+            declaredFamily: fontIcons.font.declaredFamily, resolvedFamily: fontIcons.font.resolvedFamily,
+            declaredWeight: fontIcons.font.declaredWeight, resolvedWeight: fontIcons.font.resolvedWeight,
+            fontSize: fontIcons.font.fontSize, lineHeight: fontIcons.font.lineHeight, domMetrics: fontIcons.font.domMetrics,
+            fontChecks: fontIcons.font.fontChecks, weightState: fontIcons.font.weightState, fallbackUsed: fontIcons.font.fallbackUsed,
+            metricStatus: fontIcons.font.metricStatus, maxMetricDelta: fontIcons.font.maxMetricDelta,
+            metricDeltas: fontIcons.font.metricDeltas, reason: fontIcons.font.reason,
+          },
+          layoutProfile: fontIcons.layoutProfile || defaultLayoutProfile,
+          screenshotPath,
+        });
+        this.collectPerSlideIssues({ slideIndex: i, contrast, harmony, colorfulness, entropy, fontIcons, issues });
+        if (this.vlmProvider) {
+          try {
+            const vlmResult = await runVlmCritique(this.vlmProvider, screenshotPath, i, slide.title, undefined, context.referenceContext);
+            if (vlmResult.issues.length > 0) issues.push(...vlmResult.issues);
+            if (vlmResult.score > 0) vlmScores.push(vlmResult.score);
+          } catch {
+            // VLM critique is optional; preserve the deterministic audit result on failure.
+          }
+        }
+      } finally {
+        await page.close();
+      }
+    }
+  }
+
+  private collectPerSlideIssues(input: VisualIssueCollectionInput): void {
+    const { slideIndex, contrast, harmony, colorfulness, entropy, fontIcons, issues } = input;
     const minRatio = contrast.text.min;
 
     if (minRatio < 3.0) {
@@ -348,6 +475,52 @@ export class VisualAuditEngine {
         fixSuggestion: '统一使用线性或实心一种图标风格',
         fixable: false,
         metadata: { iconStyles: fontIcons.iconStyles },
+      });
+    }
+
+    if (fontIcons.font.state === 'unverified') {
+      issues.push({
+        ruleId: 'font-unverified',
+        severity: 'warn',
+        engine: 'visual',
+        slideIndex,
+        message: `第 ${slideIndex + 1} 页字体无法验证：${fontIcons.font.reason || 'unknown'}`,
+        fixSuggestion: '在支持 document.fonts 的浏览器中重新验证字体和度量',
+        fixable: false,
+        metadata: { font: fontIcons.font },
+      });
+    } else if (fontIcons.font.state === 'fallback') {
+      issues.push({
+        ruleId: 'font-fallback',
+        severity: 'warn',
+        engine: 'visual',
+        slideIndex,
+        message: `第 ${slideIndex + 1} 页使用字体回退：${fontIcons.font.declaredFamily} → ${fontIcons.font.resolvedFamily}`,
+        fixSuggestion: '触发安全重排并复核字体度量，不能将回退标记为 resolved',
+        fixable: false,
+        metadata: { font: fontIcons.font },
+      });
+    } else if (fontIcons.font.state === 'failed') {
+      issues.push({
+        ruleId: 'font-validation-failed',
+        severity: 'error',
+        engine: 'visual',
+        slideIndex,
+        message: `第 ${slideIndex + 1} 页字体验证失败：${fontIcons.font.reason || 'unknown'}`,
+        fixSuggestion: '检查声明字体、字重和文本度量后重新布局',
+        fixable: false,
+        metadata: { font: fontIcons.font },
+      });
+    } else if (fontIcons.font.metricStatus === 'warn') {
+      issues.push({
+        ruleId: 'font-metric-delta',
+        severity: 'warn',
+        engine: 'visual',
+        slideIndex,
+        message: `第 ${slideIndex + 1} 页字体度量差达到 ${(fontIcons.font.maxMetricDelta * 100).toFixed(1)}%`,
+        fixSuggestion: '触发重排或缩小文本区域内容，并保留度量证据',
+        fixable: false,
+        metadata: { font: fontIcons.font },
       });
     }
   }

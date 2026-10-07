@@ -87,10 +87,8 @@ describe('postprocess · 颜色/对比度数学簇（精确断言）', () => {
   });
 
   describe('fontSizeOf / fontWeightOf（入参为 style Map）', () => {
-    it('fontSizeOf', () =>
-      expect(svc.fontSizeOf(new Map([['font-size', '24px']]))).toBe(24));
-    it('fontWeightOf', () =>
-      expect(svc.fontWeightOf(new Map([['font-weight', '700']]))).toBe(700));
+    it('fontSizeOf', () => expect(svc.fontSizeOf(new Map([['font-size', '24px']]))).toBe(24));
+    it('fontWeightOf', () => expect(svc.fontWeightOf(new Map([['font-weight', '700']]))).toBe(700));
   });
 });
 

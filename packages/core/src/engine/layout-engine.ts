@@ -1,11 +1,5 @@
-import {
-  generateId,
-  generatePresentationId,
-} from '../utils/id';
-import type {
-  Slide,
-  Presentation,
-} from '../models/slide';
+import { generateId, generatePresentationId } from '../utils/id';
+import type { Slide, Presentation } from '../models/slide';
 import {
   enforceImageStyles,
   enforceMinFontSize,
@@ -16,9 +10,7 @@ import {
   applyCompositionGuard,
 } from './visual-fixes';
 
-import {
-  DEFAULT_HTML,
-} from './layout/constants';
+import { DEFAULT_HTML } from './layout/constants';
 import {
   removeEmptyDefaultContainer,
   wrapWithContainer,
@@ -26,12 +18,8 @@ import {
   cleanupEmptyDivs,
   cleanupEmptyInlineTags,
 } from './layout/dom';
-import {
-  normalizeOuterContainer,
-} from './layout/container';
-import {
-  defaultPadYx,
-} from './layout/constants';
+import { normalizeOuterContainer } from './layout/container';
+import { defaultPadYx } from './layout/constants';
 import {
   inferPrimaryColor,
   repairTrivialSvgIcons,
@@ -39,13 +27,8 @@ import {
   repairEmptySvgs,
   unwrapIconWrappingParagraph,
 } from './layout/icon';
-import {
-  removeForcedCardHeight,
-  enforceBareTextToParagraphs,
-} from './layout/text';
-import {
-  preventContentImageTopOverflow,
-} from './layout/probe';
+import { removeForcedCardHeight, enforceBareTextToParagraphs } from './layout/text';
+import { preventContentImageTopOverflow } from './layout/probe';
 export { isCoverLikeHtml } from './layout/cover';
 export { cleanupEmptyInlineTags } from './layout/dom';
 
@@ -131,7 +114,7 @@ export class LayoutEngine {
     if (firstOuter) {
       const tagName = firstOuter[1];
       const attrs = firstOuter[2] || '';
-      const cls = (attrs.match(/class="([^"]*)"/i) || [, ''])[1];
+      const cls = (attrs.match(/class="([^"]*)"/i) || ['', ''])[1];
       if (!/noppt-/.test(cls)) {
         const styleMatch = attrs.match(/style="([^"]*)"/i);
         const existingStyle = (styleMatch ? styleMatch[1] : '').trim();
@@ -336,9 +319,7 @@ export class LayoutEngine {
   }
 
   /** 收集 HTML 中所有顶层 `<ul>` 块（含嵌套 ul 的外层优先），返回位置与内部 li 数量。 */
-  private static findUlBlocks(
-    html: string,
-  ): Array<{
+  private static findUlBlocks(html: string): Array<{
     openIdx: number;
     openTag: string;
     closeIdx: number;
@@ -736,4 +717,3 @@ export class LayoutEngine {
 }
 
 export { generatePresentationId, generateId };
-

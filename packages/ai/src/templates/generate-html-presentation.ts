@@ -1,6 +1,14 @@
 import { PRESENTATION_PLANNING_PROMPT } from './prompts/planning.prompt';
 import { renderBadgeIcon } from './svg-icons';
-import { getIcons, getEmojiBigIcon, getCircleIcon, getCompareRightIcon, getCompareLeftIcon, buildLi, getSemanticIconByIndex } from './icons';
+import {
+  getIcons,
+  getEmojiBigIcon,
+  getCircleIcon,
+  getCompareRightIcon,
+  getCompareLeftIcon,
+  buildLi,
+  getSemanticIconByIndex,
+} from './icons';
 import type { TemplateCtx } from './pages/types';
 import { buildCoverSections } from './pages/cover';
 import { buildNavSections } from './pages/nav';
@@ -44,7 +52,6 @@ export function getFontStackLocal(family: 'sans' | 'serif' | 'mono' = 'sans'): s
       return "system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', '微软雅黑', 'Noto Sans SC', 'Segoe UI', Roboto, sans-serif";
   }
 }
-
 
 function roundTo8(n: number): number {
   return Math.round(n / 8) * 8;
@@ -145,17 +152,55 @@ export function buildTemplateContext(
   const cmpLeft = getCompareLeftIcon();
 
   return {
-    pad, PX, PY, P, PD, FONT_STACK_ACTIVE, GRAD, OUTER, GRAD_H2, GRAD_H1, GRAD_SUMMARY, GRAD_H3_CARD, GRAD_TEXT,
-    icon0, icon1, icon2, icon3, icon4,
-    li0, li1, li2, li3, li4,
-    useEmojiBigIcons, useLineBigIcons, useFilledBigIcons, getBigIcon,
-    tocIcon0, tocIcon1, tocIcon2,
-    cardIcon0, cardIcon1, cardIcon2, cardIcon3,
-    listCardIcon0, listCardIcon1, listCardIcon2, listCardIcon3,
-    gridCardIcon0, gridCardIcon1, gridCardIcon2, gridCardIcon3,
-    tlIcon0, tlIcon1, tlIcon2,
-    zigzagIcon1, zigzagIcon2,
-    cmpRight, cmpLeft,
+    pad,
+    PX,
+    PY,
+    P,
+    PD,
+    FONT_STACK_ACTIVE,
+    GRAD,
+    OUTER,
+    GRAD_H2,
+    GRAD_H1,
+    GRAD_SUMMARY,
+    GRAD_H3_CARD,
+    GRAD_TEXT,
+    icon0,
+    icon1,
+    icon2,
+    icon3,
+    icon4,
+    li0,
+    li1,
+    li2,
+    li3,
+    li4,
+    useEmojiBigIcons,
+    useLineBigIcons,
+    useFilledBigIcons,
+    getBigIcon,
+    tocIcon0,
+    tocIcon1,
+    tocIcon2,
+    cardIcon0,
+    cardIcon1,
+    cardIcon2,
+    cardIcon3,
+    listCardIcon0,
+    listCardIcon1,
+    listCardIcon2,
+    listCardIcon3,
+    gridCardIcon0,
+    gridCardIcon1,
+    gridCardIcon2,
+    gridCardIcon3,
+    tlIcon0,
+    tlIcon1,
+    tlIcon2,
+    zigzagIcon1,
+    zigzagIcon2,
+    cmpRight,
+    cmpLeft,
   };
 }
 
@@ -174,7 +219,10 @@ export function getPageTemplates(
     ...buildCompareSections(ctx),
     ...buildClosingSections(ctx),
   };
-  const ordered = Object.keys(map).map(Number).sort((a, b) => a - b).map((k) => map[k]);
+  const ordered = Object.keys(map)
+    .map(Number)
+    .sort((a, b) => a - b)
+    .map((k) => map[k]);
   return '\n' + ordered.join('\n');
 }
 
@@ -315,11 +363,9 @@ function extractSections(all: string, headings: string[]): string[] {
   return out;
 }
 
-
 function escapeReg(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
-
 
 export const HTML_PRESENTATION_GENERATION_PROMPT = PRESENTATION_PLANNING_PROMPT;
 export const HTML_PRESENTATION_FROM_REFERENCE_PROMPT = PRESENTATION_PLANNING_PROMPT;

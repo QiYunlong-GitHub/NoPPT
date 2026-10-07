@@ -7,7 +7,13 @@ import type {
   PipelineStage,
   SlideCountMode,
 } from './ai-generate/types';
-import { COLOR_THEME_IDS, ICON_STYLE_IDS, audienceOptions, fontFamilyOptions, colorThemeOptions } from './ai-generate/options';
+import {
+  COLOR_THEME_IDS,
+  ICON_STYLE_IDS,
+  audienceOptions,
+  fontFamilyOptions,
+  colorThemeOptions,
+} from './ai-generate/options';
 import { useGenerateState } from './ai-generate/useGenerateState';
 import { Stepper } from './ai-generate/preview';
 import { ConfigPanel } from './ai-generate/ConfigPanel';
@@ -638,6 +644,10 @@ export default function AIGenerateModal({ open, onClose }: { open: boolean; onCl
           transition,
           width: generatedPres.width || settings.editorSettings.defaultSlideWidth,
           height: generatedPres.height || settings.editorSettings.defaultSlideHeight,
+          // 结构化 deck 落盘：母版与元信息供 PPTX 导出使用。
+          // 逐页节点树随 `slide.deck` 由 normalizeAISlide 原样透传（LayoutEngine 返回 {...slide}）。
+          master: generatedPres.master,
+          meta: generatedPres.meta,
           updatedAt: Date.now(),
         },
         false,

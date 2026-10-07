@@ -7,6 +7,14 @@ import type {
   ImageGenerationOptions,
   GeneratedImage,
 } from '../types';
+import { consumeSse } from './sse';
+import {
+  asResponseRecord,
+  responseNumber,
+  responseRecord,
+  responseRecords,
+  responseString,
+} from './response-helpers';
 
 export class OpenAIProvider extends BaseProvider {
   name = 'openai';
@@ -27,8 +35,8 @@ export class OpenAIProvider extends BaseProvider {
    *  - 百炼/DashScope 及混合思考模型（deepseek-v4 系列）：顶层 enable_thinking:false
    *  - vLLM / SGLang（PAI Model Gallery 的 maas.aliyuncs.com 端点通常为此类）：chat_template_kwargs.enable_thinking:false
    */
-  private resolveExtraBody(options?: Partial<ChatOptions>): Record<string, any> {
-    const extra: Record<string, any> = {
+  private resolveExtraBody(options?: Partial<ChatOptions>): Record<string, unknown> {
+    const extra: Record<string, unknown> = {
       ...(this.config.defaultOptions?.extraBody || {}),
       ...(options?.extraBody || {}),
     };
@@ -36,12 +44,28 @@ export class OpenAIProvider extends BaseProvider {
       extra.enable_thinking = false;
       const ctk =
         extra.chat_template_kwargs && typeof extra.chat_template_kwargs === 'object'
-          ? extra.chat_template_kwargs
+          ? (extra.chat_template_kwargs as Record<string, unknown>)
           : {};
       ctk.enable_thinking = false;
       extra.chat_template_kwargs = ctk;
     }
     return extra;
+  }
+
+  /**
+   * 统一构造请求头。仅当配置了域账号(userCode)时，追加 Sany 网关鉴权所需的
+   * X-Sany-User-Code 头；该字段仅存在于 company-gateway 配置，故对其它 provider 零影响。
+   * 注：OpenAIProvider 构造时会把 provider 统一写为 'openai'，因此以 userCode 是否存在作为注入判据。
+   */
+  private resolveHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${this.config.apiKey || ''}`,
+    };
+    if (this.config.userCode) {
+      headers['X-Sany-User-Code'] = this.config.userCode;
+    }
+    return headers;
   }
 
   async chat(messages: ChatMessage[], options?: Partial<ChatOptions>): Promise<ChatResponse> {
@@ -62,10 +86,7 @@ export class OpenAIProvider extends BaseProvider {
     try {
       const response = await fetch(`${baseUrl}/chat/completions`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.config.apiKey || ''}`,
-        },
+        headers: this.resolveHeaders(),
         body: JSON.stringify({
           model: opts.model,
           messages,
@@ -75,6 +96,7 @@ export class OpenAIProvider extends BaseProvider {
           stream: false,
           ...this.resolveExtraBody(options),
         }),
+        signal: options?.signal,
       });
 
       if (!response.ok) {
@@ -83,24 +105,26 @@ export class OpenAIProvider extends BaseProvider {
         throw new Error(errorMsg);
       }
 
-      const data = await response.json();
+      const data = asResponseRecord(await response.json());
       const duration = Date.now() - startTime;
 
-      const message = data.choices?.[0]?.message;
-      const finishReason = data.choices?.[0]?.finish_reason;
+      const choice = responseRecords(data, 'choices')[0];
+      const message = choice ? responseRecord(choice, 'message') : undefined;
+      const usage = responseRecord(data, 'usage');
       const result: ChatResponse = {
-        content: message?.content || '',
-        model: data.model,
-        usage: data.usage
+        content: responseString(message ?? {}, 'content') ?? '',
+        model: responseString(data, 'model') ?? opts.model,
+        usage: usage
           ? {
-              promptTokens: data.usage.prompt_tokens,
-              completionTokens: data.usage.completion_tokens,
-              totalTokens: data.usage.total_tokens,
+              promptTokens: responseNumber(usage, 'prompt_tokens') ?? 0,
+              completionTokens: responseNumber(usage, 'completion_tokens') ?? 0,
+              totalTokens: responseNumber(usage, 'total_tokens') ?? 0,
             }
           : undefined,
-        reasoningContent: message?.reasoning_content || undefined,
-        finishReason,
+        reasoningContent: responseString(message ?? {}, 'reasoning_content'),
+        finishReason: responseString(choice ?? {}, 'finish_reason'),
       };
+      const finishReason = result.finishReason;
 
       this.logResponse('chat', {
         durationMs: duration,
@@ -109,7 +133,9 @@ export class OpenAIProvider extends BaseProvider {
         contentPreview: truncate(result.content, 1000),
         contentLength: result.content.length,
         finishReason,
-        reasoningPreview: result.reasoningContent ? truncate(result.reasoningContent, 300) : undefined,
+        reasoningPreview: result.reasoningContent
+          ? truncate(result.reasoningContent, 300)
+          : undefined,
         reasoningLength: result.reasoningContent?.length || 0,
       });
 
@@ -146,37 +172,33 @@ export class OpenAIProvider extends BaseProvider {
   private async readStream(
     reader: ReadableStreamDefaultReader<Uint8Array>,
     onContent: (text: string) => void,
+    signal?: AbortSignal,
   ): Promise<{ model: string; reasoning: string; finishReason?: string }> {
-    const decoder = new TextDecoder();
-    let buffer = '';
     let model = '';
     let fullReasoning = '';
     let finishReason: string | undefined;
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (trimmed === '' || !trimmed.startsWith('data: ')) continue;
-        const data = trimmed.slice(6).trim();
-        if (data === '[DONE]') continue;
+    await consumeSse(
+      reader,
+      (data) => {
         try {
-          const parsed = JSON.parse(data);
-          model = parsed.model || model;
-          const choice = parsed.choices?.[0];
-          if (choice?.finish_reason) finishReason = choice.finish_reason;
-          const content = choice?.delta?.content;
-          const reasoning = choice?.delta?.reasoning_content;
+          const parsed = asResponseRecord(JSON.parse(data));
+          model = responseString(parsed, 'model') || model;
+          const choice = responseRecords(parsed, 'choices')[0];
+          if (choice) {
+            const finish = responseString(choice, 'finish_reason');
+            if (finish) finishReason = finish;
+          }
+          const delta = choice ? responseRecord(choice, 'delta') : undefined;
+          const content = responseString(delta ?? {}, 'content');
+          const reasoning = responseString(delta ?? {}, 'reasoning_content');
           if (content) onContent(content);
           if (reasoning) fullReasoning += reasoning;
         } catch {
-          // ignore parse errors
+          // Ignore malformed provider events, but never catch stream AbortError here.
         }
-      }
-    }
+      },
+      signal,
+    );
     return { model, reasoning: fullReasoning, finishReason };
   }
 
@@ -203,10 +225,7 @@ export class OpenAIProvider extends BaseProvider {
     try {
       const response = await fetch(`${baseUrl}/chat/completions`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.config.apiKey || ''}`,
-        },
+        headers: this.resolveHeaders(),
         body: JSON.stringify({
           model: opts.model,
           messages,
@@ -216,6 +235,7 @@ export class OpenAIProvider extends BaseProvider {
           stream: true,
           ...this.resolveExtraBody(options),
         }),
+        signal: options?.signal,
       });
 
       if (!response.ok) {
@@ -232,11 +252,15 @@ export class OpenAIProvider extends BaseProvider {
       let finishReason: string | undefined;
 
       if (reader) {
-        const res = await this.readStream(reader, (text) => {
-          fullContent += text;
-          chunkCount++;
-          onChunk(text);
-        });
+        const res = await this.readStream(
+          reader,
+          (text) => {
+            fullContent += text;
+            chunkCount++;
+            onChunk(text);
+          },
+          options?.signal,
+        );
         if (res.model) model = res.model;
         fullReasoning = res.reasoning;
         finishReason = res.finishReason;
@@ -303,16 +327,16 @@ export class OpenAIProvider extends BaseProvider {
     this.logRequest('getModels', { endpoint: '/models' });
     try {
       const response = await fetch(`${baseUrl}/models`, {
-        headers: {
-          Authorization: `Bearer ${this.config.apiKey || ''}`,
-        },
+        headers: this.resolveHeaders(),
       });
       if (!response.ok) {
         this.logResponse('getModels', { success: false, status: response.status });
         return [];
       }
-      const data = await response.json();
-      const models = data.data?.map((m: { id: string }) => m.id) || [];
+      const data = asResponseRecord(await response.json());
+      const models = responseRecords(data, 'data')
+        .map((item) => responseString(item, 'id'))
+        .filter((id): id is string => Boolean(id));
       this.logResponse('getModels', { success: true, modelCount: models.length });
       return models;
     } catch (e) {
@@ -344,10 +368,7 @@ export class OpenAIProvider extends BaseProvider {
     try {
       const response = await fetch(`${baseUrl}/images/generations`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.config.apiKey || ''}`,
-        },
+        headers: this.resolveHeaders(),
         body: JSON.stringify({
           model,
           prompt,
@@ -356,6 +377,7 @@ export class OpenAIProvider extends BaseProvider {
           quality,
           style,
         }),
+        signal: options?.signal,
       });
 
       if (!response.ok) {
@@ -365,14 +387,20 @@ export class OpenAIProvider extends BaseProvider {
         throw new Error(errorMsg);
       }
 
-      const data = await response.json();
+      const data = asResponseRecord(await response.json());
       const duration = Date.now() - startTime;
-
-      const results =
-        data.data?.map((item: any) => ({
-          url: item.url,
-          revisedPrompt: item.revised_prompt,
-        })) || [];
+      const results = responseRecords(data, 'data')
+        .map((item): GeneratedImage | undefined => {
+          const url = responseString(item, 'url');
+          if (!url) return undefined;
+          return {
+            url,
+            ...(responseString(item, 'revised_prompt')
+              ? { revisedPrompt: responseString(item, 'revised_prompt') }
+              : {}),
+          };
+        })
+        .filter((item): item is GeneratedImage => Boolean(item));
 
       this.logResponse('generateImage', {
         durationMs: duration,

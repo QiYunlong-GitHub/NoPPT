@@ -73,7 +73,7 @@ export function getBaseUrlHint(provider: string): string {
     case 'ollama':
       return 'Ollama 本地服务地址，默认 http://localhost:11434/v1';
     case 'company-gateway':
-      return '公司内网 API 网关地址，格式：https://{网关域名}/ai-api';
+      return '公司内网 API 网关地址，格式：https://{网关域名}/openai/v1';
     default:
       return '支持 OpenAI 兼容接口，可配置第三方代理地址';
   }

@@ -1,12 +1,5 @@
 import { t } from '@/i18n';
-import {
-  ClipboardList,
-  FileCode2,
-  Edit,
-  ShieldCheck,
-  Eye,
-  type LucideIcon,
-} from 'lucide-react';
+import { ClipboardList, FileCode2, Edit, ShieldCheck, Eye, type LucideIcon } from 'lucide-react';
 
 export interface RoutingStage {
   key: 'planning' | 'content' | 'editing' | 'audit' | 'auditVlm';

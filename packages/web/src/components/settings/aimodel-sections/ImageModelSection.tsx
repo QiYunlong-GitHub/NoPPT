@@ -266,9 +266,7 @@ export function ImageModelList({
         </button>
       </div>
       <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
-        {t(
-          '支持配置多个模型，每个模型可独立配置尺寸列表和像素范围，默认使用第一个模型',
-        )}
+        {t('支持配置多个模型，每个模型可独立配置尺寸列表和像素范围，默认使用第一个模型')}
       </p>
 
       <div className="space-y-4">

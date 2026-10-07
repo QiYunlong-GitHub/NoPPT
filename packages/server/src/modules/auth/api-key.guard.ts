@@ -1,11 +1,13 @@
 import type { CanActivate, ExecutionContext } from '@nestjs/common';
 import { Injectable, UnauthorizedException, createParamDecorator } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 // ApiKeyService 必须是值导入：ApiKeyGuard 的构造注入依赖运行时类引用
 import { ApiKeyService } from './api-key.service';
 import type { ApiKeyRecord } from './api-key.service';
 import { McpError, toMcpError } from '../../common/mcp-errors';
 import { getRequestLocale } from '../../i18n/locale';
+import { PUBLIC_ROUTE_METADATA } from './public-metadata.decorator';
 
 /** 认证通过后挂在 `req.auth` 上的调用方身份（规格 2.5.2）。 */
 export interface McpAuth {
@@ -66,12 +68,23 @@ export async function authenticateRequest(
 
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
-  constructor(private readonly apiKeyService: ApiKeyService) {}
+  constructor(
+    private readonly apiKeyService: ApiKeyService,
+    private readonly reflector: Reflector,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const isPublic = this.reflector.getAllAndOverride<boolean>(PUBLIC_ROUTE_METADATA, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (isPublic) return true;
+
     const req = context.switchToHttp().getRequest<Request>();
     try {
       req.auth = await authenticateRequest(req, this.apiKeyService);
+      // Phase 1 authenticates normal REST only; existing storage remains unscoped.
+      // TODO(Phase 2): thread req.auth.tenantId/userKey into normal REST storage access.
       return true;
     } catch (e) {
       // E1xxx 一律 401；错误体为结构化 JSON，不含堆栈
@@ -87,3 +100,5 @@ export const CurrentAuth = createParamDecorator(
     return req.auth;
   },
 );
+
+export { PublicRoute } from './public-metadata.decorator';

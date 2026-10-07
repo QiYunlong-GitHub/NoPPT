@@ -1,14 +1,7 @@
 // 参考 HTML 单分类提取（Task 2 / FR-1 / FR-9 / FR-11.2 / C-1~C-14）
 // 独立 export 函数，JSDOM 全文解析（不抽样），供 ai.service 与 Vitest 直接调用。
-import {
-  ReferencePalette,
-} from '../../types';
-import {
-  resolveComputedDecl,
-  toHex,
-  firstColorIn,
-  CascadeIndex,
-} from '../reference-style-cascade';
+import { ReferencePalette } from '../../types';
+import { resolveComputedDecl, toHex, firstColorIn, CascadeIndex } from '../reference-style-cascade';
 
 // ---------- 颜色工具 ----------
 
@@ -52,7 +45,6 @@ export function hueOf(h: string): number {
   return h2 < 0 ? h2 + 360 : h2;
 }
 
-
 // ---------- 画布识别（FR-参考克隆：取真实画布而非预览台 body）----------
 export function chromaOf(h: string): number {
   const [r, g, b] = rgb(h);
@@ -69,7 +61,6 @@ export function colorDistance(a: string, b: string): number {
   const [r2, g2, b2] = rgb(b);
   return Math.sqrt((r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2);
 }
-
 
 // ---------- 调色板提取（主色 + 撞色 accent + 描边色 + 画布背景）----------
 export function extractColorPalette(
@@ -170,7 +161,6 @@ export function extractColorPalette(
   };
 }
 
-
 // ---------- C-1 主色（加权：背景/渐变 > 边框/文字；CSS 变量 --primary 等强候选；灰阶仅作兜底）----------
 export function extractPrimaryColor(doc: Document, cascade?: CascadeIndex): string | undefined {
   const colorSet: Record<string, number> = {};
@@ -211,7 +201,6 @@ export function extractPrimaryColor(doc: Document, cascade?: CascadeIndex): stri
   return pick(colorSet) || pick(fallbackSet);
 }
 
-
 // ---------- C-1b 文字色（标题/正文，允许近黑/白/灰，不复用 isExcludedColor）----------
 export function extractTextColorBySelector(
   doc: Document,
@@ -241,7 +230,6 @@ export function extractTitleColor(doc: Document, cascade?: CascadeIndex): string
 export function extractBodyColor(doc: Document, cascade?: CascadeIndex): string | undefined {
   return extractTextColorBySelector(doc, 'li, p', cascade);
 }
-
 
 export function extractBorderColor(el: Element): string | undefined {
   const s = (el as HTMLElement).getAttribute('style') || '';

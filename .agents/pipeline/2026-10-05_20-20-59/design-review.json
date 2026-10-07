@@ -1,0 +1,75 @@
+{
+  "verdict": "CHANGES_REQUESTED",
+  "findings": [
+    {
+      "severity": "HIGH",
+      "title": "Hermes draft contract is contradictory and currently wrong",
+      "location": "02-design.md §8; requirements FR-10",
+      "problem": "The design requires auto-only and openUrl-only success, but the actual controller accepts guided mode and returns draftId, expiresAt, mode, topic, meta, and note.",
+      "fix": "Use z.literal('auto').default('auto'), reject guided, return exactly { openUrl }, and add assertions for budget, truncation, zero generate/promotion calls, and non-persisted key material."
+    },
+    {
+      "severity": "HIGH",
+      "title": "Candidate-only isolation is not an enforceable write boundary",
+      "location": "02-design.md §§6.2, 6.3, 7, 9; requirements FR-8/FR-9",
+      "problem": "The design does not thread a run context through direct active writes in final-write, auto-audit, audit persistence, regeneration loops, and PresentationService.save.",
+      "fix": "Require an IntegrityRunContext and one ArtifactStore for every write; reject candidate-only writes outside the run root and test every target-original path for zero writes."
+    },
+    {
+      "severity": "HIGH",
+      "title": "Typed compare and metric contracts have ambiguous count semantics",
+      "location": "02-design.md §§1.1, 2.3; requirements FR-2/FR-3",
+      "problem": "ComparisonItem leftText/rightText does not define whether four items are pairs or total items, and MetricItem cannot represent preserved legacy text with missing value without an empty field.",
+      "fix": "Choose an explicit column-item or pair model, define deterministic legacy mapping, and use a discriminated metric/omission union with no empty required values."
+    },
+    {
+      "severity": "HIGH",
+      "title": "Logical/custom canvas transform is underspecified",
+      "location": "02-design.md §§2.1, 2.2, 3.1, 4; requirements FR-4/FR-5",
+      "problem": "No transform origin, scale policy, rounding, or application contract is defined, while actual HTML, fallback, editor, and export paths use different dimensions. Proposed node metadata is also absent from the schema.",
+      "fix": "Define a typed LogicalCanvasTransform with forward/inverse mappings and apply it everywhere; validate before transform and declare layout metrics metadata."
+    },
+    {
+      "severity": "HIGH",
+      "title": "Unverified status is not integrated into audit aggregation",
+      "location": "02-design.md §§5–6.1; requirements FR-7/FR-8",
+      "problem": "The design introduces unverified without defining compatibility with existing passed/warn/fail/error and pass/warn/fail unions; current Chromium failure returns error.",
+      "fix": "Extend status types or add verificationStatus, map environment absence to unverified, aggregate required unverified as overall unverified/needs_review, and reject promotion/pass claims."
+    },
+    {
+      "severity": "HIGH",
+      "title": "Font fallback detection algorithm is unreliable and incomplete",
+      "location": "02-design.md §5; requirements FR-7",
+      "problem": "CSS computed family does not prove the actual face used per glyph; the design lacks node sampling, weight matching, metric baselines, thresholds, and an API-unavailable algorithm.",
+      "fix": "Specify declared-family checks, representative glyph measurement, metric delta thresholds, explicit reasons/statuses, and unverified behavior when actual shaping cannot be proven."
+    },
+    {
+      "severity": "HIGH",
+      "title": "Editor save has no atomic HTML/Deck/identity transaction",
+      "location": "02-design.md §§3.2–3.3, 4, 6.2; requirements FR-2/FR-5/FR-6",
+      "problem": "The current editor and server save only HTML; the proposed DOM patch helper has no invocation, atomic commit, required-deletion gate, or behavior for manual nodes.",
+      "fix": "Define saveSlideWithIntegrity, map stable IDs, validate before commit, return 422 with reportPath while retaining unsaved state, and route editor/store/server/MCP saves through it."
+    },
+    {
+      "severity": "HIGH",
+      "title": "Not every export path uses the parity gate and Deck priority",
+      "location": "02-design.md §3.3 and §9 file boundaries; requirements FR-6",
+      "problem": "The proposed helper is web-only, but MCP/server export directly sanitizes HTML; the compatibility wrapper can also silently return a mixed-source Deck with source=plan.",
+      "fix": "Enumerate all exporters and route them through one exportWithIntegrity adapter with per-slide provenance, parity rejection, and explicit HTML fallback downgrade."
+    },
+    {
+      "severity": "HIGH",
+      "title": "Required evidence events have no producer wiring or lifecycle",
+      "location": "02-design.md §§6.3, 7, 10, 11; requirements FR-8",
+      "problem": "An event schema is listed, but producers, runId propagation, candidate log routing, and event-write failure behavior are unspecified; current audit writes active reports.",
+      "fix": "Provide a producer matrix for render, visual_validation, audit, and fix, pass run context everywhere, write candidate-only events, and make missing evidence unverified/needs_review with post-fix new hashes."
+    },
+    {
+      "severity": "MEDIUM",
+      "title": "Fallback provenance fields are absent from the declared Deck schema",
+      "location": "02-design.md §§1.2, 2.1, 3.3; requirements FR-6.4",
+      "problem": "The design requires source, geometryFallback, and parity downgrade metadata, but only top-level Deck.source exists and per-slide fields are undeclared.",
+      "fix": "Add backward-compatible per-slide integrity/provenance metadata or require every caller to carry a typed ExportResult rather than a bare Deck; test mixed-source serialization."
+    }
+  ]
+}

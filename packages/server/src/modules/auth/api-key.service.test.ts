@@ -116,6 +116,17 @@ describe('M2 ApiKeyService', () => {
     expect(service.listKeys().filter((k) => k.name === 'dev')).toHaveLength(1);
   });
 
+  it('ensureDevKey：已存在 dev 时按显式 NOPPT_DEV_KEY 轮换 hash 并保持单条记录', async () => {
+    const oldKey = 'nppt_' + 'b'.repeat(32);
+    const newKey = 'nppt_' + 'c'.repeat(32);
+    await service.ensureDevKey(oldKey);
+    expect(await service.verifyKey(oldKey)).not.toBeNull();
+    await service.ensureDevKey(newKey);
+    expect(await service.verifyKey(oldKey)).toBeNull();
+    expect(await service.verifyKey(newKey)).not.toBeNull();
+    expect(service.listKeys().filter((k) => k.name === 'dev')).toHaveLength(1);
+  });
+
   it('ensureDevKey：空值不创建任何 Key', async () => {
     await service.ensureDevKey('');
     expect(service.listKeys()).toHaveLength(0);

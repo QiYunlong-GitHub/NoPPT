@@ -11,6 +11,7 @@ import {
   ImageIcon,
   ImageOff,
   Pencil,
+  StickyNote,
 } from 'lucide-react';
 import { usePresentationStore } from '@/stores/presentation';
 import { useUIStore } from '@/stores/ui';
@@ -23,6 +24,7 @@ import { getRangeSelection } from './slideListUtils';
 import { SlideThumbnailItem } from './slide-list/SlideThumbnailItem';
 import { SlideContextMenu } from './slide-list/SlideContextMenu';
 import { BlankAreaContextMenu } from './slide-list/BlankAreaContextMenu';
+import SpeakerNotesModal from './SpeakerNotesModal';
 export default function SlideListPanel() {
   const { t } = useI18n();
   const presentation = usePresentationStore((s) => s.presentation);
@@ -59,6 +61,7 @@ export default function SlideListPanel() {
   const [editTitle, setEditTitle] = useState('');
   const [isEditingPresTitle, setIsEditingPresTitle] = useState(false);
   const [editPresTitle, setEditPresTitle] = useState('');
+  const [showNotes, setShowNotes] = useState(false);
   const presTitleInputRef = useRef<HTMLInputElement>(null);
   const [draggedIds, setDraggedIds] = useState<Set<string> | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
@@ -708,6 +711,13 @@ export default function SlideListPanel() {
           </button>
         )}
         <button
+          onClick={() => setShowNotes(true)}
+          className="p-1 hover:bg-slate-100 rounded transition-colors shrink-0"
+          title={t('演讲者备注')}
+        >
+          <StickyNote className="w-4 h-4 text-slate-500" />
+        </button>
+        <button
           onClick={() => addSlide()}
           className="p-1 hover:bg-slate-100 rounded transition-colors shrink-0"
           title={t('新增幻灯片')}
@@ -818,6 +828,8 @@ export default function SlideListPanel() {
         onChange={handleBgFile}
         className="hidden"
       />
+
+      {showNotes && <SpeakerNotesModal onClose={() => setShowNotes(false)} />}
     </div>
   );
 }

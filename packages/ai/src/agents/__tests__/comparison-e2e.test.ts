@@ -123,7 +123,7 @@ describe('comparison-deep-dive 端到端（LLM HTML → 后处理 → LayoutEngi
     const gridUls = out.match(/<ul\b[^>]*display:grid[^>]*>/gi) || [];
     expect(gridUls).toHaveLength(2);
     // balanceComparisonDeepDiveLIs 会把每栏补齐到至少 3 行，故以处理后的实际行数断言
-    const rowsPerColumn = ((out.match(/<li\b/gi) || []).length) / 2;
+    const rowsPerColumn = (out.match(/<li\b/gi) || []).length / 2;
     expect(rowsPerColumn).toBeGreaterThanOrEqual(3);
     for (const ul of gridUls) {
       // 允许后处理在冒号后补空格（style 重新序列化），故用宽松匹配

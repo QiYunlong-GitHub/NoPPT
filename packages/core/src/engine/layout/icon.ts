@@ -1,7 +1,4 @@
-
-import {
-  findMatchingCloseDiv,
-} from './dom';
+import { findMatchingCloseDiv } from './dom';
 export function isTrivialCircleSvg(svgInner: string): boolean {
   const inner = svgInner.trim();
   if (!inner) return true;
@@ -10,11 +7,9 @@ export function isTrivialCircleSvg(svgInner: string): boolean {
   return !!circles && circles.length <= 3;
 }
 
-
 export function makeCheckSvg(size: number, color: string): string {
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
 }
-
 
 /** 从 HTML 的主体中推断品牌主色（H2 渐变 / 左色条 / 卡片背景）。若无法推断返回 DEFAULT_BLUE。 */
 export function inferPrimaryColor(html: string): string {
@@ -38,14 +33,12 @@ export function inferPrimaryColor(html: string): string {
   return DEFAULT_BLUE;
 }
 
-
 export function normalizeHex6(hex: string): string {
   let h = hex.replace('#', '');
   if (h.length === 3) h = `${h[0]}${h[0]}${h[1]}${h[1]}${h[2]}${h[2]}`;
   if (h.length >= 6) return `#${h.substring(0, 6)}`.toLowerCase();
   return hex.toLowerCase();
 }
-
 
 export function repairTrivialSvgIcons(html: string, primaryColor?: string): string {
   const effectivePrimary = primaryColor ? normalizeHex6(primaryColor) : inferPrimaryColor(html);
@@ -76,7 +69,6 @@ export function repairTrivialSvgIcons(html: string, primaryColor?: string): stri
 
   return result;
 }
-
 
 /** 判断一段 HTML 开头的左侧 SVG 图标是否为「通用占位」（check / trivial circle）。
  *  语义图标（自定义多元素 shape）返回 false，不应被剥离或替换。 */
@@ -114,7 +106,6 @@ export function firstLeftIconIsGeneric(htmlSnippet: string): boolean {
   if (sz >= 24) return false; // 较大的图标多半是语义图标（作者精心设计的）
   return true;
 }
-
 
 export function normalizeIconGroups(html: string, primaryColor?: string): string {
   const effectivePrimary = primaryColor ? normalizeHex6(primaryColor) : inferPrimaryColor(html);
@@ -250,7 +241,6 @@ export function normalizeIconGroups(html: string, primaryColor?: string): string
   return result;
 }
 
-
 export function repairEmptySvgs(html: string): string {
   let result = html;
 
@@ -289,7 +279,6 @@ export function repairEmptySvgs(html: string): string {
   return result;
 }
 
-
 /**
  * 修复卡片网格页中 <p> 错误包裹图标 span 的问题。
  * AI 有时会生成 <p style="..."><span style="...icon...">💻</span></p>，
@@ -302,4 +291,3 @@ export function unwrapIconWrappingParagraph(html: string): string {
     (_match: string, _pAttrs: string, innerSpan: string) => innerSpan,
   );
 }
-

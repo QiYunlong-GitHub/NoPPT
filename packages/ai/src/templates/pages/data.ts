@@ -174,7 +174,9 @@ const piece12 = (ctx: TemplateCtx): string => `### content-table（数据表格�
 \`\`\`
 `;
 
-const piece15 = (ctx: TemplateCtx): string => `### content-value-showcase（核心数值大卡展示 · L1高级版式 · badges+渐变巨字）
+const piece15 = (
+  ctx: TemplateCtx,
+): string => `### content-value-showcase（核心数值大卡展示 · L1高级版式 · badges+渐变巨字）
 \`\`\`html
 <div style="${ctx.OUTER};" data-layout="content-value-showcase">
   <h2 style="${ctx.GRAD_H2}">页面标题（核心数值展示）</h2>
@@ -218,7 +220,9 @@ const piece15 = (ctx: TemplateCtx): string => `### content-value-showcase（核�
 如果只展示 1 个核心数值，用单列 100% 宽的超大卡（font-size 放大到 120px）。2 个数值就用 grid-template-columns:repeat(2,1fr)。
 `;
 
-const piece16 = (ctx: TemplateCtx): string => `### content-stats-highlight（多数据指标并列 · L1高级版式 · 彩色语义卡片+进度条）
+const piece16 = (
+  ctx: TemplateCtx,
+): string => `### content-stats-highlight（多数据指标并列 · L1高级版式 · 彩色语义卡片+进度条）
 \`\`\`html
 <div style="${ctx.OUTER};" data-layout="content-stats-highlight">
   <h2 style="${ctx.GRAD_H2}">页面标题（多数据指标并列）</h2>

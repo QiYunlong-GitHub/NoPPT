@@ -8,6 +8,7 @@
  * - architecture 复用同一套分层渲染辅助（renderHierarchicalSvg），与 content-org-chart 共享视觉（Q13 决策）。
  */
 
+import { CHART_BACKENDS, type DeckChartKind } from '@noppt/core/deck';
 import type { ChartSpec, ChartSeries, ArchitectureSpec, ArchNode, ArchNodeVariant } from '../types';
 
 export interface SvgRenderOptions {
@@ -20,7 +21,6 @@ export interface SvgRenderOptions {
 const DEFAULT_W = 920;
 const DEFAULT_H = 460;
 
-// ---------------------------------------------------------------------------
 // 通用工具
 // ---------------------------------------------------------------------------
 
@@ -181,26 +181,35 @@ function renderBar(spec: ChartSpec, opts: SvgRenderOptions, ly: AxisLayout): str
   const n = categories.length;
   if (n === 0) return '';
   const palette = safePalette(opts.primaryColor, spec.series.length);
-  const grouped = !spec.stacked && spec.series.length > 1;
+  const stacked = spec.stacked === true || spec.percentStacked === true;
+  const grouped = !stacked && spec.series.length > 1;
   const step = plotW / n;
   const groupW = step * 0.66;
   const seriesCount = spec.series.length;
   const barW = grouped ? groupW / seriesCount : groupW;
+  // 100% 堆叠：每类的分母改为该类总和（借鉴 XL_CHART_TYPE.BAR_STACKED_100）
+  const catTotals = categories.map((_, i) =>
+    spec.series.reduce((acc, s) => acc + Math.max(0, clampNum(s?.points?.[i]?.value)), 0),
+  );
   let s = '';
 
   for (let i = 0; i < n; i++) {
     const groupX = padL + step * i + (step - groupW) / 2;
-    if (spec.stacked) {
+    if (stacked) {
+      const denom = spec.percentStacked ? catTotals[i] || 1 : maxVal;
       let acc = 0;
       for (let si = 0; si < seriesCount; si++) {
         const p = spec.series[si]?.points?.[i];
         const val = p ? clampNum(p.value) : 0;
-        const barH = (val / maxVal) * plotH;
+        const barH = (val / denom) * plotH;
         const x = groupX;
-        const y = padT + plotH - ((acc + val) / maxVal) * plotH;
+        const y = padT + plotH - ((acc + val) / denom) * plotH;
         s += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${groupW.toFixed(1)}" height="${Math.max(0, barH).toFixed(1)}" rx="3" fill="${palette[si]}"/>`;
         if (spec.showValues !== false && val > 0) {
-          s += `<text x="${(x + groupW / 2).toFixed(1)}" y="${(y - 5).toFixed(1)}" text-anchor="middle" font-size="11" fill="#374151">${fmtVal(val, spec.unit)}</text>`;
+          const label = spec.percentStacked
+            ? `${Math.round((val / denom) * 100)}%`
+            : fmtVal(val, spec.unit);
+          s += `<text x="${(x + groupW / 2).toFixed(1)}" y="${(y - 5).toFixed(1)}" text-anchor="middle" font-size="11" fill="#374151">${label}</text>`;
         }
         acc += val;
       }
@@ -228,16 +237,38 @@ function renderLine(spec: ChartSpec, opts: SvgRenderOptions, ly: AxisLayout): st
   const palette = safePalette(opts.primaryColor, spec.series.length);
   const step = plotW / n;
   let s = '';
+  // 平滑折线：Catmull-Rom → 三次贝塞尔（PptxGenJS `lineSmooth`）
+  const smoothPath = (coords: Array<[number, number]>): string => {
+    if (coords.length < 3) return '';
+    let d = `M ${coords[0][0].toFixed(1)} ${coords[0][1].toFixed(1)}`;
+    for (let i = 0; i < coords.length - 1; i++) {
+      const p0 = coords[i === 0 ? 0 : i - 1];
+      const p1 = coords[i];
+      const p2 = coords[i + 1];
+      const p3 = coords[i + 2 < coords.length ? i + 2 : i + 1];
+      const c1x = p1[0] + (p2[0] - p0[0]) / 6;
+      const c1y = p1[1] + (p2[1] - p0[1]) / 6;
+      const c2x = p2[0] - (p3[0] - p1[0]) / 6;
+      const c2y = p2[1] - (p3[1] - p1[1]) / 6;
+      d += ` C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;
+    }
+    return d;
+  };
   spec.series.forEach((ser: ChartSeries, si: number) => {
     const color = ser?.color || palette[si];
-    const pts: string[] = [];
+    const coords: Array<[number, number]> = [];
     (ser?.points || []).forEach((p, i) => {
       const val = clampNum(p?.value);
       const x = padL + step * (i + 0.5);
       const y = padT + plotH - (val / maxVal) * plotH;
-      pts.push(`${x.toFixed(1)},${y.toFixed(1)}`);
+      coords.push([x, y]);
     });
-    s += `<polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+    const pts = coords.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`);
+    if (spec.smooth === true && coords.length >= 3) {
+      s += `<path d="${smoothPath(coords)}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+    } else {
+      s += `<polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+    }
     (ser?.points || []).forEach((p, i) => {
       const val = clampNum(p?.value);
       const x = padL + step * (i + 0.5);
@@ -305,6 +336,168 @@ function renderPieDonut(
     s += `<rect x="${(w - 150).toFixed(1)}" y="${(ly - 10).toFixed(1)}" width="12" height="12" rx="2" fill="${palette[i % palette.length]}"/>`;
     s += `<text x="${(w - 134).toFixed(1)}" y="${ly.toFixed(1)}" font-size="12" fill="#374151">${truncate(lab, 16)}</text>`;
   });
+  return s;
+}
+
+// ---------------------------------------------------------------------------
+// 面积图 / 雷达图 / 散点 / 气泡 / 组合图
+// 借鉴 python-pptx XL_CHART_TYPE（AREA / AREA_STACKED_100 / RADAR / XY_SCATTER / BUBBLE）
+// 与 PptxGenJS 的 Combo（组合图）签名。全部为纯 SVG，无外部图表库。
+// ---------------------------------------------------------------------------
+
+/** 预先算出堆叠前缀和（含末尾总和），避免重复累加。 */
+function stackedPrefix(spec: ChartSpec, n: number): number[][] {
+  const out: number[][] = [];
+  for (let i = 0; i < n; i++) {
+    const row: number[] = [];
+    let acc = 0;
+    for (let si = 0; si < spec.series.length; si++) {
+      row.push(acc);
+      acc += Math.max(0, clampNum(spec.series[si]?.points?.[i]?.value));
+    }
+    row.push(acc);
+    out.push(row);
+  }
+  return out;
+}
+
+function toPoly(coords: Array<[number, number]>): string {
+  return coords.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+}
+
+/** 面积图：支持普通 / 堆叠 / 100% 堆叠。 */
+function renderArea(spec: ChartSpec, opts: SvgRenderOptions, ly: AxisLayout): string {
+  const { padL, padT, plotW, plotH, maxVal, categories } = ly;
+  const n = categories.length;
+  if (n === 0) return '';
+  const palette = safePalette(opts.primaryColor, spec.series.length);
+  const step = plotW / n;
+  const stacked = spec.stacked === true || spec.percentStacked === true;
+  const prefix = stackedPrefix(spec, n);
+  let s = '';
+  for (let si = spec.series.length - 1; si >= 0; si--) {
+    const ser = spec.series[si];
+    const color = ser?.color || palette[si];
+    const top: Array<[number, number]> = [];
+    const bottom: Array<[number, number]> = [];
+    for (let i = 0; i < n; i++) {
+      const x = padL + step * (i + 0.5);
+      const total = prefix[i][spec.series.length] || 1;
+      const denom = spec.percentStacked ? total : maxVal;
+      const topVal = stacked ? prefix[i][si + 1] : Math.max(0, clampNum(ser?.points?.[i]?.value));
+      const baseVal = stacked ? prefix[i][si] : 0;
+      top.push([x, padT + plotH - (topVal / denom) * plotH]);
+      bottom.push([x, padT + plotH - (baseVal / denom) * plotH]);
+    }
+    s += `<polygon points="${toPoly(top.concat(bottom.reverse()))}" fill="${color}" fill-opacity="0.32"/>`;
+    s += `<polyline points="${toPoly(top)}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round"/>`;
+    if (spec.showValues !== false && spec.series.length === 1) {
+      top.forEach(([x, y], i) => {
+        const val = clampNum(ser?.points?.[i]?.value);
+        if (val > 0)
+          s += `<text x="${x.toFixed(1)}" y="${(y - 6).toFixed(1)}" text-anchor="middle" font-size="11" fill="#374151">${fmtVal(val, spec.unit)}</text>`;
+      });
+    }
+  }
+  return s;
+}
+
+/** 雷达图：多边形网格 + 多序列叠放。 */
+function renderRadar(spec: ChartSpec, opts: SvgRenderOptions, w: number, h: number): string {
+  const cats = (spec.series[0]?.points || []).map((p) => String(p?.label ?? ''));
+  if (cats.length < 3) return '';
+  let maxVal = 0;
+  for (const s of spec.series)
+    for (const p of s?.points || []) maxVal = Math.max(maxVal, clampNum(p?.value));
+  if (maxVal <= 0) maxVal = 1;
+  maxVal = niceCeil(maxVal);
+  const cx = w / 2;
+  const cy = h / 2;
+  const r = Math.max(30, Math.min(w, h) / 2 - 64);
+  const palette = safePalette(opts.primaryColor, spec.series.length);
+  const ang = (i: number) => -90 + (360 / cats.length) * i;
+  let s = '';
+  // 网格环
+  const rings = 4;
+  for (let ri = 1; ri <= rings; ri++) {
+    const pts = cats.map((_, i) => polar(cx, cy, (r * ri) / rings, ang(i)));
+    s += `<polygon points="${toPoly(pts)}" fill="none" stroke="#e5e7eb" stroke-width="1"/>`;
+  }
+  // 轴线 + 刻度
+  cats.forEach((_, i) => {
+    const [x, y] = polar(cx, cy, r, ang(i));
+    s += `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#d1d5db" stroke-width="1"/>`;
+  });
+  s += `<text x="${(cx + 4).toFixed(1)}" y="${(cy - r / rings + 4).toFixed(1)}" font-size="10" fill="#9ca3af">${fmtVal(maxVal / rings, spec.unit)}</text>`;
+  // 数据多边形
+  spec.series.forEach((ser, si) => {
+    const color = ser?.color || palette[si];
+    const pts = cats.map((_, i) =>
+      polar(cx, cy, (clampNum(ser?.points?.[i]?.value) / maxVal) * r, ang(i)),
+    );
+    s += `<polygon points="${toPoly(pts)}" fill="${color}" fill-opacity="0.25" stroke="${color}" stroke-width="2.5" stroke-linejoin="round"/>`;
+    pts.forEach(([x, y]) => {
+      s += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5" fill="#fff" stroke="${color}" stroke-width="2"/>`;
+    });
+  });
+  // 轴标签
+  cats.forEach((c, i) => {
+    const [x, y] = polar(cx, cy, r + 20, ang(i));
+    s += `<text x="${x.toFixed(1)}" y="${(y + 4).toFixed(1)}" text-anchor="middle" font-size="12" fill="#374151">${escapeXml(truncate(c, 8))}</text>`;
+  });
+  return s;
+}
+
+/**
+ * 散点 / 气泡。
+ * 输入只有 `label`+`value`，因此 x 轴取「label 可解析为数字则用之，否则用序号」，
+ * 气泡半径由 value 相对 maxVal 决定（借鉴 XL_CHART_TYPE.XY_SCATTER / BUBBLE）。
+ */
+function renderScatterLike(
+  spec: ChartSpec,
+  opts: SvgRenderOptions,
+  ly: AxisLayout,
+  bubble: boolean,
+): string {
+  const { padL, padT, plotW, plotH, maxVal } = ly;
+  const palette = safePalette(opts.primaryColor, spec.series.length);
+  let s = '';
+  spec.series.forEach((ser, si) => {
+    const color = ser?.color || palette[si];
+    const pts = ser?.points || [];
+    const n = Math.max(1, pts.length);
+    pts.forEach((p, i) => {
+      const val = clampNum(p?.value);
+      const xNum = parseFloat(String(p?.label ?? ''));
+      const xIdx = Number.isFinite(xNum) ? xNum : i + 1;
+      const x = padL + plotW * Math.min(1, Math.max(0, (xIdx - 0.5) / n));
+      const y = padT + plotH - (val / maxVal) * plotH;
+      const rr = bubble ? 6 + (val / maxVal) * 22 : 5;
+      s += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${rr.toFixed(1)}" fill="${color}" fill-opacity="${bubble ? 0.45 : 0.8}" stroke="${color}" stroke-width="2"/>`;
+      if (spec.showValues !== false && val > 0) {
+        s += `<text x="${x.toFixed(1)}" y="${(y - rr - 4).toFixed(1)}" text-anchor="middle" font-size="10" fill="#374151">${fmtVal(val, spec.unit)}</text>`;
+      }
+    });
+  });
+  return s;
+}
+
+/** 组合图：柱 + 折线叠加（PptxGenJS Combo 的签名语义）。 */
+function renderCombo(spec: ChartSpec, opts: SvgRenderOptions, ly: AxisLayout): string {
+  const kinds = spec.seriesKinds ?? [];
+  const barSeries: ChartSeries[] = [];
+  const lineSeries: ChartSeries[] = [];
+  spec.series.forEach((ser, i) => {
+    const k = kinds[i] ?? (i % 2 === 0 ? 'bar' : 'line');
+    (k === 'line' ? lineSeries : barSeries).push(ser);
+  });
+  let s = '';
+  if (barSeries.length > 0) {
+    s += renderBar({ ...spec, series: barSeries, stacked: false, percentStacked: false }, opts, ly);
+  }
+  if (lineSeries.length > 0) {
+    s += renderLine({ ...spec, series: lineSeries }, opts, ly);
+  }
   return s;
 }
 
@@ -525,6 +718,38 @@ export function renderArchitectureSvg(
 // 图表主入口（按 kind 分发）
 // ---------------------------------------------------------------------------
 
+/**
+ * ai 侧 `ChartSpec` → core 的**唯一图表枚举** `DeckChartKind`。
+ *
+ * 之所以收敛到 core 的枚举：同一个图表要同时驱动 SVG 渲染器与 PptxGenJS，
+ * 两套枚举各写一份必然漂移。这里做一次映射，后续一律查 `CHART_BACKENDS`。
+ */
+export function resolveDeckChartKind(spec: ChartSpec): DeckChartKind {
+  const k = spec?.kind ?? 'bar';
+  switch (k) {
+    case 'bar':
+      return spec.percentStacked ? 'barStacked100' : spec.stacked ? 'barStacked' : 'bar';
+    case 'area':
+      return spec.percentStacked ? 'areaStacked100' : spec.stacked ? 'areaStacked' : 'area';
+    case 'line':
+      return spec.smooth ? 'lineSmooth' : 'line';
+    case 'combo':
+      return 'combo';
+    case 'pie':
+      return 'pie';
+    case 'donut':
+      return 'donut';
+    case 'radar':
+      return 'radar';
+    case 'scatter':
+      return 'scatter';
+    case 'bubble':
+      return 'bubble';
+    default:
+      return 'bar';
+  }
+}
+
 export function renderChartSvg(spec: ChartSpec, opts: SvgRenderOptions): string {
   try {
     if (!spec || !Array.isArray(spec.series) || spec.series.length === 0) return '';
@@ -532,17 +757,32 @@ export function renderChartSvg(spec: ChartSpec, opts: SvgRenderOptions): string 
     const h = opts.height ?? DEFAULT_H;
     const ly = buildAxis(spec, w, h);
     let inner = drawGridAxis(ly, spec.unit) + drawXLabels(ly);
-    switch (spec.kind) {
+    // 单一枚举真值：先归一化到 DeckChartKind，再查双后端映射表拿 SVG 渲染器
+    const deckKind = resolveDeckChartKind(spec);
+    switch (CHART_BACKENDS[deckKind].svg) {
       case 'bar':
         inner += renderBar(spec, opts, ly);
         break;
       case 'line':
         inner += renderLine(spec, opts, ly);
         break;
-      case 'pie':
-        return svgWrap(w, h, inner + renderPieDonut(spec, opts, w, h, false));
-      case 'donut':
-        return svgWrap(w, h, inner + renderPieDonut(spec, opts, w, h, true));
+      case 'area':
+        inner += renderArea(spec, opts, ly);
+        break;
+      case 'pieDonut':
+        // 饼图/环图不需要笛卡尔网格轴（python-pptx 中 pie chart 也无 category/value 轴）
+        return svgWrap(w, h, renderPieDonut(spec, opts, w, h, deckKind === 'donut'));
+      case 'radar':
+        return svgWrap(w, h, renderRadar(spec, opts, w, h));
+      case 'scatter':
+        inner += renderScatterLike(spec, opts, ly, false);
+        break;
+      case 'bubble':
+        inner += renderScatterLike(spec, opts, ly, true);
+        break;
+      case 'combo':
+        inner += renderCombo(spec, opts, ly);
+        break;
       default:
         return '';
     }

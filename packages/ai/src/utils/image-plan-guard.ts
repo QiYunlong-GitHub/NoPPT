@@ -110,10 +110,7 @@ export interface StripPlaceholderOptions {
  *  - 顺带清理因此变空的「图片外壳」容器（不含颜色的 overflow:hidden 容器）；
  *  - 不触碰装饰性色块（其 style 必含 background）。
  */
-export function stripImagePlaceholders(
-  html: string,
-  opts: StripPlaceholderOptions = {},
-): string {
+export function stripImagePlaceholders(html: string, opts: StripPlaceholderOptions = {}): string {
   if (!html || !html.includes('NOPPT_IMAGE_PLACEHOLDER')) return html;
   const stripped = html.replace(/<img\b[^>]*>/gi, (tag) => (isPlaceholderImgTag(tag) ? '' : tag));
   if (stripped === html) return html; // 占位符不在 <img> 标签内（异常态），保持原样避免误伤

@@ -62,7 +62,7 @@ export interface ImageGenerationTrace {
     /** 生成的图片列表（含 url 和 revisedPrompt） */
     images: GeneratedImage[];
     /** 平台侧原始响应（如果有），便于排查平台返回异常 */
-    raw?: any;
+    raw?: unknown;
   };
   /** 错误信息（若失败） */
   error?: {

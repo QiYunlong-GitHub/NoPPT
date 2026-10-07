@@ -3,6 +3,7 @@
  * 依赖：色与对比度工具来自 ./color、./contrast；DOM 结构工具来自 ./dom；parseStyleDeclarations 来自 @noppt/core。
  */
 import { findClosingTagIndex, findDirectChildElements } from './dom';
+// prettier-ignore
 import { darkenPrimaryColor, fontSizeOf, fontWeightOf, isDecorativeLayer, needsContrastFix, normalizeHex, relativeLuminance, resolveBgTone } from './color';
 import { parseStyleDeclarations, type ReferenceComposition } from '@noppt/core';
 import { formatBeijingTime } from '../../../providers/base';
@@ -309,10 +310,7 @@ export function enforceCoverPosterArtStyles(
             }
             return;
           }
-          if (
-            cur &&
-            needsContrastFix(cur, pageBg, fontSizeOf(props), fontWeightOf(props))
-          ) {
+          if (cur && needsContrastFix(cur, pageBg, fontSizeOf(props), fontWeightOf(props))) {
             props.set('color', tone === 'dark' ? '#FFFFFF' : '#1F2937');
           }
         };
@@ -390,8 +388,7 @@ export function enforceCoverPosterArtStyles(
   if (!/data-noppt-coverart/i.test(result)) {
     result = result.replace(
       /<div([^>]*style=")([^"]*width:100%[^"]*height:100%[^"]*overflow:hidden[^"]*)("[^>]*>)/i,
-      (_m, pre, style, post) =>
-        `<div${pre}${style}${post.replace(/>$/, ' data-noppt-coverart>')}`,
+      (_m, pre, style, post) => `<div${pre}${style}${post.replace(/>$/, ' data-noppt-coverart>')}`,
     );
   }
   return result;
@@ -814,4 +811,3 @@ export function enforceCardTextProportion(html: string): string {
   );
   return result;
 }
-

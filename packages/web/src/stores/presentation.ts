@@ -6,9 +6,10 @@ import { presentationApi, type ChatMessage, type PresentationListItem } from '@/
 import { formatBeijingTime, sanitizeHtml } from '@/utils';
 import { replaceIconsInHtml, type IconStyle } from '@/utils/iconReplacer';
 import { t } from '@/i18n';
+// prettier-ignore
 import { sanitizePresentationHtml, reconstructPresentation, getDefaultChatMessages } from './presentation-utils';
+import { loadPresentationData } from './presentation-async';
 import type { HistoryEntry } from './presentation-utils';
-
 interface PresentationState {
   presentation: Presentation | null;
   presentations: PresentationListItem[];
@@ -68,6 +69,8 @@ interface PresentationState {
 }
 
 const HISTORY_LIMIT = 100;
+let presentationLoadSequence = 0;
+let presentationSaveSequence = 0;
 
 export const usePresentationStore = create<PresentationState>()(
   immer((set, get) => ({
@@ -109,12 +112,10 @@ export const usePresentationStore = create<PresentationState>()(
 
     createPresentation: async (title, width, height) => {
       const presentation = await presentationApi.create({ title, width, height });
-      // 统一：normalizeAISlide（保证 slide.html 格式完全一致）
       const normalizedPresentation: Presentation = {
         ...presentation,
         slides: presentation.slides.map((slide) => LayoutEngine.normalizeAISlide(slide)),
       };
-      // 安全清理所有 HTML 内容，防止 XSS（与 loadPresentation 保持同样的 sanitize 流程）
       const sanitizedPresentation = sanitizePresentationHtml(normalizedPresentation);
       const defaultMessages = getDefaultChatMessages();
       set((state) => {
@@ -142,30 +143,24 @@ export const usePresentationStore = create<PresentationState>()(
     },
 
     loadPresentation: async (id) => {
+      const loadSequence = ++presentationLoadSequence;
       try {
-        const presentation = await presentationApi.get(id);
-        // 安全清理演示文稿的所有 HTML 内容
-        const sanitizedPresentation = sanitizePresentationHtml(presentation);
-        let messages: ChatMessage[];
-        try {
-          messages = await presentationApi.getChatHistory(id);
-          if (!messages || messages.length === 0) {
-            messages = getDefaultChatMessages();
-          }
-        } catch {
-          messages = getDefaultChatMessages();
-        }
+        // prettier-ignore
+        const loaded = await loadPresentationData(id, () => loadSequence === presentationLoadSequence);
+        if (!loaded) return;
         set({
-          presentation: sanitizedPresentation,
-          history: [{ type: 'full', presentation: sanitizedPresentation }],
+          presentation: loaded.presentation,
+          history: [{ type: 'full', presentation: loaded.presentation }],
           historyIndex: 0,
           canUndo: false,
           canRedo: false,
           currentChatPresentationId: id,
-          chatMessages: messages,
+          chatMessages: loaded.messages,
           hasUnsavedChanges: false,
+          error: null,
         });
       } catch (err) {
+        if (loadSequence !== presentationLoadSequence) return;
         console.error('Failed to load presentation:', err);
         set({ error: t('演示文稿不存在') });
       }
@@ -173,10 +168,14 @@ export const usePresentationStore = create<PresentationState>()(
 
     savePresentation: async (): Promise<boolean> => {
       const { presentation } = get();
+      const saveSequence = ++presentationSaveSequence;
       if (presentation) {
-        const updated = { ...presentation, updatedAt: Date.now() };
+        const snapshot = presentation;
+        const updated = { ...snapshot, updatedAt: Date.now() };
         try {
           const saved = await presentationApi.save(updated.id, updated);
+          const current = get().presentation;
+          if (saveSequence !== presentationSaveSequence || current !== snapshot) return false;
           set((state) => {
             state.presentation = saved;
             state.hasUnsavedChanges = false;
@@ -194,11 +193,12 @@ export const usePresentationStore = create<PresentationState>()(
           });
           return true;
         } catch (err) {
+          if (saveSequence !== presentationSaveSequence || get().presentation !== snapshot)
+            return false;
           console.error('Failed to save presentation:', err);
           return false;
         }
       }
-      // 没有当前演示，不算失败（没有需要保存的内容）
       return true;
     },
 

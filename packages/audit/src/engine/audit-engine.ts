@@ -10,12 +10,14 @@ import type {
   AuditEngineResult,
   AuditIssue,
   AuditEngineType,
+  AuditEngineContract,
   FixSummary,
 } from '../types';
 import { DEFAULT_AUDIT_CONFIG, mergeConfig } from '../config/default-config';
 import { AutoFixer } from '../fix/auto-fixer';
 import { LayoutAuditEngine } from '../engines/layout-engine';
 import { SanitizationAuditEngine } from '../engines/sanitization-engine';
+import { buildIntegrityReport } from './integrity-evidence';
 
 const ENGINE_VERSION = '0.1.0';
 
@@ -33,12 +35,46 @@ function rootContainerCentered(html: string): boolean {
   );
 }
 
+function safeErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : typeof error === 'string' ? error : '';
+  const normalized = message.trim();
+  return (normalized || '未知审核引擎错误').slice(0, 500);
+}
+
+function diagnosticResult(
+  engine: AuditEngineType,
+  code: string,
+  message: string,
+  durationMs: number,
+): AuditEngineResult {
+  return {
+    engine,
+    engineName: engine,
+    status: 'error',
+    score: 0,
+    issues: [
+      {
+        ruleId: `audit.${code.toLowerCase()}`,
+        severity: 'error',
+        engine,
+        slideIndex: -1,
+        message,
+        fixable: false,
+        metadata: { diagnostic: true, code },
+      },
+    ],
+    durationMs,
+    raw: { code, message },
+  };
+}
+
 export class AuditEngine {
   private config: AuditConfig;
-  private engines: Map<AuditEngineType, any> = new Map();
+  private engines: Map<AuditEngineType, AuditEngineContract> = new Map();
   private autoFixer: AutoFixer;
   private layoutEngine: LayoutAuditEngine;
   private sanitizationEngine: SanitizationAuditEngine;
+  private destroyPromise: Promise<void> | null = null;
 
   constructor(config?: Partial<AuditConfig>) {
     this.config = mergeConfig(DEFAULT_AUDIT_CONFIG, config);
@@ -52,7 +88,7 @@ export class AuditEngine {
     this.registerEngine('sanitization', this.sanitizationEngine);
   }
 
-  registerEngine(type: AuditEngineType, engine: any): void {
+  registerEngine(type: AuditEngineType, engine: AuditEngineContract): void {
     this.engines.set(type, engine);
   }
 
@@ -67,15 +103,23 @@ export class AuditEngine {
   async auditPresentation(
     presentation: Presentation,
     plan?: PresentationPlan,
-    designContext?: { style: string; primaryColor: string; fontFamily: string; iconStyle: string },
-    referenceContext?: ReferenceContext,
+    ...args: [
+      designContext?: { style: string; primaryColor: string; fontFamily: string; iconStyle: string },
+      referenceContext?: ReferenceContext,
+      runId?: string,
+      integrityOptions?: { phase?: AuditContext['phase']; source?: AuditContext['source'] },
+    ]
   ): Promise<AuditReport> {
+    const [designContext, referenceContext, runId, integrityOptions] = args;
     const context: AuditContext = {
       presentation,
       plan,
       config: this.config,
       designContext,
       referenceContext,
+      runId,
+      phase: integrityOptions?.phase ?? 'candidate',
+      source: integrityOptions?.source ?? (presentation.slides.some((slide) => slide.deck) ? 'deck' : 'html-fallback'),
     };
 
     const engineOrder: AuditEngineType[] = [
@@ -91,7 +135,17 @@ export class AuditEngine {
     for (const engineType of engineOrder) {
       if (!this.config.engines[engineType]) continue;
       const engine = this.engines.get(engineType);
-      if (!engine) continue;
+      if (!engine) {
+        const missing = diagnosticResult(
+          engineType,
+          'AUDIT_ENGINE_MISSING',
+          `已启用的审核引擎未注册：${engineType}`,
+          0,
+        );
+        engineResults.push(missing);
+        allIssues.push(...missing.issues);
+        continue;
+      }
 
       const engineStart = Date.now();
       try {
@@ -99,16 +153,15 @@ export class AuditEngine {
         result.durationMs = Date.now() - engineStart;
         engineResults.push(result);
         allIssues.push(...result.issues);
-      } catch (err: any) {
-        engineResults.push({
-          engine: engineType,
-          engineName: engineType,
-          status: 'error',
-          score: 0,
-          issues: [],
-          durationMs: Date.now() - engineStart,
-          raw: { error: err?.message || String(err) },
-        });
+      } catch (err: unknown) {
+        const failed = diagnosticResult(
+          engineType,
+          'AUDIT_ENGINE_FAILED',
+          `审核引擎执行失败（${engineType}）：${safeErrorMessage(err)}`,
+          Date.now() - engineStart,
+        );
+        engineResults.push(failed);
+        allIssues.push(...failed.issues);
       }
     }
 
@@ -130,10 +183,7 @@ export class AuditEngine {
         });
       }
       const pageType = context.plan?.slides?.[i]?.pageType ?? '';
-      const comp = resolveReferenceComposition(
-        (referenceContext as any)?.visualAttributes,
-        pageType,
-      );
+      const comp = resolveReferenceComposition(referenceContext?.visualAttributes, pageType);
       if (comp === 'left-aligned' && rootContainerCentered(slide.html)) {
         allIssues.push({
           ruleId: 'layout.composition-mismatch',
@@ -168,30 +218,56 @@ export class AuditEngine {
           failedRuleIds: fixResult.summary.failedRuleIds,
         };
 
-        const layoutStart = Date.now();
-        try {
-          const reverifyContext: AuditContext = { ...context, presentation };
-          const layoutResult = await this.layoutEngine.audit(reverifyContext);
-          layoutResult.durationMs = Date.now() - layoutStart;
-
-          const layoutIdx = engineResults.findIndex((r) => r.engine === 'layout');
-          if (layoutIdx >= 0) {
-            engineResults[layoutIdx] = layoutResult;
-          } else {
-            engineResults.unshift(layoutResult);
+        const reverifyContext: AuditContext = { ...context, presentation };
+        const reverifiedResults: AuditEngineResult[] = [];
+        const deterministicIssues = allIssues.filter((issue) => issue.metadata?.deterministic === true);
+        for (const engineType of engineOrder) {
+          if (!this.config.engines[engineType]) continue;
+          const engine = this.engines.get(engineType);
+          if (!engine) {
+            reverifiedResults.push(
+              diagnosticResult(
+                engineType,
+                'AUDIT_ENGINE_MISSING',
+                `自动修复后的复核缺少已启用引擎：${engineType}`,
+                0,
+              ),
+            );
+            continue;
           }
-
-          const nonLayoutIssues = allIssues.filter((i) => i.engine !== 'layout');
-          allIssues.length = 0;
-          allIssues.push(...nonLayoutIssues, ...layoutResult.issues);
-        } catch {}
+          const reverifyStart = Date.now();
+          try {
+            const result = await engine.audit(reverifyContext);
+            result.durationMs = Date.now() - reverifyStart;
+            reverifiedResults.push(result);
+          } catch (err: unknown) {
+            reverifiedResults.push(
+              diagnosticResult(
+                engineType,
+                'AUDIT_REVERIFY_FAILED',
+                `自动修复后的${engineType}复核失败：${safeErrorMessage(err)}`,
+                Date.now() - reverifyStart,
+              ),
+            );
+          }
+        }
+        engineResults.length = 0;
+        engineResults.push(...reverifiedResults);
+        allIssues.length = 0;
+        allIssues.push(...deterministicIssues, ...reverifiedResults.flatMap((result) => result.issues));
       }
     }
 
     const overallScore = this.calculateOverallScore(engineResults);
-    const overallResult = this.determineOverallResult(overallScore);
+    const calculatedOverallResult = this.determineOverallResult(overallScore);
     const errorCount = allIssues.filter((i) => i.severity === 'error').length;
     const regenerationRequired = errorCount > 0;
+    const integrity = buildIntegrityReport(context, engineResults, allIssues, fixSummary);
+    const overallResult = integrity.status === 'fail'
+      ? 'fail'
+      : integrity.status === 'needs_review'
+        ? 'warn'
+        : calculatedOverallResult;
 
     const metadata: AuditReportMetadata = {
       auditId: generateId(),
@@ -211,6 +287,7 @@ export class AuditEngine {
       screenshots: [],
       fixSummary,
       regenerationRequired,
+      integrity,
     };
   }
 
@@ -236,7 +313,14 @@ export class AuditEngine {
     let engineResult: AuditEngineResult;
     try {
       const contentEngine = this.engines.get('content');
-      if (contentEngine?.auditOutline) {
+      if (!contentEngine && this.config.engines.content) {
+        engineResult = diagnosticResult(
+          'content',
+          'AUDIT_ENGINE_MISSING',
+          '已启用的审核引擎未注册：content',
+          0,
+        );
+      } else if (contentEngine?.auditOutline) {
         engineResult = await contentEngine.auditOutline(context);
       } else {
         engineResult = {
@@ -249,16 +333,13 @@ export class AuditEngine {
         };
       }
       engineResult.durationMs = Date.now() - engineStart;
-    } catch (err: any) {
-      engineResult = {
-        engine: 'content',
-        engineName: 'content',
-        status: 'error',
-        score: 0,
-        issues: [],
-        durationMs: Date.now() - engineStart,
-        raw: { error: err?.message || String(err) },
-      };
+    } catch (err: unknown) {
+      engineResult = diagnosticResult(
+        'content',
+        'AUDIT_ENGINE_FAILED',
+        `大纲审核引擎执行失败：${safeErrorMessage(err)}`,
+        Date.now() - engineStart,
+      );
     }
 
     const overallScore = engineResult.score;
@@ -325,10 +406,20 @@ export class AuditEngine {
   }
 
   async destroy(): Promise<void> {
-    for (const engine of this.engines.values()) {
-      if (engine.destroy) {
-        await engine.destroy();
+    if (this.destroyPromise) return this.destroyPromise;
+    const engines = [...this.engines.values()];
+    this.engines.clear();
+    this.destroyPromise = (async () => {
+      let firstError: unknown;
+      for (const engine of engines) {
+        try {
+          await engine.destroy?.();
+        } catch (error: unknown) {
+          firstError ??= error;
+        }
       }
-    }
+      if (firstError) throw firstError;
+    })();
+    return this.destroyPromise;
   }
 }

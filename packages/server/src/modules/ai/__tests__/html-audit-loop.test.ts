@@ -85,7 +85,9 @@ describe('AiService · 审计循环（runHtmlPlaceholderAuditLoop）· 短路护
 describe('AiService · 审计循环（runHtmlPlaceholderAuditLoop）· 重试 / 再生逻辑', () => {
   it('VLM 无阻塞问题 → 保留原页，passed=true，attempts=1', async () => {
     runVlmCritiqueMock.mockResolvedValue({ issues: [], score: 90 });
-    const slides = [makeSlide('<div>ok</div>', { score: 8, passed: false, attempts: 1, issues: [] })];
+    const slides = [
+      makeSlide('<div>ok</div>', { score: 8, passed: false, attempts: 1, issues: [] }),
+    ];
     const out = await runHtmlPlaceholderAuditLoop({
       slides,
       vlmProvider: {} as any,
@@ -101,12 +103,19 @@ describe('AiService · 审计循环（runHtmlPlaceholderAuditLoop）· 重试 / 
   });
 
   it('VLM 有 error 阻塞 → 调用 regenerateSlideFn 重试，无阻塞后保留再生版本(passed=true)', async () => {
-    const improved = makeSlide('<div>improved</div>', { score: 9, passed: true, attempts: 1, issues: [] });
+    const improved = makeSlide('<div>improved</div>', {
+      score: 9,
+      passed: true,
+      attempts: 1,
+      issues: [],
+    });
     runVlmCritiqueMock
       .mockResolvedValueOnce({ issues: [{ severity: 'error', message: '遮挡' }], score: 40 })
       .mockResolvedValueOnce({ issues: [], score: 95 });
     const regenerate = vi.fn(async () => improved);
-    const slides = [makeSlide('<div>bad</div>', { score: 4, passed: false, attempts: 1, issues: [] })];
+    const slides = [
+      makeSlide('<div>bad</div>', { score: 4, passed: false, attempts: 1, issues: [] }),
+    ];
     const out = await runHtmlPlaceholderAuditLoop({
       slides,
       vlmProvider: {} as any,
@@ -121,9 +130,14 @@ describe('AiService · 审计循环（runHtmlPlaceholderAuditLoop）· 重试 / 
   });
 
   it('重试中 regenerateSlideFn 返回 null → 终止重试，保留历史最优，passed 反映最终是否阻塞', async () => {
-    runVlmCritiqueMock.mockResolvedValue({ issues: [{ severity: 'error', message: '遮挡' }], score: 30 });
+    runVlmCritiqueMock.mockResolvedValue({
+      issues: [{ severity: 'error', message: '遮挡' }],
+      score: 30,
+    });
     const regenerate = vi.fn(async () => null);
-    const slides = [makeSlide('<div>bad</div>', { score: 4, passed: false, attempts: 1, issues: [] })];
+    const slides = [
+      makeSlide('<div>bad</div>', { score: 4, passed: false, attempts: 1, issues: [] }),
+    ];
     const out = await runHtmlPlaceholderAuditLoop({
       slides,
       vlmProvider: {} as any,
@@ -139,9 +153,14 @@ describe('AiService · 审计循环（runHtmlPlaceholderAuditLoop）· 重试 / 
   });
 
   it('达到最大重试次数仍阻塞 → 保留历史最优，passed=false', async () => {
-    runVlmCritiqueMock.mockResolvedValue({ issues: [{ severity: 'error', message: '遮挡' }], score: 30 });
+    runVlmCritiqueMock.mockResolvedValue({
+      issues: [{ severity: 'error', message: '遮挡' }],
+      score: 30,
+    });
     const regenerate = vi.fn(async () => makeSlide('<div>still-bad</div>'));
-    const slides = [makeSlide('<div>bad</div>', { score: 4, passed: false, attempts: 1, issues: [] })];
+    const slides = [
+      makeSlide('<div>bad</div>', { score: 4, passed: false, attempts: 1, issues: [] }),
+    ];
     const out = await runHtmlPlaceholderAuditLoop({
       slides,
       vlmProvider: {} as any,

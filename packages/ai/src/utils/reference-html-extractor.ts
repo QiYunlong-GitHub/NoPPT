@@ -679,4 +679,3 @@ export function extractReferenceHtmlAttributes(
     structure,
   };
 }
-

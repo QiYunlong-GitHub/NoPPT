@@ -85,7 +85,10 @@ export function injectImagePlaceholderForContentSlide(
   if (!wrap || !outer) return html;
   // 行布局根容器（flex-direction:row）不适合再追加分栏行，避免把正文挤成 0 宽
   const outerStyle = outer.getAttribute('style') || '';
-  if (/flex-direction\s*:\s*row/i.test(outerStyle) && !/flex-direction\s*:\s*column/i.test(outerStyle)) {
+  if (
+    /flex-direction\s*:\s*row/i.test(outerStyle) &&
+    !/flex-direction\s*:\s*column/i.test(outerStyle)
+  ) {
     return html;
   }
   const h2 = outer.querySelector('h2');

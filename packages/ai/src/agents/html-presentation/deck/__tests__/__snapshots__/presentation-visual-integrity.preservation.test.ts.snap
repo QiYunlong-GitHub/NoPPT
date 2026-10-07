@@ -1,0 +1,230 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`presentation visual integrity · AI preservation baseline > preserves content order, legal decorations, and logical geometry for seeded legal Decks > fixed-seed-legal-decks 1`] = `
+[
+  {
+    "decorationPreserved": true,
+    "id": "legal-slide-0",
+    "logicalRects": [
+      {
+        "h": 656,
+        "w": 1184,
+        "x": 48,
+        "y": 32,
+      },
+      {
+        "h": 56,
+        "w": 1088,
+        "x": 96,
+        "y": 96,
+      },
+      {
+        "h": 56,
+        "w": 1088,
+        "x": 96,
+        "y": 184,
+      },
+      {
+        "h": 56,
+        "w": 1088,
+        "x": 96,
+        "y": 256,
+      },
+      {
+        "h": 96,
+        "w": 160,
+        "x": 1000,
+        "y": 560,
+      },
+    ],
+    "nodeKinds": [
+      "shape",
+      "text",
+      "text",
+      "text",
+      "image",
+    ],
+    "pageType": "content-cards",
+    "text": [
+      "合法页面 0",
+      "slide-0-0-合法边界",
+      "slide-0-1-合法边界",
+    ],
+    "title": "合法页面 0",
+  },
+  {
+    "decorationPreserved": true,
+    "id": "legal-slide-1",
+    "logicalRects": [
+      {
+        "h": 656,
+        "w": 1184,
+        "x": 48,
+        "y": 32,
+      },
+      {
+        "h": 56,
+        "w": 1088,
+        "x": 96,
+        "y": 96,
+      },
+      {
+        "h": 56,
+        "w": 1088,
+        "x": 96,
+        "y": 184,
+      },
+      {
+        "h": 56,
+        "w": 1088,
+        "x": 96,
+        "y": 256,
+      },
+      {
+        "h": 96,
+        "w": 160,
+        "x": 1000,
+        "y": 560,
+      },
+    ],
+    "nodeKinds": [
+      "shape",
+      "text",
+      "text",
+      "text",
+      "image",
+    ],
+    "pageType": "content-cards",
+    "text": [
+      "合法页面 1",
+      "slide-1-0-用户编辑",
+      "slide-1-1-内容稳定",
+    ],
+    "title": "合法页面 1",
+  },
+  {
+    "decorationPreserved": true,
+    "id": "legal-slide-2",
+    "logicalRects": [
+      {
+        "h": 656,
+        "w": 1184,
+        "x": 48,
+        "y": 32,
+      },
+      {
+        "h": 56,
+        "w": 1088,
+        "x": 96,
+        "y": 96,
+      },
+      {
+        "h": 56,
+        "w": 1088,
+        "x": 96,
+        "y": 184,
+      },
+      {
+        "h": 96,
+        "w": 160,
+        "x": 1000,
+        "y": 560,
+      },
+    ],
+    "nodeKinds": [
+      "shape",
+      "text",
+      "text",
+      "image",
+    ],
+    "pageType": "content-cards",
+    "text": [
+      "合法页面 2",
+      "slide-2-0-保留顺序",
+    ],
+    "title": "合法页面 2",
+  },
+  {
+    "decorationPreserved": true,
+    "id": "legal-slide-3",
+    "logicalRects": [
+      {
+        "h": 656,
+        "w": 1184,
+        "x": 48,
+        "y": 32,
+      },
+      {
+        "h": 56,
+        "w": 1088,
+        "x": 96,
+        "y": 96,
+      },
+      {
+        "h": 56,
+        "w": 1088,
+        "x": 96,
+        "y": 184,
+      },
+      {
+        "h": 96,
+        "w": 160,
+        "x": 1000,
+        "y": 560,
+      },
+    ],
+    "nodeKinds": [
+      "shape",
+      "text",
+      "text",
+      "image",
+    ],
+    "pageType": "content-cards",
+    "text": [
+      "合法页面 3",
+      "slide-3-0-合法边界",
+    ],
+    "title": "合法页面 3",
+  },
+]
+`;
+
+exports[`presentation visual integrity · AI preservation baseline > records browser/font limitations as unverified rather than treating them as preservation passes > environment-limitations 1`] = `
+[
+  {
+    "capability": "Chromium visual renderer",
+    "reason": "Task 2 baseline does not start a browser service.",
+    "status": "unverified",
+  },
+  {
+    "capability": "Declared font metric resolution",
+    "reason": "No per-node font metric probe is available in the current pre-fix boundary.",
+    "status": "unverified",
+  },
+]
+`;
+
+exports[`presentation visual integrity · AI preservation baseline > runs the same preservation invariant across generated legal Decks > seeded-property-cases 1`] = `
+[
+  {
+    "missingCount": 0,
+    "seed": 20903,
+    "textCount": 3,
+  },
+  {
+    "missingCount": 0,
+    "seed": 2654435769,
+    "textCount": 2,
+  },
+  {
+    "missingCount": 0,
+    "seed": 305419896,
+    "textCount": 3,
+  },
+  {
+    "missingCount": 0,
+    "seed": 3735928559,
+    "textCount": 3,
+  },
+]
+`;

@@ -3,7 +3,14 @@
  * 由 html-presentation/shared.ts 的顶层声明逐块搬移，对外导出保持不变。
  */
 
-import type { DesignProposal, ImagePreference, ImageRatio, PresentationPlan, SlidePageType } from '../../types';
+import type {
+  DesignProposal,
+  ImagePreference,
+  ImageRatio,
+  PresentationPlan,
+  SlidePageType,
+} from '../../types';
+import type { Deck, DeckMeta, DeckMaster, DeckSlide, DeckTheme } from '@noppt/core/deck';
 
 export interface SlideElement {
   id: string;
@@ -22,7 +29,6 @@ export interface SlideElement {
   selector?: string;
 }
 
-
 export interface HTMLSlide {
   title: string;
   html: string;
@@ -35,6 +41,8 @@ export interface HTMLSlide {
   imagePreference?: ImagePreference;
   /** 该页在 plan.slides 中的原始下标，用于回查 slidePlan */
   _originalIdx?: number;
+  /** 结构化节点树（与 `html` 同源，供 PPTX 导出使用）。 */
+  deck?: DeckSlide;
   critique?: {
     score: number;
     passed: boolean;
@@ -43,13 +51,11 @@ export interface HTMLSlide {
   };
 }
 
-
 export interface GenerationTiming {
   startTime: string;
   endTime: string;
   durationMs: number;
 }
-
 
 export interface HTMLPresentation {
   title: string;
@@ -63,8 +69,18 @@ export interface HTMLPresentation {
   imagePreference?: ImagePreference;
   plan?: PresentationPlan;
   design?: DesignProposal;
+  /**
+   * 结构化 deck（HTML 与 PPTX 共用的同一份数据真值）。
+   * 由 `finalizePresentation` 从 `plan` 直接转换得到，不额外消耗 LLM token。
+   */
+  deck?: Deck;
+  /** deck 级母版（单独暴露，便于落盘到 `Presentation.master`）。 */
+  master?: DeckMaster;
+  /** deck 级主题（单独暴露，便于落盘）。 */
+  theme?: DeckTheme;
+  /** deck 级元信息（单独暴露，便于落盘到 `Presentation.meta`）。 */
+  meta?: DeckMeta;
 }
-
 
 export type RetryEntry = { total: number; byChannel: Record<string, number> };
 
@@ -85,7 +101,6 @@ export interface CandidateModel {
   pixelRanges?: Array<{ minPixels: number; maxPixels: number; label?: string }>;
   index: number;
 }
-
 
 export type SlideCountSpec =
   | { exact: number; min?: undefined; max?: undefined }

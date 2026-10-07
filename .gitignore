@@ -56,6 +56,7 @@ docs/
 Slides_Templates/
 tests/
 offline-wheels/
+workflow-records/
 *.lnk
 noppt-config-*.json
 # 含明文 API Key 的 Hermes 项目级约定（切勿入库；clone 者请按 README 自建 Key）
@@ -79,6 +80,10 @@ GitHub上传清单.md
 .trae/
 .roo/
 .codebuddy/
+.kiro/
+.agents
+.agents/artifacts/
+packages/.agents/
 
 # ===== 本地代码体检工具配置（未接入工程，按需保留/忽略） =====
 # Knip 死代码/依赖分析、dependency-cruiser 依赖图、eslint gates 门禁

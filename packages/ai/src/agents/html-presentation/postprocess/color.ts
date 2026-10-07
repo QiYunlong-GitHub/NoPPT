@@ -29,8 +29,7 @@ export function hexToRgba(hex: string, alpha: number): string {
 export function rgbStringToHex(str: string): string | null {
   const m = /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i.exec(str);
   if (!m) return null;
-  const clamp = (n: number): string =>
-    Math.max(0, Math.min(255, n)).toString(16).padStart(2, '0');
+  const clamp = (n: number): string => Math.max(0, Math.min(255, n)).toString(16).padStart(2, '0');
   return `#${clamp(parseInt(m[1], 10))}${clamp(parseInt(m[2], 10))}${clamp(parseInt(m[3], 10))}`;
 }
 
@@ -44,9 +43,7 @@ export function hexToRgb(hex: string): { r: number; g: number; b: number } | nul
   };
 }
 
-export function parseColorToRgba(
-  token: string,
-): [number, number, number, number] | null {
+export function parseColorToRgba(token: string): [number, number, number, number] | null {
   const t = token.trim().toLowerCase();
   const hexM = t.match(/^#([0-9a-f]{3,8})/i);
   if (hexM) {
@@ -101,10 +98,7 @@ export function relativeLuminance(rgb: [number, number, number]): number {
 }
 
 // WCAG 对比度比
-export function contrastRatio(
-  fg: [number, number, number],
-  bg: [number, number, number],
-): number {
+export function contrastRatio(fg: [number, number, number], bg: [number, number, number]): number {
   const lf = relativeLuminance(fg);
   const lb = relativeLuminance(bg);
   const lighter = Math.max(lf, lb);

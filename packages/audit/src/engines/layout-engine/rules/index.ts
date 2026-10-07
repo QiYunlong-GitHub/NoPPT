@@ -14,6 +14,10 @@ import { spacingGrid } from './spacing-grid';
 import { noTextWatermark } from './no-text-watermark';
 import { noLoremIpsum } from './no-lorem-ipsum';
 import { imageSideColumnViolation } from './image-side-column-violation';
+import { noRequiredContentClipping } from './no-required-content-clipping';
+import { logicalCanvasBoundary } from './logical-canvas-boundary';
+import { noEmptyRequiredText } from './no-empty-required-text';
+import { noFixedNestedCanvas } from './no-fixed-nested-canvas';
 
 export const rules: LayoutRule[] = [
   outerContainerRequiredStyles,
@@ -31,4 +35,8 @@ export const rules: LayoutRule[] = [
   noTextWatermark,
   noLoremIpsum,
   imageSideColumnViolation,
+  noRequiredContentClipping,
+  logicalCanvasBoundary,
+  noEmptyRequiredText,
+  noFixedNestedCanvas,
 ];

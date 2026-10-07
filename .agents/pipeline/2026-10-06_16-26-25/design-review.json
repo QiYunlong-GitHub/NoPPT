@@ -1,0 +1,86 @@
+{
+  "verdict": "CHANGES_REQUESTED",
+  "findings": [
+    {
+      "id": "F-001",
+      "severity": "HIGH",
+      "title": "cqw responsive renderer is incompatible with the sanitizer",
+      "location": "Design §3.1; packages/core/src/security/html-allowlist.ts:148-275",
+      "problem": "The design requires container-type/container-name and cqw, but the shared allowlist does not allow container-type or container-name, so sanitization can remove the containing block and break wide/narrow scaling.",
+      "fix": "Allow and test the container properties through both sanitizers, or choose an allowed transform/scale implementation; add unsupported-container evidence semantics.",
+      "evidence": ["packages/core/src/security/html-allowlist.ts:148-275", "packages/ai/src/agents/html-presentation/deck/deck-to-html.ts:1-18"]
+    },
+    {
+      "id": "F-002",
+      "severity": "HIGH",
+      "title": "Empty-manifest parity is skipped by the audit caller",
+      "location": "Design §2.4; packages/audit/src/engines/content-engine/index.ts:184-188",
+      "problem": "The caller does not invoke compareContentCollections when both observed manifests are empty, and visual validation can pass an empty Deck-required set without the plan manifest.",
+      "fix": "Always compare the plan-required manifest; allow pass only when the expected set is empty; add a non-empty-plan/empty-observation regression test.",
+      "evidence": ["packages/audit/src/engines/content-engine/index.ts:184-188", "packages/audit/src/engines/visual-engine/visual-validation.ts:89-99"]
+    },
+    {
+      "id": "F-003",
+      "severity": "HIGH",
+      "title": "Cover identity IDs are not connected to a required-content contract",
+      "location": "Design §2.4; packages/ai/src/agents/html-presentation/deck/layout-content.ts:24-105; slide-contract.ts:253-262",
+      "problem": "The design names four cover IDs, but current normalization/required collection does not include the title or cover keyPoints, while layout nodes have no IDs.",
+      "fix": "Define a cover normalization manifest with exact source mapping, IDs, roles, order, and cardinality; have Deck and HTML derive from it and test the target fixture.",
+      "evidence": ["packages/ai/src/agents/html-presentation/deck/layout-content.ts:24-105", "packages/ai/src/agents/html-presentation/deck/slide-contract.ts:253-262"]
+    },
+    {
+      "id": "F-004",
+      "severity": "HIGH",
+      "title": "Strict generation can still yield a persistable non-pass candidate",
+      "location": "Design §2.1; packages/ai/src/agents/html-presentation/stages/finalize.ts:93-115",
+      "problem": "Recoverable strict issues still produce a Deck, and finalization catches Deck failures and returns HTML without a defined persistence block; render-deck currently calls legacy planToDeck.",
+      "fix": "Propagate PlanToDeckResult into the candidate gate; require pass for verified acceptance, or explicitly mark legacy_unverified and reject verified save/export. Do not treat caught Deck failure as successful candidate output.",
+      "evidence": ["packages/ai/src/agents/html-presentation/deck/plan-to-deck.ts:297-320", "packages/ai/src/agents/html-presentation/stages/finalize.ts:93-115", "packages/ai/src/agents/html-presentation/stages/render-deck.ts:369-377"]
+    },
+    {
+      "id": "F-005",
+      "severity": "HIGH",
+      "title": "PPTX/export callers can bypass the integrity boundary",
+      "location": "Design §7.1/§7.2; packages/web/src/export/pptx/deck-to-pptx.ts:191-199",
+      "problem": "HTML fallback is marked needs_review, but buildPptx only blocks non-pass plan-backed slides; ExportModal directly calls presentationToDeck and can reach the low-level exporter.",
+      "fix": "Require exportWithIntegrity for verified export and make buildPptx reject any non-pass provenance/status regardless of source; provide a separately named explicit legacy export if needed.",
+      "evidence": ["packages/web/src/components/ExportModal.tsx:495-510", "packages/web/src/export/presentation-to-deck.ts:116-171", "packages/web/src/export/pptx/deck-to-pptx.ts:191-199"]
+    },
+    {
+      "id": "F-006",
+      "severity": "HIGH",
+      "title": "Integrity context and evidence gate contracts are incomplete",
+      "location": "Design §1.1/§1.3/§7.1; packages/server/src/modules/presentation/presentation-integrity.service.ts:1-66",
+      "problem": "The proposed context lacks baseUpdatedAt, snapshot/manifest reference, and a distinct promotion confirmation; assertIntegrityEvidenceForSave is referenced without a report schema or adapter to the existing server lifecycle/check types.",
+      "fix": "Define shared IntegrityEvidenceReport, assertIntegrityEvidenceForSave, and IntegrityOperationResult signatures with snapshot hash/updatedAt, required cells/statuses, artifacts, write policy, and explicit confirmation; map server lifecycle types to them and reject missing context before writes.",
+      "evidence": ["packages/server/src/modules/presentation/presentation-integrity.service.ts:1-66", "Design §1.1 and §1.3"]
+    },
+    {
+      "id": "F-007",
+      "severity": "MEDIUM",
+      "title": "Validation schema does not represent complete per-cell evidence",
+      "location": "Design §4.2; packages/audit/src/engines/visual-engine/visual-validation.ts:43-60,230-248",
+      "problem": "The design requires per viewport/resize clipping, overflow, overlap, parity, font, screenshot, and final status, but current shapes store slide-level screenshots and resize metrics omit parity/font/resource/screenshot fields; exact required sequence is not enforced.",
+      "fix": "Define a VisualValidationCell for every initial and resize state, validate the exact five-state sequence, and include all required evidence and paths in each cell.",
+      "evidence": ["packages/audit/src/engines/visual-engine/visual-validation.ts:43-60", "packages/audit/src/engines/visual-engine/visual-validation.ts:230-248"]
+    },
+    {
+      "id": "F-008",
+      "severity": "MEDIUM",
+      "title": "Font/resource evidence is not fully propagated to the gate",
+      "location": "Design §6; packages/audit/src/engines/visual-engine/visual-validation.ts:25-34,118-131",
+      "problem": "The prose requires stack, weights, deltas, affected IDs, and API reasons, but VisualFontEvidence does not expose them and hasBlockingMetric does not include image/resource failure semantics.",
+      "fix": "Define the complete per-cell font/resource contract and aggregation precedence, including required-resource failures, missing APIs, and fallback layout deltas; add all required fixtures.",
+      "evidence": ["packages/audit/src/engines/visual-engine/visual-validation.ts:25-34,118-131", "packages/audit/src/engines/visual-engine/font-icon-check.ts:40-72"]
+    },
+    {
+      "id": "F-009",
+      "severity": "NIT",
+      "title": "Focused test command paths are not present in workspace source",
+      "location": "Design §10",
+      "problem": "The prescribed command names exploration and integrity evidence .test.ts paths that were not found under packages/audit source; only the corresponding non-test source/helper paths were found.",
+      "fix": "Create those workspace tests or correct the commands and record exact resolved paths and exit status.",
+      "evidence": ["packages/audit/src/engines/visual-engine/__tests__/presentation-visual-integrity.exploration.ts", "packages/audit/src/engine/integrity-evidence.ts"]
+    }
+  ]
+}

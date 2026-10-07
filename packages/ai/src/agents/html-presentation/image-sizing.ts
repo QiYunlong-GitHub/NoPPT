@@ -4,7 +4,13 @@
  */
 
 import { formatBeijingTime } from '../../providers/base';
-import type { ImageModelRoutingConfig, ImageRatio, ImageRouteScene, ImageSize, SlidePageType } from '../../types';
+import type {
+  ImageModelRoutingConfig,
+  ImageRatio,
+  ImageRouteScene,
+  ImageSize,
+  SlidePageType,
+} from '../../types';
 import { getQualityScore, getSpeedScore, parseModelName } from '../../utils/model-name-parser';
 import type { CandidateModel, PixelRange } from './types';
 
@@ -58,7 +64,6 @@ export function defaultRatioForImageTop(keyPoints?: string[] | null): ImageRatio
   return '21:9'; // ≤3 要点也用 21:9，比旧 16:9 更安全，后续若需要可按 n=2/3 调回 16:9
 }
 
-
 export const IMAGE_SIZE_MAPPINGS: Record<string, Record<ImageRatio, ImageSize>> = {
   seedream: {
     '1:1': '2048x2048',
@@ -105,7 +110,6 @@ export const IMAGE_SIZE_MAPPINGS: Record<string, Record<ImageRatio, ImageSize>> 
     '21:9': '3136x1344',
   },
 };
-
 
 export function computeAlignedSizeForRatio(
   ratio: ImageRatio,
@@ -161,7 +165,6 @@ export function computeAlignedSizeForRatio(
   }
   return best;
 }
-
 
 export function getImageSizeForRatio(
   model: string | undefined,
@@ -237,7 +240,6 @@ export function getImageSizeForRatio(
   return mapping[ratio] || mapping['16:9'] || '1024x1024';
 }
 
-
 export function ratioMatchesSize(ratio: ImageRatio, width: number, height: number): boolean {
   const ratioMap: Record<ImageRatio, number> = {
     '1:1': 1,
@@ -253,7 +255,6 @@ export function ratioMatchesSize(ratio: ImageRatio, width: number, height: numbe
   const actualRatio = width / height;
   return Math.abs(actualRatio - targetRatio) / targetRatio <= 0.05;
 }
-
 
 export function getRouteScene(pageType: SlidePageType): ImageRouteScene {
   if (pageType === 'cover') return 'cover';
@@ -289,7 +290,6 @@ export function getRouteScene(pageType: SlidePageType): ImageRouteScene {
   }
   return 'content';
 }
-
 
 export function selectImageModel(
   allModels: CandidateModel[],
@@ -361,4 +361,3 @@ export function selectImageModel(
   );
   return { modelName: selected.modelName, modelIndex: selected.index };
 }
-

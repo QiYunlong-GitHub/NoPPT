@@ -13,9 +13,7 @@ export interface UseComputedStyleSyncParams {
   isTextElement: (el: HTMLElement) => boolean;
   getElementPixelSize: (el: HTMLElement, zoom?: number) => ElementPixelSize;
   setIsMultiSelect: (value: boolean) => void;
-  setElementType: (
-    value: 'text' | 'image' | 'container' | 'mixed' | null,
-  ) => void;
+  setElementType: (value: 'text' | 'image' | 'container' | 'mixed' | null) => void;
   setAllTextElements: (value: boolean) => void;
   setLocalStyles: Dispatch<SetStateAction<Record<string, string>>>;
   setAspectRatio: (value: number) => void;

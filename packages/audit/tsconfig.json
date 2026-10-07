@@ -9,10 +9,11 @@
     "allowImportingTsExtensions": false,
     "baseUrl": ".",
     "paths": {
-      "@noppt/core": ["../core/dist/cjs/index.d.ts"],
+      "@noppt/core": ["../core/dist/cjs/index"],
       "@noppt/core/*": ["../core/dist/cjs/*"],
-      "@noppt/ai": ["../ai/dist/cjs/index.d.ts"],
-      "@noppt/ai/*": ["../ai/dist/cjs/*"]
+      "@noppt/ai": ["../ai/dist/cjs/index"],
+      "@noppt/ai/*": ["../ai/dist/cjs/*"],
+      "@noppt/web/export/presentation-to-deck": ["src/engines/visual-engine/__tests__/presentation-visual-integrity.web-export.d.ts"]
     }
   },
   "include": ["src"]

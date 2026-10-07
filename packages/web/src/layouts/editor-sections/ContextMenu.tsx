@@ -121,7 +121,12 @@ function ElementMenu({ contextMenu, actions }: MenuInnerProps) {
   );
 }
 
-function SlideMenu({ contextMenu, iconStyleOptions, actions, onApplyIconStyleToCurrentSlide }: MenuInnerProps) {
+function SlideMenu({
+  contextMenu,
+  iconStyleOptions,
+  actions,
+  onApplyIconStyleToCurrentSlide,
+}: MenuInnerProps) {
   const emptyClipboard =
     !contextMenu.hasElementClipboard &&
     !contextMenu.hasSlideClipboard &&
@@ -253,9 +258,19 @@ export function ContextMenu({
       onClick={(e) => e.stopPropagation()}
     >
       {contextMenu.type === 'element' ? (
-        <ElementMenu contextMenu={contextMenu} iconStyleOptions={iconStyleOptions} actions={actions} onApplyIconStyleToCurrentSlide={onApplyIconStyleToCurrentSlide} />
+        <ElementMenu
+          contextMenu={contextMenu}
+          iconStyleOptions={iconStyleOptions}
+          actions={actions}
+          onApplyIconStyleToCurrentSlide={onApplyIconStyleToCurrentSlide}
+        />
       ) : (
-        <SlideMenu contextMenu={contextMenu} iconStyleOptions={iconStyleOptions} actions={actions} onApplyIconStyleToCurrentSlide={onApplyIconStyleToCurrentSlide} />
+        <SlideMenu
+          contextMenu={contextMenu}
+          iconStyleOptions={iconStyleOptions}
+          actions={actions}
+          onApplyIconStyleToCurrentSlide={onApplyIconStyleToCurrentSlide}
+        />
       )}
     </div>
   );

@@ -1,10 +1,5 @@
 import { JSDOM } from 'jsdom';
-import {
-  ALLOWED_TAGS,
-  ALLOWED_ATTRIBUTES,
-  ALLOWED_ATTR_SET,
-  ALLOWED_CSS_PROPERTIES,
-} from '@noppt/core';
+import { ALLOWED_TAGS, ALLOWED_ATTR_SET, ALLOWED_CSS_PROPERTIES } from '@noppt/core';
 
 const ALLOWED_HREF_PROTOCOLS = new Set(['http:', 'https:']);
 

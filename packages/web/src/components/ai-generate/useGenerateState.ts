@@ -63,8 +63,7 @@ function makeSetters<S extends object>(
   const out: Record<string, unknown> = {};
   for (const key of keys) {
     const setterName = `set${key[0].toUpperCase()}${key.slice(1)}`;
-    out[setterName] = (value: unknown) =>
-      dispatch({ key, value } as unknown as GroupAction<S>);
+    out[setterName] = (value: unknown) => dispatch({ key, value } as unknown as GroupAction<S>);
   }
   return out as SettersOf<S>;
 }

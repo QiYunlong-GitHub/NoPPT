@@ -71,7 +71,7 @@ export function parseStyleDeclarations(styleStr: string): Array<{ key: string; v
     if (colonIdx === -1) break; // 无冒号 → 到此为止
     const key = styleStr.substring(i, colonIdx).trim().toLowerCase();
     // 3) 找分号：括号/引号外且跳过实体
-    let valStart = colonIdx + 1;
+    const valStart = colonIdx + 1;
     let semiIdx = -1;
     depth = 0;
     inQuote = 0;
@@ -428,20 +428,26 @@ export function enforceTextWrapping(html: string): string {
     svgBlocks.push(block);
     return MASK(svgBlocks.length - 1);
   });
-  const processed = masked.replace(/<(p|li|pre|h[1-6])(?=[\s>/])([^>]*)>/gi, (match, tag, attrs) => {
-    if (/style="[^"]*"/i.test(match)) {
-      return match.replace(/style="([^"]*)"/i, (_s: string, style: string) => {
-        let newStyle = style;
-        if (!newStyle.includes('overflow-wrap')) newStyle += ';overflow-wrap:break-word';
-        if (!newStyle.includes('word-break')) newStyle += ';word-break:break-word';
-        return `style="${newStyle}"`;
-      });
-    }
-    return `<${tag}${attrs} style="overflow-wrap:break-word;word-break:break-word;">`;
-  });
+  const processed = masked.replace(
+    /<(p|li|pre|h[1-6])(?=[\s>/])([^>]*)>/gi,
+    (match, tag, attrs) => {
+      if (/style="[^"]*"/i.test(match)) {
+        return match.replace(/style="([^"]*)"/i, (_s: string, style: string) => {
+          let newStyle = style;
+          if (!newStyle.includes('overflow-wrap')) newStyle += ';overflow-wrap:break-word';
+          if (!newStyle.includes('word-break')) newStyle += ';word-break:break-word';
+          return `style="${newStyle}"`;
+        });
+      }
+      return `<${tag}${attrs} style="overflow-wrap:break-word;word-break:break-word;">`;
+    },
+  );
   if (svgBlocks.length === 0) return processed;
-  return processed.replace(/\u0000NOPPT_SVG_(\d+)\u0000/g, (_m: string, i: string) =>
-    svgBlocks[Number(i)] ?? '',
+  // NUL is an internal collision-resistant mask sentinel, not user content.
+  // eslint-disable-next-line no-control-regex
+  return processed.replace(
+    /\u0000NOPPT_SVG_(\d+)\u0000/g,
+    (_m: string, i: string) => svgBlocks[Number(i)] ?? '',
   );
 }
 

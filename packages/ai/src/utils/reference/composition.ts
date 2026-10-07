@@ -50,7 +50,6 @@ export function resolveReferenceComposition(
   return 'unknown';
 }
 
-
 // ---------- 日志工具（FR-7）----------
 export function formatPriorityDecision(
   attr: string,
@@ -64,29 +63,28 @@ export function formatPriorityDecision(
   )} final=${JSON.stringify(final)} source=${source}`;
 }
 
-
 // ---------- 参考图视觉特征 → 自然语言指引（FR-2.x）----------
-export const VISUAL_LABELS: Partial<Record<keyof ReferenceVisualFeatures, Record<string, string>>> = {
-  composition: {
-    centered: '居中构图',
-    'left-aligned': '左对齐构图',
-    split: '分栏构图',
-    'full-bleed': '全幅构图',
-  },
-  columns: { '1': '1 栏', '2': '2 栏', '3': '3 栏', '4': '4 栏' },
-  titleScale: { poster: '海报级标题', large: '大号标题', normal: '常规标题' },
-  decoration: {
-    'gradient-glow': '渐变光晕装饰',
-    'geometric-shapes': '几何形状装饰',
-    'thin-lines': '细线条装饰',
-    'solid-blocks': '实色块装饰',
-    minimal: '极简装饰',
-  },
-  backgroundTone: { light: '浅色背景', dark: '深色背景', colored: '彩色背景' },
-  cardRadius: { none: '无圆角', small: '小圆角', large: '大圆角' },
-  imagery: { photo: '照片调性', illustration: '插画调性', icon: '图标调性', none: '无图' },
-};
-
+export const VISUAL_LABELS: Partial<Record<keyof ReferenceVisualFeatures, Record<string, string>>> =
+  {
+    composition: {
+      centered: '居中构图',
+      'left-aligned': '左对齐构图',
+      split: '分栏构图',
+      'full-bleed': '全幅构图',
+    },
+    columns: { '1': '1 栏', '2': '2 栏', '3': '3 栏', '4': '4 栏' },
+    titleScale: { poster: '海报级标题', large: '大号标题', normal: '常规标题' },
+    decoration: {
+      'gradient-glow': '渐变光晕装饰',
+      'geometric-shapes': '几何形状装饰',
+      'thin-lines': '细线条装饰',
+      'solid-blocks': '实色块装饰',
+      minimal: '极简装饰',
+    },
+    backgroundTone: { light: '浅色背景', dark: '深色背景', colored: '彩色背景' },
+    cardRadius: { none: '无圆角', small: '小圆角', large: '大圆角' },
+    imagery: { photo: '照片调性', illustration: '插画调性', icon: '图标调性', none: '无图' },
+  };
 
 /** 将七维视觉特征转为「、」分隔的中文指引；无特征返回 undefined。 */
 export function describeVisualFeatures(visual?: ReferenceVisualFeatures): string | undefined {
@@ -107,4 +105,3 @@ export function describeVisualFeatures(visual?: ReferenceVisualFeatures): string
 }
 
 // ---------- FR-参考克隆：结构层 / 风格层 分发门控 ----------
-

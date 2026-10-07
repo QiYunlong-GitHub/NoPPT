@@ -7,6 +7,21 @@ import type {
   ImageGenerationOptions,
   GeneratedImage,
 } from '../types';
+import { consumeSse } from './sse';
+import {
+  asResponseRecord,
+  responseNumber,
+  responseRecord,
+  responseRecords,
+  responseString,
+} from './response-helpers';
+
+type AnthropicContentBlock =
+  | { type: 'text'; text: string }
+  | {
+      type: 'image';
+      source: { type: 'base64'; media_type: string; data: string } | { type: 'url'; url: string };
+    };
 
 export class AnthropicProvider extends BaseProvider {
   name = 'anthropic';
@@ -20,7 +35,9 @@ export class AnthropicProvider extends BaseProvider {
     };
   }
 
-  private convertMessages(messages: ChatMessage[]): { role: string; content: string | any[] }[] {
+  private convertMessages(
+    messages: ChatMessage[],
+  ): Array<{ role: 'user' | 'assistant'; content: string | AnthropicContentBlock[] }> {
     return messages
       .filter((m) => m.role !== 'system')
       .map((m) => ({
@@ -29,9 +46,11 @@ export class AnthropicProvider extends BaseProvider {
       }));
   }
 
-  private convertContent(content: string | import('../types').ContentPart[]): string | any[] {
+  private convertContent(
+    content: string | import('../types').ContentPart[],
+  ): string | AnthropicContentBlock[] {
     if (typeof content === 'string') return content;
-    const blocks: any[] = [];
+    const blocks: AnthropicContentBlock[] = [];
     for (const part of content) {
       if (part.type === 'text') {
         blocks.push({ type: 'text', text: part.text });
@@ -91,7 +110,7 @@ export class AnthropicProvider extends BaseProvider {
     const startTime = Date.now();
 
     try {
-      const body: any = {
+      const body: Record<string, unknown> = {
         model: opts.model,
         messages: anthropicMessages,
         max_tokens: opts.maxTokens,
@@ -112,6 +131,7 @@ export class AnthropicProvider extends BaseProvider {
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify(body),
+        signal: options?.signal,
       });
 
       if (!response.ok) {
@@ -121,19 +141,23 @@ export class AnthropicProvider extends BaseProvider {
         throw new Error(errorMsg);
       }
 
-      const data = await response.json();
+      const data = asResponseRecord(await response.json());
       const duration = Date.now() - startTime;
-
-      const result = {
-        content: data.content?.[0]?.text || '',
-        model: data.model,
-        usage: data.usage
+      const content = responseRecords(data, 'content')[0];
+      const usage = responseRecord(data, 'usage');
+      const result: ChatResponse = {
+        content: responseString(content ?? {}, 'text') ?? '',
+        model: responseString(data, 'model') ?? opts.model,
+        usage: usage
           ? {
-              promptTokens: data.usage.input_tokens,
-              completionTokens: data.usage.output_tokens,
-              totalTokens: (data.usage.input_tokens || 0) + (data.usage.output_tokens || 0),
+              promptTokens: responseNumber(usage, 'input_tokens') ?? 0,
+              completionTokens: responseNumber(usage, 'output_tokens') ?? 0,
+              totalTokens:
+                (responseNumber(usage, 'input_tokens') ?? 0) +
+                (responseNumber(usage, 'output_tokens') ?? 0),
             }
           : undefined,
+        finishReason: responseString(data, 'stop_reason'),
       };
 
       this.logResponse('chat', {
@@ -142,8 +166,8 @@ export class AnthropicProvider extends BaseProvider {
         usage: result.usage,
         contentPreview: truncate(result.content, 1000),
         contentLength: result.content.length,
-        stopReason: data.stop_reason,
-        stopSequence: data.stop_sequence,
+        stopReason: responseString(data, 'stop_reason'),
+        stopSequence: responseString(data, 'stop_sequence'),
       });
 
       this.recordTrace({
@@ -198,7 +222,7 @@ export class AnthropicProvider extends BaseProvider {
     const startTime = Date.now();
 
     try {
-      const body: any = {
+      const body: Record<string, unknown> = {
         model: opts.model,
         messages: anthropicMessages,
         max_tokens: opts.maxTokens,
@@ -219,6 +243,7 @@ export class AnthropicProvider extends BaseProvider {
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify(body),
+        signal: options?.signal,
       });
 
       if (!response.ok) {
@@ -229,34 +254,25 @@ export class AnthropicProvider extends BaseProvider {
       }
 
       const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
       let fullContent = '';
       let model = opts.model;
       let chunkCount = 0;
-      let buffer = '';
 
       if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
-
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (trimmed === '' || !trimmed.startsWith('data: ')) continue;
-            const data = trimmed.slice(6).trim();
-            if (data === '[DONE]') continue;
-
+        await consumeSse(
+          reader,
+          (data) => {
             try {
-              const parsed = JSON.parse(data);
-              if (parsed.model) {
-                model = parsed.model;
-              }
-              if (parsed.type === 'content_block_delta' && parsed.delta?.type === 'text_delta') {
-                const text = parsed.delta.text;
+              const parsed = asResponseRecord(JSON.parse(data));
+              const parsedModel = responseString(parsed, 'model');
+              if (parsedModel) model = parsedModel;
+              const eventType = responseString(parsed, 'type');
+              const delta = responseRecord(parsed, 'delta');
+              if (
+                eventType === 'content_block_delta' &&
+                responseString(delta ?? {}, 'type') === 'text_delta'
+              ) {
+                const text = responseString(delta ?? {}, 'text');
                 if (text) {
                   fullContent += text;
                   chunkCount++;
@@ -264,10 +280,11 @@ export class AnthropicProvider extends BaseProvider {
                 }
               }
             } catch {
-              // ignore parse errors
+              // Ignore malformed provider events, but never catch stream AbortError here.
             }
-          }
-        }
+          },
+          options?.signal,
+        );
       }
 
       const duration = Date.now() - startTime;

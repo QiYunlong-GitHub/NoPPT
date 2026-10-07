@@ -3,17 +3,43 @@
  */
 
 import type { SlideColorPolicy, SlidePageType } from '../../../types';
-import { applyCompositionGuard, cleanupEmptyInlineTags, enforceFlatStructure, enforceFlexChildrenMinWidth, enforceGridLayout, enforceImageStyles, enforceMinFontSize, enforceTextWrapping, fixGradientTextDeclarationOrder, isCoverLikeHtml, parseStyleDeclarations, type ReferenceComposition } from '@noppt/core';
+import {
+  applyCompositionGuard,
+  cleanupEmptyInlineTags,
+  enforceFlatStructure,
+  enforceFlexChildrenMinWidth,
+  enforceGridLayout,
+  enforceImageStyles,
+  enforceMinFontSize,
+  enforceTextWrapping,
+  fixGradientTextDeclarationOrder,
+  isCoverLikeHtml,
+  parseStyleDeclarations,
+  type ReferenceComposition,
+} from '@noppt/core';
 import { darkenPrimaryColor, normalizeHex } from './color';
 import { fixVerticalWritingLists, removeColorCodeWatermark } from './dom';
-import { enforceDarkBgTextContrast, enforceFinalTextContrast, enforceHeadingColorOnLightBg, enforceLightBgTextContrast } from './contrast';
-import { enforceCardTextProportion, enforceCoverPosterArtStyles, enforceLeftRight5545AndCardBar } from './cover';
+import {
+  enforceDarkBgTextContrast,
+  enforceFinalTextContrast,
+  enforceHeadingColorOnLightBg,
+  enforceLightBgTextContrast,
+} from './contrast';
+import {
+  enforceCardTextProportion,
+  enforceCoverPosterArtStyles,
+  enforceLeftRight5545AndCardBar,
+} from './cover';
 import { enforceBodyFontSize } from './font-size';
 import { getFontStack, isPlaceholderFontFamily } from './font-stack';
 
 // 图片容器/包裹/比例三块已外置到 ./image-container，此处导入 + 再导出保持对外签名不变
 import { enforceImageContainerStyles } from './image-container';
-export { enforceImageContainerStyles, ensureImageProperWrapper, ensureImageRatio } from './image-container';
+export {
+  enforceImageContainerStyles,
+  ensureImageProperWrapper,
+  ensureImageRatio,
+} from './image-container';
 
 export function postProcessLayout(
   html: string,
@@ -144,7 +170,6 @@ export function postProcessLayout(
 
   return result;
 }
-
 
 export function ensureOuterContainer(
   html: string,
@@ -313,8 +338,7 @@ export function ensureOuterContainer(
     ensureHas('overflow', 'hidden');
     ensureHas('position', 'relative');
     ensureHas('box-sizing', 'border-box');
-    if (!/padding\s*:/i.test(`;${safeStyle}`))
-      safeStyle = `${safeStyle};padding:${defaultPadding}`;
+    if (!/padding\s*:/i.test(`;${safeStyle}`)) safeStyle = `${safeStyle};padding:${defaultPadding}`;
     // padding 值为 0 的兜底（即使解析成功了也防一手）
     if (/padding\s*:\s*0(?:px)?\s*(?:;|$)/i.test(safeStyle)) {
       safeStyle = safeStyle.replace(
@@ -359,8 +383,7 @@ export function ensureOuterContainer(
           safeStyle = `${safeStyle};justify-content:center`;
         if (!/align-items\s*:/i.test(`;${safeStyle}`))
           safeStyle = `${safeStyle};align-items:center`;
-        if (!/text-align\s*:/i.test(`;${safeStyle}`))
-          safeStyle = `${safeStyle};text-align:center`;
+        if (!/text-align\s*:/i.test(`;${safeStyle}`)) safeStyle = `${safeStyle};text-align:center`;
       }
     }
     if (!/background(?:-color)?\s*:/i.test(`;${safeStyle}`))
@@ -427,8 +450,7 @@ export function ensureOuterContainer(
     styles['font-family'] = required['font-family'];
   }
   // 再次兜底：padding 仍然是 0 就强制盖掉
-  if (!styles.padding || /^0(?:px)?$/.test(styles.padding.trim()))
-    styles.padding = defaultPadding;
+  if (!styles.padding || /^0(?:px)?$/.test(styles.padding.trim())) styles.padding = defaultPadding;
   const newStyle = Object.entries(styles)
     .map(([k, v]) => `${k}:${v}`)
     .join(';');
@@ -440,7 +462,6 @@ export function ensureOuterContainer(
   }
   return `<div${newAttrs}>${inner}</div>`;
 }
-
 
 export function enforceTextContainerStyles(html: string): string {
   // FR-3 加固：原豁免只检查「当前开标签是否带 data-layout」，但 L1 高级版式
@@ -726,5 +747,3 @@ export function enforceListAndTextSpanStyles(html: string): string {
 
   return result;
 }
-
-

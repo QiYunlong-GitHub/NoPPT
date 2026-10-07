@@ -9,6 +9,12 @@ import type {
 } from '../types';
 import { pageTypeToCategory } from '../types';
 import { getSessionStage, type ImageGenerationTrace } from '../utils/llm-tracer';
+import {
+  asResponseRecord,
+  responseRecord,
+  responseRecords,
+  responseString,
+} from './response-helpers';
 
 // FR-15：从分类参考图映射中，按 slide pageType 选取 img2img seed。
 // 查找链：对应分类（cover/content/summary）→ global → undefined。
@@ -122,9 +128,11 @@ export class QwenImageProvider extends BaseProvider {
 
     const startTime = Date.now();
     // 收集完整 options 用于 trace（零截断）
-    const fullOptions: ImageGenerationOptions = { ...(options || {}), model, size, n };
+    const traceOptions = { ...options };
+    delete traceOptions.signal;
+    const fullOptions: ImageGenerationOptions = { ...traceOptions, model, size, n };
     // scene 从 options 扩展字段里读取（由 html-presentation-agent 注入），便于日志定位 slide
-    const scene = (options as any)?.scene as string | undefined;
+    const scene = options?.scene;
 
     const writeTrace = (
       trace: Omit<
@@ -196,6 +204,7 @@ export class QwenImageProvider extends BaseProvider {
             watermark: false,
           },
         }),
+        signal: options?.signal,
       });
 
       if (!response.ok) {
@@ -214,27 +223,29 @@ export class QwenImageProvider extends BaseProvider {
         throw err;
       }
 
-      const data = await response.json();
+      const data = asResponseRecord(await response.json());
       const duration = Date.now() - startTime;
+      const output = responseRecord(data, 'output');
+      const choices = output ? responseRecords(output, 'choices') : [];
 
       this.logResponse('generateImage', {
         durationMs: duration,
-        requestId: data.request_id,
-        statusCode: data.code,
-        hasOutput: !!data.output,
-        choicesCount: data.output?.choices?.length || 0,
+        requestId: responseString(data, 'request_id'),
+        statusCode: responseString(data, 'code'),
+        hasOutput: Boolean(output),
+        choicesCount: choices.length,
       });
 
-      const choices = data.output?.choices || [];
       const images: GeneratedImage[] = [];
-
       for (const choice of choices) {
-        const contents = choice.message?.content || [];
+        const message = responseRecord(choice, 'message');
+        const contents = message ? responseRecords(message, 'content') : [];
         for (const content of contents) {
-          if (content.image) {
+          const image = responseString(content, 'image');
+          if (image) {
             images.push({
-              url: content.image,
-              revisedPrompt: content.revised_prompt,
+              url: image,
+              revisedPrompt: responseString(content, 'revised_prompt'),
             });
           }
         }

@@ -171,7 +171,10 @@ describe('AiService · 参考注入（persistReferenceOriginals）', () => {
   });
 
   it('无 presentationId → 返回空对象', async () => {
-    svc.storage = { saveReferenceOriginalImage: vi.fn(), readReferenceOriginalImage: vi.fn() } as any;
+    svc.storage = {
+      saveReferenceOriginalImage: vi.fn(),
+      readReferenceOriginalImage: vi.fn(),
+    } as any;
     const res = await svc.persistReferenceOriginals({ presentationId: undefined } as any);
     expect(res).toEqual({});
   });

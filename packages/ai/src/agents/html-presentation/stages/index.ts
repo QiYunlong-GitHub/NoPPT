@@ -4,7 +4,12 @@ export { finalizePresentation } from './finalize';
 export { sanitizeImagePrompt } from './image-prompt';
 export { generateDesignProposals } from './design-proposals';
 export { modifySlide, modifyElement, modifyGlobal } from './edit';
-export { generatePlan, generatePresentation, generateFromPlan, generatePresentationFromReference } from './planning';
+export {
+  generatePlan,
+  generatePresentation,
+  generateFromPlan,
+  generatePresentationFromReference,
+} from './planning';
 export { renderSlides } from './render';
 export { regenerateSingleSlide } from './regenerate';
 export { generateSlideHtmlSafe, generateSlideHtml } from './generate-slide';

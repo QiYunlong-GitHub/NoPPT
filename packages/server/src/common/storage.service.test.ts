@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdtempSync, rmSync, existsSync } from 'fs';
+import { mkdtempSync, rmSync, existsSync, readFileSync, readdirSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import {
@@ -128,6 +128,52 @@ describe('M1 StorageService 作用域化', () => {
       expect(a).toBe(b);
       expect(a.getScope()).toEqual([]);
       expect(a.getPublicBase()).toBe('/data/workspace');
+    });
+
+    it('跨实例并发追加 JSONL 不丢记录', async () => {
+      const first = createScopedStorage('tenants', 't1', 'users', 'u1');
+      const second = createScopedStorage('tenants', 't1', 'users', 'u1');
+      const logPath = join(first.getWorkspaceDir(), 'concurrent.jsonl');
+      const entries = Array.from({ length: 80 }, (_, i) => ({ source: i % 2, i }));
+
+      await Promise.all(
+        entries.map((entry, i) => (i % 2 === 0 ? first : second).appendToLogFile(logPath, entry)),
+      );
+
+      const lines = readFileSync(logPath, 'utf-8')
+        .trim()
+        .split('\n')
+        .map((line) => JSON.parse(line) as { source: number; i: number });
+      expect(lines).toHaveLength(entries.length);
+      expect(new Set(lines.map((entry) => entry.i))).toEqual(
+        new Set(entries.map((entry) => entry.i)),
+      );
+    });
+
+    it('跨实例并发 JSON 写入始终留下完整 JSON 且清理临时文件', async () => {
+      const first = createScopedStorage('tenants', 't1', 'users', 'u1');
+      const second = createScopedStorage('tenants', 't1', 'users', 'u1');
+      const jsonPath = join(first.getWorkspaceDir(), 'concurrent.json');
+
+      await Promise.all(
+        Array.from({ length: 30 }, (_, i) =>
+          (i % 2 === 0 ? first : second).writeJsonFile(jsonPath, {
+            value: i,
+            nested: { ok: true },
+          }),
+        ),
+      );
+
+      const parsed = JSON.parse(readFileSync(jsonPath, 'utf-8')) as {
+        value: number;
+        nested: { ok: boolean };
+      };
+      expect(parsed.value).toBeGreaterThanOrEqual(0);
+      expect(parsed.value).toBeLessThan(30);
+      expect(parsed.nested).toEqual({ ok: true });
+      expect(readdirSync(first.getWorkspaceDir()).some((name) => name.endsWith('.tmp'))).toBe(
+        false,
+      );
     });
   });
 });

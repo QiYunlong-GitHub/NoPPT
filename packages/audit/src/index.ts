@@ -1,11 +1,43 @@
+export { AuditEngine } from './engine/audit-engine';
+export { assertIntegrityEvidenceForSave } from './engine/integrity-evidence';
 export * from './types';
 export * from './config/default-config';
-export { AuditEngine } from './engine/audit-engine';
+export type { AuditEngineContract } from './types';
 export { LayoutAuditEngine } from './engines/layout-engine';
 export * from './engines/layout-engine/types';
 export { VisualAuditEngine } from './engines/visual-engine';
 export type { PerSlideVisualMetrics } from './engines/visual-engine';
 export { SlideRenderer } from './engines/visual-engine/slide-renderer';
+export { runVisualValidation, DEFAULT_VISUAL_VIEWPORTS } from './engines/visual-engine/visual-validation';
+export type {
+  ElementMetrics,
+  FontReadiness,
+  LayoutMetrics,
+  ResourceReadiness,
+  ViewportProfile,
+} from './engines/visual-engine/slide-renderer';
+export type {
+  VisualMetric,
+  VisualResizeCheck,
+  VisualSlideValidation,
+  VisualValidationOptions,
+  VisualValidationReport,
+} from './engines/visual-engine/visual-validation';
+export {
+  checkFontAndIcons,
+  classifyFontObservation,
+  createFontProfile,
+} from './engines/visual-engine/font-icon-check';
+export type {
+  FontIconCheckResult,
+  FontMetricStatus,
+  FontMetricThresholds,
+  FontObservation,
+  FontProfile,
+  FontState,
+  FontValidationResult,
+  FontWeightState,
+} from './engines/visual-engine/font-icon-check';
 export { runVlmCritique } from './engines/visual-engine/vlm-critique';
 export type {
   VlmReviewResult,
