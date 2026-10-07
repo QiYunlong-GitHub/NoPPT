@@ -206,7 +206,22 @@ export class ApiKeyService {
   async ensureDevKey(devKeyEnv: string): Promise<PublicApiKeyRecord | null> {
     if (!devKeyEnv) return null;
     const existing = this.readFileSyncSafe().keys.find((k) => k.name === 'dev');
-    if (existing) return toPublic(existing);
+    if (existing) {
+      if (isPlainKeyFormat(devKeyEnv) && existing.keyHash !== hashKey(devKeyEnv)) {
+        await this.withWriteLock(async () => {
+          const file = this.readFileSyncSafe();
+          const dev = file.keys.find((k) => k.name === 'dev');
+          if (!dev || dev.keyHash === hashKey(devKeyEnv)) return;
+          dev.keyHash = hashKey(devKeyEnv);
+          dev.enabled = true;
+          await this.writeFileAtomic(file);
+        });
+        existing.keyHash = hashKey(devKeyEnv);
+        existing.enabled = true;
+        this.logger.log(`已按 NOPPT_DEV_KEY 更新 dev Key：${existing.id}`);
+      }
+      return toPublic(existing);
+    }
 
     // 若环境变量本身即合法明文 Key，则直接采用（便于联调确定性配置）；否则随机生成。
     if (isPlainKeyFormat(devKeyEnv)) {

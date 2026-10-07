@@ -1,5 +1,6 @@
 import type { OnModuleInit } from '@nestjs/common';
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ApiKeyService } from './api-key.service';
 import { ApiKeyGuard } from './api-key.guard';
 import { KeysController } from './keys.controller';
@@ -8,7 +9,12 @@ import { envStr } from '../../common/env';
 
 @Module({
   controllers: [KeysController],
-  providers: [ApiKeyService, ApiKeyGuard, RateLimitService],
+  providers: [
+    ApiKeyService,
+    ApiKeyGuard,
+    { provide: APP_GUARD, useExisting: ApiKeyGuard },
+    RateLimitService,
+  ],
   exports: [ApiKeyService, ApiKeyGuard, RateLimitService],
 })
 export class AuthModule implements OnModuleInit {
