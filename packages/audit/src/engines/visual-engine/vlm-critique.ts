@@ -236,35 +236,29 @@ export async function runVlmCritique(
 
   let response;
   try {
-    // VLM 请求超时保护：模型/网关无响应时不再无限等待，降级为"跳过该页继续"（避免整个生成卡死）
+    // VLM 请求超时保护：模型/网关无响应时中止底层请求，降级为"跳过该页继续"
     const timeoutMs = 180_000;
-    type VlmChatSettled = {
-      ok: boolean;
-      v?: Awaited<ReturnType<typeof provider.chat>>;
-      e?: unknown;
-    };
-    const chatSettled = await Promise.race<VlmChatSettled>([
-      provider.chat(messages, { temperature: 0.2, maxTokens: 8192 }).then(
-        (v): VlmChatSettled => ({ ok: true, v }),
-        (e): VlmChatSettled => ({ ok: false, e }),
-      ),
-      new Promise<VlmChatSettled>((resolve) =>
-        setTimeout(
-          () =>
-            resolve({
-              ok: false,
-              e: new Error(
-                `VLM 请求超时（>${timeoutMs / 1000}s），模型：${provider.config.model}，已降级跳过该页`,
-              ),
-            }),
-          timeoutMs,
-        ),
-      ),
-    ]);
-    if (!chatSettled.ok || !chatSettled.v) {
-      throw chatSettled.e instanceof Error ? chatSettled.e : new Error(String(chatSettled.e));
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        controller.abort();
+        reject(
+          new Error(
+            `VLM 请求超时（>${timeoutMs / 1000}s），模型：${provider.config.model}，已降级跳过该页`,
+          ),
+        );
+      }, timeoutMs);
+    });
+
+    try {
+      response = await Promise.race([
+        provider.chat(messages, { temperature: 0.2, maxTokens: 8192, signal: controller.signal }),
+        timeout,
+      ]);
+    } finally {
+      if (timer) clearTimeout(timer);
     }
-    response = chatSettled.v;
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.warn(`[VLM] 视觉评审调用失败或超时（已降级跳过）: ${msg}`);

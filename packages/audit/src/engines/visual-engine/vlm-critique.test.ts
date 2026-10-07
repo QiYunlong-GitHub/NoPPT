@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -83,6 +83,31 @@ describe('runVlmCritique 参考豁免（FR-17.2 / AC-36）', () => {
     expect(res.issues.every((i: any) => i.metadata.relaxedByReference === undefined)).toBe(true);
   });
 
+  it('timeout aborts the provider request while preserving degraded result', async () => {
+    vi.useFakeTimers();
+    let receivedSignal: AbortSignal | undefined;
+    const provider = {
+      config: { model: 'mock-vlm' },
+      chat: async (_messages: any[], options?: { signal?: AbortSignal }) => {
+        receivedSignal = options?.signal;
+        return new Promise<never>(() => {
+          /* wait for the timeout */
+        });
+      },
+    } as any;
+
+    try {
+      const pending = runVlmCritique(provider, shot, 0, '超时页');
+      await Promise.resolve();
+      expect(receivedSignal).toBeInstanceOf(AbortSignal);
+
+      await vi.advanceTimersByTimeAsync(180_000);
+      await expect(pending).resolves.toEqual({ issues: [], score: 0 });
+      expect(receivedSignal?.aborted).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
   it('无 hasReference: fatal 仍映射为 error（不放松）', async () => {
     const provider = makeProvider([
       {

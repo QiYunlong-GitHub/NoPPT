@@ -5,6 +5,47 @@ export type AuditSeverity = 'error' | 'warn' | 'info' | 'off';
 export type AuditEngineType = 'layout' | 'visual' | 'content' | 'fidelity' | 'sanitization';
 export type AuditResultStatus = 'passed' | 'warn' | 'fail' | 'error';
 export type OverallResult = 'pass' | 'warn' | 'fail';
+export type IntegrityStatus = 'pass' | 'warn' | 'fail' | 'unverified' | 'needs_review';
+
+export interface IntegrityEvidence {
+  eventType: 'render' | 'visual_validation' | 'audit' | 'fix';
+  presentationId: string;
+  slideIndex: number;
+  runId: string;
+  phase: 'candidate' | 'preview' | 'promotion' | 'rollback';
+  source: 'plan' | 'deck' | 'canonical-html' | 'editor' | 'html-fallback' | 'unknown';
+  pageType?: string;
+  viewport: { width: number; height: number; profile?: string };
+  logicalCanvas: { width: number; height: number };
+  expected: Record<string, unknown>;
+  observed: Record<string, unknown>;
+  emptyRequiredNodes: number;
+  outOfBoundsNodes: number;
+  clippedNodes: number;
+  parity: 'pass' | 'fail' | 'unverified';
+  font: Record<string, unknown>;
+  status: IntegrityStatus;
+  fixAction?: string | null;
+  artifactPath?: string | null;
+  durationMs: number;
+  errorCode?: string | null;
+}
+
+export interface IntegritySlideResult {
+  presentationId: string;
+  slideIndex: number;
+  runId: string;
+  status: IntegrityStatus;
+  events: IntegrityEvidence[];
+}
+
+export interface IntegrityReport {
+  runId: string;
+  presentationId: string;
+  status: IntegrityStatus;
+  perSlide: IntegritySlideResult[];
+  events: IntegrityEvidence[];
+}
 
 export interface AuditIssue {
   ruleId: string;
@@ -15,7 +56,7 @@ export interface AuditIssue {
   message: string;
   fixSuggestion?: string;
   fixable: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface AuditRule {
@@ -33,7 +74,7 @@ export interface AuditEngineResult {
   score: number;
   issues: AuditIssue[];
   durationMs: number;
-  raw?: any;
+  raw?: Record<string, unknown>;
 }
 
 export interface ScreenshotInfo {
@@ -69,6 +110,7 @@ export interface AuditReport {
   fixSummary?: FixSummary;
   regenerationRequired: boolean;
   feedbackPrompt?: string;
+  integrity?: IntegrityReport;
 }
 
 export interface EngineWeights {
@@ -115,8 +157,11 @@ export interface AuditContext {
   presentation: Presentation;
   plan?: PresentationPlan;
   config: AuditConfig;
-  renderer?: any;
+  renderer?: unknown;
   tempDir?: string;
+  runId?: string;
+  phase?: IntegrityEvidence['phase'];
+  source?: IntegrityEvidence['source'];
   designContext?: {
     style: string;
     primaryColor: string;
@@ -124,4 +169,11 @@ export interface AuditContext {
     iconStyle: string;
   };
   referenceContext?: ReferenceContext;
+}
+
+/** Public contract implemented by every registered audit engine. */
+export interface AuditEngineContract {
+  audit(context: AuditContext): Promise<AuditEngineResult>;
+  auditOutline?(context: AuditContext): Promise<AuditEngineResult>;
+  destroy?(): Promise<void> | void;
 }

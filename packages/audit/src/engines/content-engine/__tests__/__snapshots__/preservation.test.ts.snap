@@ -1,0 +1,50 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`presentation visual integrity · Audit preservation baseline > does not turn unavailable browser, font, or audit service evidence into pass > unverified-environment 1`] = `
+[
+  {
+    "reason": "No live browser renderer is started for the baseline.",
+    "service": "Chromium",
+    "status": "unverified",
+  },
+  {
+    "reason": "jsdom cannot establish resolved glyph metrics.",
+    "service": "font metrics",
+    "status": "unverified",
+  },
+  {
+    "reason": "Task 0 recorded port 3001 as unavailable.",
+    "service": "runtime audit endpoint",
+    "status": "unverified",
+  },
+]
+`;
+
+exports[`presentation visual integrity · Audit preservation baseline > preserves valid content for fixed and generated seeds without false omissions > seeded-audit-preservation-cases 1`] = `
+[
+  {
+    "issueCount": 0,
+    "plainTextLength": 33,
+    "pointCount": 2,
+    "seed": 20903,
+  },
+  {
+    "issueCount": 0,
+    "plainTextLength": 21,
+    "pointCount": 1,
+    "seed": 2654435769,
+  },
+  {
+    "issueCount": 0,
+    "plainTextLength": 33,
+    "pointCount": 2,
+    "seed": 305419896,
+  },
+  {
+    "issueCount": 0,
+    "plainTextLength": 33,
+    "pointCount": 2,
+    "seed": 3735928559,
+  },
+]
+`;

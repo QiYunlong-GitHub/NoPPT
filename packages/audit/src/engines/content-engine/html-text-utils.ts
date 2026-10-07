@@ -204,3 +204,22 @@ export function extractKeywords(text: string): string[] {
 
   return keywords;
 }
+
+/**
+ * Extract text that can satisfy required content coverage.
+ * Decorative, hidden, and aria-hidden nodes are intentionally excluded so
+ * visual ornamentation cannot make a missing content item appear present.
+ */
+export function extractRequiredText(html: string): string {
+  if (!html) return '';
+  let content = html
+    .replace(/<!--[\s\S]*?-->/gu, ' ')
+    .replace(/<(?:script|style)\b[^>]*>[\s\S]*?<\/(?:script|style)>/giu, ' ');
+  const decorativeBlock = /<([a-z][\w:-]*)\b[^>]*(?:data-role=["']decoration["']|data-decoration=["']true["']|aria-hidden=["']true["'])[^>]*>[\s\S]*?<\/\1\s*>/giu;
+  let previous = '';
+  while (previous !== content) {
+    previous = content;
+    content = content.replace(decorativeBlock, ' ');
+  }
+  return extractPlainText(content);
+}
