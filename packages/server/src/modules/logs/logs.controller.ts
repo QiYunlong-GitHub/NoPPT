@@ -1,17 +1,16 @@
 import { Controller, Get, Param } from '@nestjs/common';
-import { LogsService, AILogEntry } from './logs.service';
-import { getStorageService } from '../../common/storage.service';
+import type { McpAuth } from '../auth/api-key.guard';
+import { CurrentAuth } from '../auth/api-key.guard';
+import { withRestContext } from '../../common/rest-context';
+import type { AILogEntry } from './logs.service';
 
 @Controller('logs')
 export class LogsController {
-  private readonly logsService: LogsService;
-
-  constructor() {
-    this.logsService = new LogsService(getStorageService());
-  }
-
   @Get('ai/:presentationId')
-  getAILogs(@Param('presentationId') presentationId: string): AILogEntry[] {
-    return this.logsService.getAILogs(presentationId);
+  async getAILogs(
+    @Param('presentationId') presentationId: string,
+    @CurrentAuth() auth?: McpAuth,
+  ): Promise<AILogEntry[]> {
+    return withRestContext(auth, ({ logsService }) => logsService.getAILogs(presentationId));
   }
 }

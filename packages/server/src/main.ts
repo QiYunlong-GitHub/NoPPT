@@ -45,7 +45,7 @@ async function bootstrap() {
   app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
   // 解析请求语言：X-NoPPT-Lang / Accept-Language / 服务端 config.json / 默认 zh-CN
-  app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+  app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
     (req as unknown as { locale?: string }).locale = getRequestLocale(req);
     next();
   });

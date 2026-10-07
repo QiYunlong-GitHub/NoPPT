@@ -31,6 +31,8 @@ export interface ApiProviderConfig {
   apiKey: string;
   baseUrl: string;
   models: string[];
+  /** 公司 API 网关域账号，作为请求头 X-Sany-User-Code 透传，仅 company-gateway 生效。 */
+  userCode?: string;
 }
 
 export interface ImageProviderConfig {
@@ -133,6 +135,15 @@ export interface AppConfig {
   auditSettings: AuditSettings;
   inlineSelfCheckSettings: InlineSelfCheckSettings;
 }
+
+export type PublicApiProviderConfig = Omit<ApiProviderConfig, 'apiKey' | 'userCode'>;
+export type PublicImageProviderConfig = Omit<ImageProviderConfig, 'apiKey'>;
+export type PublicAppConfig = Omit<AppConfig, 'apiConfig' | 'imageGeneration'> & {
+  apiConfig: Record<ModelProvider, PublicApiProviderConfig>;
+  imageGeneration: Omit<ImageGenerationSettings, 'providers'> & {
+    providers: Record<ImageProvider, PublicImageProviderConfig>;
+  };
+};
 
 const defaultImageProviders: Record<ImageProvider, ImageProviderConfig> = {
   openai: {
@@ -264,7 +275,7 @@ export class ConfigService {
         },
         'company-gateway': {
           apiKey: '',
-          baseUrl: 'https://your-company-gateway.example.com/ai-api',
+          baseUrl: 'https://ai-gtw.sany.com.cn/openai/v1',
           models: [],
         },
       },
@@ -352,27 +363,30 @@ export class ConfigService {
 
     if (migrated.imageGeneration) {
       const oldImg = migrated.imageGeneration;
+      const imageProviderKeys = Object.keys(defaultImageProviders) as ImageProvider[];
+      const isImageProvider = (value: unknown): value is ImageProvider =>
+        imageProviderKeys.includes(value as ImageProvider);
       let providers = migrated.imageGeneration.providers
         ? { ...migrated.imageGeneration.providers }
         : { ...defaultImageProviders };
 
-      for (const key of Object.keys(defaultImageProviders)) {
+      for (const key of imageProviderKeys) {
         if (!providers[key]) {
           providers[key] = { ...defaultImageProviders[key] };
         }
       }
 
-      if (oldImg.provider && !oldImg.activeProvider) {
-        migrated.imageGeneration.activeProvider = oldImg.provider;
+      const legacyProvider = oldImg.provider;
+      if (isImageProvider(legacyProvider) && !oldImg.activeProvider) {
+        migrated.imageGeneration.activeProvider = legacyProvider;
       }
 
       if (
-        oldImg.provider &&
+        isImageProvider(legacyProvider) &&
         (oldImg.model || oldImg.size || oldImg.baseUrl || oldImg.apiKey || oldImg.gatewayVendor) &&
-        !providers[oldImg.provider]?.models?.length
+        !providers[legacyProvider]?.models?.length
       ) {
-        const existingProvider =
-          providers[oldImg.provider] || defaultImageProviders[oldImg.provider];
+        const existingProvider = providers[legacyProvider] || defaultImageProviders[legacyProvider];
         const modelName = oldImg.model || '';
         let sizes: ImageSize[] = existingProvider?.models?.[0]?.sizes || [
           { width: 1024, height: 1024 },
@@ -389,7 +403,7 @@ export class ConfigService {
           }
         }
 
-        providers[oldImg.provider] = {
+        providers[legacyProvider] = {
           ...existingProvider,
           apiKey: oldImg.apiKey || existingProvider?.apiKey || '',
           baseUrl: oldImg.baseUrl || existingProvider?.baseUrl || '',
@@ -481,6 +495,37 @@ export class ConfigService {
     return this.mergeWithDefaults(config, defaultConfig);
   }
 
+  /** Public controller projection: preserve configuration shape but never expose credentials. */
+  async getPublicConfig(): Promise<PublicAppConfig> {
+    return this.toPublicConfig(await this.getConfig());
+  }
+
+  toPublicConfig(config: AppConfig): PublicAppConfig {
+    const apiConfig = {} as Record<ModelProvider, PublicApiProviderConfig>;
+    for (const [provider, providerConfig] of Object.entries(config.apiConfig)) {
+      const publicProvider = { ...providerConfig };
+      delete (publicProvider as Partial<ApiProviderConfig>).apiKey;
+      delete (publicProvider as Partial<ApiProviderConfig>).userCode;
+      apiConfig[provider as ModelProvider] = publicProvider;
+    }
+
+    const providers = {} as Record<ImageProvider, PublicImageProviderConfig>;
+    for (const [provider, providerConfig] of Object.entries(config.imageGeneration.providers)) {
+      const publicProvider = { ...providerConfig };
+      delete (publicProvider as Partial<ImageProviderConfig>).apiKey;
+      providers[provider as ImageProvider] = publicProvider;
+    }
+
+    return {
+      ...config,
+      apiConfig,
+      imageGeneration: {
+        ...config.imageGeneration,
+        providers,
+      },
+    };
+  }
+
   async resolveModelConfig(stage: keyof ModelRoutingConfig): Promise<ModelConfig | null> {
     const config = await this.getConfig();
     const ref = config.modelRouting?.[stage];
@@ -495,6 +540,7 @@ export class ConfigService {
       apiKey: providerConfig.apiKey || '',
       baseUrl: providerConfig.baseUrl || '',
       model,
+      userCode: providerConfig.userCode || '',
     };
   }
 

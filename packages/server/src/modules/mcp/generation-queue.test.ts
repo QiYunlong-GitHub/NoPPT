@@ -116,7 +116,76 @@ describe('M4 GenerationQueue', () => {
     expect(stats.maxConcurrent).toBe(2);
   });
 
-  it('job 保留 tool 字段与入参', async () => {
+  it('releases job ownership after a runner finishes', async () => {
+    let releaseCount = 0;
+    const ownedCtx = {
+      ...ctx,
+      acquire: () => async () => {
+        releaseCount += 1;
+      },
+    } as McpContext;
+    const jobId = queue.enqueue('generate', ownedCtx, {}, async () => ({ ok: true }));
+    await queue.waitFor(jobId, 2000);
+    expect(releaseCount).toBe(1);
+  });
+
+  it('eviction releases queued ownership but never evicts a running job', async () => {
+    let releaseCount = 0;
+    let finishFirst!: () => void;
+    const firstDone = new Promise<void>((resolve) => {
+      finishFirst = resolve;
+    });
+    const ownedCtx = {
+      ...ctx,
+      acquire: () => async () => {
+        releaseCount += 1;
+      },
+    } as McpContext;
+    const first = (queue = new GenerationQueue({ maxConcurrent: 1, ttlMs: 60000, max: 2 }));
+    const firstId = first.enqueue('generate', ownedCtx, {}, async () => {
+      await firstDone;
+      return {};
+    });
+    const queuedId = first.enqueue('generate', ownedCtx, {}, async () => ({}));
+    first.enqueue('generate', ownedCtx, {}, async () => ({}));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(first.get(firstId)?.status).toBe('running');
+    expect(first.get(queuedId)).toBeUndefined();
+    expect(releaseCount).toBe(1);
+    finishFirst();
+    await first.waitFor(firstId, 2000);
+    first.onModuleDestroy();
+  });
+
+  it('shutdown marks queued jobs failed and releases their ownership', async () => {
+    let releaseCount = 0;
+    let finishFirst!: () => void;
+    const firstDone = new Promise<void>((resolve) => {
+      finishFirst = resolve;
+    });
+    const ownedCtx = {
+      ...ctx,
+      acquire: () => async () => {
+        releaseCount += 1;
+      },
+    } as McpContext;
+    const q = new GenerationQueue({ maxConcurrent: 1, ttlMs: 60000, max: 10 });
+    const runningId = q.enqueue('generate', ownedCtx, {}, async () => {
+      await firstDone;
+      return {};
+    });
+    const queuedId = q.enqueue('generate', ownedCtx, {}, async () => ({}));
+    q.onModuleDestroy();
+    expect(q.get(queuedId)).toMatchObject({
+      status: 'failed',
+      error: { code: 'E5005' },
+    });
+    expect(releaseCount).toBe(1);
+    finishFirst();
+    await q.waitFor(runningId, 2000);
+  });
+
+  it('job retains tool field and input arguments', async () => {
     const jobId = queue.enqueue('edit_slide', ctx, { presentationId: 'p1' }, async () => ({}));
     const job = queue.get(jobId) as McpJob;
     expect(job.tool).toBe('edit_slide');

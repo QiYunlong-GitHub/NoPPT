@@ -1,4 +1,4 @@
-import type { McpErrorCode } from '../../common/mcp-errors';
+import type { McpErrorCode } from '../../common/mcp-error-codes';
 
 /**
  * 错误码 → 中文模板（向前端/客户端返回 message 的基准文案）。

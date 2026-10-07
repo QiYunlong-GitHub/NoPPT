@@ -14,6 +14,7 @@ import { buildSelfContainedDeck } from './deck-builder';
 import { checkViewAccess } from './view.guard';
 import { McpError } from '../../common/mcp-errors';
 import { getRequestLocale } from '../../i18n/locale';
+import { PublicRoute } from '../auth/public-metadata.decorator';
 
 /**
  * 只读预览（规格 2.5.7 / 3.4）：`GET /api/mcp-view/:tenantId/:userKey/:presentationId`
@@ -22,6 +23,7 @@ import { getRequestLocale } from '../../i18n/locale';
  * - 参数先 sanitize 再落文件系统，非法即 400，不做任何磁盘读取；
  * - 复用 `noppt_export_html` 同一条 deck 组装链（逐页 sanitize + 资源内联）。
  */
+@PublicRoute()
 @Controller('mcp-view')
 export class McpViewController {
   @Get(':tenantId/:userKey/:presentationId')
