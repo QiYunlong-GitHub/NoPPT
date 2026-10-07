@@ -281,11 +281,11 @@ export class SlideRenderer {
   async collectLayoutMetrics(page: Page): Promise<LayoutMetrics> {
     const size = page.viewportSize() ?? this.viewport;
     await this.runEvaluatorSmoke(page);
-    const result = await page.evaluate(LAYOUT_METRICS_EVALUATOR, {
+    const result = await page.evaluate(`${LAYOUT_METRICS_EVALUATOR}(${JSON.stringify({
       width: size.width,
       height: size.height,
       profile: viewportProfile(size.width),
-    });
+    })})`);
     validateBrowserEvaluatorResult(result);
     return result as BrowserEvaluatorResult as LayoutMetrics;
   }

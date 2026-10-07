@@ -37,7 +37,7 @@ export const LAYOUT_METRICS_EVALUATOR = `(({ width, height, profile }) => {
       parent = parent.parentElement;
     }
     elements.push({
-      selector: contentId ? "[data-content-id=\"" + contentId + "\"]" : element.tagName.toLowerCase(),
+      selector: contentId ? '[data-content-id="' + contentId + '"]' : element.tagName.toLowerCase(),
       tagName: element.tagName.toLowerCase(), role, contentId, text, required,
       emptyRequired: required && text.length === 0, clipped, rect,
       scrollWidth: element.scrollWidth, clientWidth: element.clientWidth,
