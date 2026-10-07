@@ -117,6 +117,19 @@ describe('viewport profiles and measured page layouts', () => {
     expect(title!.kind === 'text' && title!.paragraphs[0]?.runs[0]?.text).toBe(LONG_TITLE);
   });
 
+  it('keeps content titles inside the title band above the body region', () => {
+    const nodes = layoutSlideNodes({
+      pageType: 'content-no-image',
+      title: '厄尔尼诺与拉尼娜：太平洋的冷暖交替',
+      keyPoints: ['海表温度异常升高'],
+      needsImage: false,
+    }, context(800, 600));
+    const title = nodes.find((node) => node.kind === 'text' && node.role === 'title');
+
+    expect(title).toBeDefined();
+    expect(title!.rect.y + title!.rect.h).toBeLessThanOrEqual(DECK_BODY_RECT.y);
+  });
+
   it('uses measured heights for summary, cards, compare, and stats content', () => {
     const longBody = '完整策略说明需要保留在卡片中，并根据真实文本需求分配高度，不能依赖固定空白区域。';
     const plans: SlidePlan[] = [

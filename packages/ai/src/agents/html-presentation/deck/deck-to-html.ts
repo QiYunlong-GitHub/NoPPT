@@ -641,8 +641,8 @@ export function deckSlideToHtml(
   ].join('');
   const rootStyle =
     `position:relative;width:${W}px;height:${H}px;` +
-    `width:var(--noppt-root-width,100vw);height:auto;max-width:${W}px;aspect-ratio:${W} / ${H};` +
-    `margin-left:var(--noppt-root-margin,-8px);margin-right:var(--noppt-root-margin,-8px);` +
+    `width:var(--noppt-root-width,100vw);height:min(${H}px,calc(100vw * ${H} / ${W}));max-width:${W}px;min-height:0;aspect-ratio:${W} / ${H};` +
+    `margin-left:var(--noppt-root-margin,-8px);margin-right:var(--noppt-root-margin,-8px);margin-top:-8px;margin-bottom:-8px;` +
     `${bg}font-family:${ff};box-sizing:border-box;overflow:visible;`;
   const canvas =
     `<div data-logical-canvas="true" style="position:relative;width:${W}px;height:${H}px;` +

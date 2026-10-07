@@ -501,7 +501,7 @@ export function titleBlock(
     x: rect.x,
     y: rect.y,
     w: rect.w,
-    h: compact ? 96 : 128,
+    h: DECK_TITLE_H,
   };
   const fitted = fitTextRect(sp.title || '', titleRect, {
     fontSize: compact ? 44 : DECK_FONT_SIZE.h2,

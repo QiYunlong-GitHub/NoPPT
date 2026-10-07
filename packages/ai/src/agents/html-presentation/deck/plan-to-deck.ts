@@ -177,28 +177,51 @@ export function buildDeckMeta(plan: PresentationPlan): DeckMeta {
   };
 }
 
-/** Attach stable content identity metadata to generated text nodes without changing layout geometry. */
+/** Attach stable content identity and manifest order without changing layout geometry. */
 function annotateContentNodes(
   nodes: DeckSlide['nodes'],
   required: ReturnType<typeof collectRequiredContent>,
+  titleContentId?: string,
 ): DeckSlide['nodes'] {
   const used = new Set<string>();
+  const manifestById = new Map(required.map((item) => [item.contentId, item]));
   const visit = (node: DeckSlide['nodes'][number]): DeckSlide['nodes'][number] => {
     if (node.kind === 'group') return { ...node, children: node.children.map(visit) };
     if (node.kind !== 'text' && node.kind !== 'shape') return node;
+
+    let annotated = node;
     if (node.contentId) {
       used.add(node.contentId);
-      return node;
+    } else {
+      const textValue = node.kind === 'text'
+        ? node.paragraphs.flatMap((paragraph) => paragraph.runs.map((run) => run.text)).join(' ').trim()
+        : (node.text ?? []).flatMap((paragraph) => paragraph.runs.map((run) => run.text)).join(' ').trim();
+      const match = node.role === 'title'
+        ? required.find((item) => item.role === 'title')
+        : textValue
+          ? required.find((item) => !used.has(item.contentId) && (item.text === textValue || item.text.includes(textValue) || textValue.includes(item.text)))
+          : undefined;
+      const fallback = match ?? (
+        node.role === 'title' && titleContentId
+          ? { contentId: titleContentId, text: '', role: 'title' as const, sourceIndex: -1 }
+          : textValue && node.role !== 'title'
+            ? required.find((item) => !used.has(item.contentId))
+            : undefined
+      );
+      if (fallback) {
+        used.add(fallback.contentId);
+        annotated = { ...node, contentId: fallback.contentId, source: 'plan' };
+      }
     }
-    const textValue = node.kind === 'text'
-      ? node.paragraphs.flatMap((paragraph) => paragraph.runs.map((run) => run.text)).join(' ').trim()
-      : (node.text ?? []).flatMap((paragraph) => paragraph.runs.map((run) => run.text)).join(' ').trim();
-    if (!textValue || node.role === 'title') return node;
-    const match = required.find((item) => !used.has(item.contentId) && (item.text === textValue || item.text.includes(textValue) || textValue.includes(item.text)));
-    const fallback = match ?? required.find((item) => !used.has(item.contentId));
-    if (!fallback) return node;
-    used.add(fallback.contentId);
-    return { ...node, contentId: fallback.contentId, source: 'plan' };
+
+    if (!annotated.contentId) return annotated;
+    const manifestItem = manifestById.get(annotated.contentId);
+    if (!manifestItem || annotated.kind !== 'text') return annotated;
+    return {
+      ...annotated,
+      role: annotated.role ?? 'content',
+      contentOrder: annotated.contentOrder ?? (manifestItem.role === 'title' ? 0 : manifestItem.sourceIndex),
+    };
   };
   return nodes.map(visit);
 }
@@ -224,6 +247,14 @@ export function slidePlanToDeckSlide(
   (withIndex as { _index?: number })._index = index;
   const validation = validateSlideContent(guarded, index);
   const metricContent = normalizeSlideContent(guarded, index).metricItems;
+  const requiredItems = validation.requiredItems.some((item) => item.role === 'title') || !sp?.title?.trim()
+    ? validation.requiredItems
+    : [{
+        contentId: `slide-${index + 1}-title`,
+        text: sp.title.trim(),
+        role: 'title' as const,
+        sourceIndex: -1,
+      }, ...validation.requiredItems];
   const descriptionStateByContentId = Object.fromEntries(
     metricContent.map((item) => [
       item.contentId,
@@ -242,21 +273,21 @@ export function slidePlanToDeckSlide(
     metricContent.filter((item): item is Extract<MetricItem, { kind: 'omission' }> => item.kind === 'omission')
       .map((item) => [item.contentId, item.reason]),
   );
-  const nodes = annotateContentNodes(layoutSlideNodes(withIndex, ctx), validation.requiredItems);
+  const nodes = annotateContentNodes(layoutSlideNodes(withIndex, ctx), requiredItems, `slide-${index + 1}-title`);
   const measurementStatus = nodes.some((node) => node.kind === 'text' && node.autoFit) ? 'fail' : 'pass';
   return {
     id: `slide-${index + 1}`,
     pageType: guarded?.pageType,
     title: sp?.title,
     nodes,
-    contentManifest: validation.requiredItems.map((item, order) => {
+    contentManifest: requiredItems.map((item) => {
       const comparison = validation.normalized.comparisonItems.find((candidate) => candidate.contentId === item.contentId);
       const omission = validation.omissions.find((candidate) => candidate.contentId === item.contentId);
       return {
         contentId: item.contentId,
         text: item.text,
         role: item.role,
-        order: comparison?.order ?? order,
+        order: comparison?.order ?? (item.role === 'title' ? 0 : item.sourceIndex),
         column: comparison?.column,
         bullet: comparison?.bullet,
         required: true,

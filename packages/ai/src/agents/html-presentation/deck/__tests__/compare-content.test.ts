@@ -69,8 +69,10 @@ describe('content-compare canonical layout', () => {
 
     expect(deck.slides[0].layoutParams?.legacyDerived).toBe(true);
     expect(deck.slides[0].layoutParams?.warnings).toContain('compare_column_ownership_unverified');
-    expect(deck.slides[0].nodes.filter((node) => node.kind === 'text' && node.contentId)).toHaveLength(4);
-  });  it('keeps the target compare page at four items with two per column', () => {
+    expect(deck.slides[0].nodes.filter((node) => node.kind === 'text' && node.role !== 'title' && node.contentId)).toHaveLength(4);
+  });
+
+  it('keeps the target compare page at four items with two per column', () => {
     const targetItems = [
       { contentId: 'target-compare-1', text: '海表温度异常升高', column: 'left' as const, order: 0, bullet: true },
       { contentId: 'target-compare-2', text: '沃克环流减弱', column: 'left' as const, order: 1, bullet: true },
@@ -85,7 +87,7 @@ describe('content-compare canonical layout', () => {
       needsImage: false,
     };
     const deck = planToDeck({ title: plan.title, primaryColor: '#27ae60', slides: [plan] });
-    const contentNodes = deck.slides[0].nodes.filter((node): node is DeckTextNode => node.kind === 'text' && node.contentId);
+    const contentNodes = deck.slides[0].nodes.filter((node): node is DeckTextNode => node.kind === 'text' && node.role !== 'title' && Boolean(node.contentId));
     const first = contentNodes.find((node) => node.contentId === 'target-compare-1')!;
 
     expect(contentNodes).toHaveLength(4);
@@ -106,5 +108,55 @@ describe('content-compare canonical layout', () => {
     expect(html).toContain('data-content-id="compare-right-0"');
     expect(html).toMatch(/data-content-id="compare-left-0"[\s\S]*>• <span[^>]*>left-0/);
     expect(html).not.toMatch(/<p[^>]*>\s*•\s*<\/p>/i);
+  });
+
+  it('carries title identity and manifest order into canonical HTML for repeated content regions', () => {
+    const deck = planToDeck({
+      title: 't',
+      primaryColor: '#2563eb',
+      slides: [
+        {
+          pageType: 'content-stats-highlight',
+          title: '指标',
+          keyPoints: ['温度', '粮食'],
+          metricItems: [
+            { kind: 'metric', contentId: 'metric-1', order: 0, label: '温度', value: '0.2°C' },
+            { kind: 'metric', contentId: 'metric-2', order: 1, label: '粮食', value: '30%' },
+          ],
+          metricValues: [20, 30],
+          needsImage: false,
+        },
+        {
+          pageType: 'content-cards',
+          title: '策略',
+          keyPoints: [],
+          cardItems: [{ contentId: 'card-1', title: '监测', body: '持续跟踪变化。' }],
+          needsImage: false,
+        },
+        {
+          pageType: 'summary',
+          title: '总结',
+          keyPoints: [],
+          summaryItems: [{ contentId: 'summary-1', text: '保留结论', role: 'point' }],
+          needsImage: false,
+        },
+      ],
+    });
+    const context = buildLayoutContext({ title: 't', primaryColor: '#2563eb', slides: [] });
+
+    expect(deck.slides.map((slide) => slide.nodes.find((node) => node.role === 'title' && node.kind === 'text')?.contentId)).toEqual([
+      'slide-1-title',
+      'slide-2-title',
+      'slide-3-title',
+    ]);
+    expect(deck.slides[0].nodes.filter((node) => node.kind === 'text' && node.contentId === 'metric-1').every((node) => node.contentOrder === 0)).toBe(true);
+    expect(deck.slides[0].nodes.filter((node) => node.kind === 'text' && node.contentId === 'metric-2').every((node) => node.contentOrder === 1)).toBe(true);
+
+    const html = deck.slides.map((slide) => deckSlideToHtml(slide, context)).join('');
+    expect(html).toContain('data-content-id="slide-1-title"');
+    expect(html).toMatch(/data-content-id="metric-1"[^>]*data-order="0"/);
+    expect(html).toMatch(/data-content-id="metric-2"[^>]*data-order="1"/);
+    expect(html).toMatch(/data-content-id="card-1"[^>]*data-order="0"/);
+    expect(html).toMatch(/data-content-id="summary-1"[^>]*data-order="0"/);
   });
 });
