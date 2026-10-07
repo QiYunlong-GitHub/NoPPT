@@ -51,11 +51,7 @@ import {
 import { isStructurePage, resolveDeckReferencePrimaryColor } from '@noppt/ai';
 import type { Presentation } from '@noppt/core';
 import { SlideRenderer, type VlmReviewResult } from '@noppt/audit';
-import { StorageService } from '../../common/storage.service';
-import {
-  PresentationIntegrityService,
-  type IntegrityCandidateWriter,
-} from '../presentation/presentation-integrity.service';
+import { StorageService } from '../../common/storage.service'; import { PresentationIntegrityService, type IntegrityCandidateWriter } from '../presentation/presentation-integrity.service';
 import { LogsService } from '../logs/logs.service';
 import { AuditService } from '../audit/audit.service';
 import { ConfigService } from '../config/config.service';
@@ -2158,20 +2154,7 @@ export class AiService {
     }
   }
 
-  private async createIntegrityCandidateContext(
-    presentation: HTMLPresentation,
-    presentationId?: string,
-  ): Promise<{ integrityCandidateWriter: IntegrityCandidateWriter; integrityRunId: string }> {
-    const id = presentationId || String((presentation as any).id || '');
-    if (!id) {
-      throw new Error('integrity_context_required: presentation id is required before integrity run');
-    }
-    const run = await this.presentationIntegrityService.startRun(id);
-    return {
-      integrityCandidateWriter: this.presentationIntegrityService.createCandidateWriter(run),
-      integrityRunId: run.runId,
-    };
-  }
+  private async createIntegrityCandidateContext(presentation: HTMLPresentation, presentationId?: string): Promise<{ integrityCandidateWriter: IntegrityCandidateWriter; integrityRunId: string }> { const id = presentationId || String((presentation as any).id || ''); if (!id) throw new Error('integrity_context_required: presentation id is required before integrity run'); const run = await this.presentationIntegrityService.startRun(id); return { integrityCandidateWriter: this.presentationIntegrityService.createCandidateWriter(run), integrityRunId: run.runId }; }
 
   private async postProcessPresentation(
     presentation: HTMLPresentation,
@@ -2208,21 +2191,11 @@ export class AiService {
       design?: DesignProposal;
       agent?: HTMLPresentationAgent;
       generationOptions?: any;
-      enableAudit?: boolean;
-      integrityCandidateWriter?: IntegrityCandidateWriter;
-      integrityRunId?: string;
+      enableAudit?: boolean; integrityCandidateWriter?: IntegrityCandidateWriter; integrityRunId?: string;
     },
   ): Promise<Presentation> {
-    const integrityContext = params.integrityCandidateWriter
-      ? {
-          integrityCandidateWriter: params.integrityCandidateWriter,
-          integrityRunId: params.integrityRunId || params.traceSessionId,
-        }
-      : await this.createIntegrityCandidateContext(presentation, params.presentationId);
-    return postProcessPresentationImpl.call(this, presentation, {
-      ...params,
-      ...integrityContext,
-    });
+    const integrityContext = params.integrityCandidateWriter ? { integrityCandidateWriter: params.integrityCandidateWriter, integrityRunId: params.integrityRunId || params.traceSessionId } : await this.createIntegrityCandidateContext(presentation, params.presentationId);
+    return postProcessPresentationImpl.call(this, presentation, { ...params, ...integrityContext });
   }
 
   /**
