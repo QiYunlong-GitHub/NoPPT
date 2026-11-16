@@ -35,6 +35,7 @@ import {
   type ViewportProfile,
 } from './layout-templates';
 import { applyDeckImageGuard } from './image-plan-guard';
+import { resolveContentDensity } from './content-density';
 
 export interface PlanToDeckOptions {
   /** 画布宽（px），默认 1280。 */
@@ -273,7 +274,10 @@ export function slidePlanToDeckSlide(
     metricContent.filter((item): item is Extract<MetricItem, { kind: 'omission' }> => item.kind === 'omission')
       .map((item) => [item.contentId, item.reason]),
   );
-  const nodes = annotateContentNodes(layoutSlideNodes(withIndex, ctx), requiredItems, `slide-${index + 1}-title`);
+  // 逐页密度由内容量 + 视口裁决（deck 级 ctx 只是默认档），布局 owner 据此
+  // 在稀疏页放大视觉块铺满正文区、在稠密页收紧间距，避免恒 standard 的空钩子。
+  const slideCtx: DeckLayoutContext = { ...ctx, density: resolveContentDensity(guarded, ctx) };
+  const nodes = annotateContentNodes(layoutSlideNodes(withIndex, slideCtx), requiredItems, `slide-${index + 1}-title`);
   const measurementStatus = nodes.some((node) => node.kind === 'text' && node.autoFit) ? 'fail' : 'pass';
   return {
     id: `slide-${index + 1}`,
@@ -301,7 +305,7 @@ export function slidePlanToDeckSlide(
       ...(sp?.layoutParams as unknown as Record<string, unknown> | undefined),
       logicalCanvas: { width: 1280, height: 720 },
       viewportProfile: ctx.viewportProfile,
-      density: ctx.density,
+      density: slideCtx.density,
       fontProfile: ctx.fontProfile,
       measurementStatus,
       descriptionStateByContentId,

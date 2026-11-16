@@ -206,6 +206,27 @@ describe('generateDesignProposals proposalCount（F-1~F-4 + AC-6）', () => {
     );
     expect(out2).toHaveLength(2);
   });
+
+  it('Case G：首屏渲染抛 fatal 时三个 proposal 仍返回可见兜底首屏', async () => {
+    const { agent, planningProvider } = buildAgent();
+    mockReturnJson(planningProvider, buildProposalsArray(3));
+
+    const renderSpy = vi
+      .spyOn(renderMod as any, 'renderSlides')
+      .mockRejectedValue(new Error('Deck contract validation failed: compare_column_count'));
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const out = await (agent as any).generateDesignProposals('气候变化', DUMMY_PLAN, {}, undefined);
+    expect(out).toHaveLength(3);
+    for (const p of out) {
+      expect(p.coverHtml).toBeTruthy();
+      expect(p.coverHtml).not.toContain('空幻灯片');
+      expect(p.slides).toHaveLength(1);
+      expect(p.slides[0].html).toBe(p.coverHtml);
+    }
+    expect(renderSpy).toHaveBeenCalledTimes(3);
+    warnSpy.mockRestore();
+  });
 });
 
 describe('enforceHeadingColorOnLightBg Bug-4 颜色兜底', () => {

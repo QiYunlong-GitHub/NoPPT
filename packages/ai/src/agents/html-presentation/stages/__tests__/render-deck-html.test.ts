@@ -17,6 +17,7 @@ vi.mock('../generate-slide', () => ({
 
 import { generateSlideHtmlSafe } from '../generate-slide';
 import { renderSlides } from '../render';
+import { finalizePresentation } from '../finalize';
 import type { AgentDeps } from '../deps';
 
 const genSpy = vi.mocked(generateSlideHtmlSafe);
@@ -107,5 +108,99 @@ describe('renderSlides · feature flag deterministicDeckPreview', () => {
       expect(r.pageType).toBeTruthy();
     }
     expect(deckPath[0].pageType).toBe('content-no-image');
+  });
+
+  it('legacy compare keyPoints 不再触发 500，并贯通 render 与 finalize', async () => {
+    const plan: any = {
+      title: '对比',
+      primaryColor: '#2563eb',
+      slides: [
+        {
+          pageType: 'content-compare',
+          title: '左右对比',
+          keyPoints: ['左一', '左二', '右一', '右二'],
+          needsImage: false,
+        },
+      ],
+    };
+    const rendered = await renderSlides(makeDeps(), 'topic', plan, makeDesign());
+    expect(rendered).toHaveLength(1);
+    expect(rendered[0].deck).toBeDefined();
+
+    const presentation = await finalizePresentation(
+      makeDeps(),
+      'topic',
+      rendered,
+      plan,
+      makeDesign(),
+    );
+    expect(presentation.deck).toBeDefined();
+    expect(presentation.slides[0].deck).toBeDefined();
+  });
+
+  it('recoverable needs_review 不再被 strict 门禁当作 fatal', async () => {
+    const plan: any = {
+      title: '对比',
+      primaryColor: '#2563eb',
+      slides: [
+        {
+          pageType: 'content-compare',
+          title: '左右对比',
+          keyPoints: ['左一', '左二', '右一', '右二'],
+          comparisonItems: [
+            { contentId: 'l0', text: '左一', column: 'left', order: 0, bullet: true, legacyDerived: true },
+            { contentId: 'l1', text: '左二', column: 'left', order: 1, bullet: true, legacyDerived: true },
+            { contentId: 'r0', text: '右一', column: 'right', order: 0, bullet: true, legacyDerived: true },
+            { contentId: 'r1', text: '右二', column: 'right', order: 1, bullet: true, legacyDerived: true },
+          ],
+          needsImage: false,
+        },
+      ],
+    };
+    const rendered = await renderSlides(makeDeps(), 'topic', plan, makeDesign());
+    expect(rendered).toHaveLength(1);
+    expect(rendered[0].deck).toBeDefined();
+
+    const presentation = await finalizePresentation(
+      makeDeps(),
+      'topic',
+      rendered,
+      plan,
+      makeDesign(),
+    );
+    expect(presentation.deck).toBeDefined();
+  });
+
+  it('引导式首屏预览窗口不被后续非法 typed 对比页阻断', async () => {
+    const plan: any = {
+      title: '引导式',
+      primaryColor: '#2563eb',
+      slides: [
+        { pageType: 'cover', title: '封面', keyPoints: ['副标题'], needsImage: false },
+        {
+          pageType: 'content-compare',
+          title: '非法对比',
+          keyPoints: [],
+          comparisonItems: [
+            { contentId: 'l0', text: '左一', column: 'left', order: 0, bullet: true },
+            { contentId: 'r0', text: '右一', column: 'right', order: 0, bullet: true },
+            { contentId: 'r1', text: '右二', column: 'right', order: 1, bullet: true },
+          ],
+          needsImage: false,
+        },
+      ],
+    };
+
+    const preview = await renderSlides(makeDeps(), 'topic', plan, makeDesign(), {
+      startIndex: 0,
+      endIndex: 1,
+    } as any);
+    expect(preview).toHaveLength(1);
+    expect(preview[0].deck).toBeDefined();
+    expect(preview[0].html).toContain('data-canonical-root="true"');
+
+    await expect(renderSlides(makeDeps(), 'topic', plan, makeDesign())).rejects.toThrow(
+      'Deck contract validation failed',
+    );
   });
 });

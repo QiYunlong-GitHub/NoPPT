@@ -3,6 +3,7 @@ import type { SlidePlan } from '../../../../types';
 import {
   collectOmissions,
   collectRequiredContent,
+  normalizePresentationPlan,
   normalizeSlideContent,
   validateSlideContent,
 } from '../slide-contract';
@@ -134,3 +135,39 @@ describe('typed slide contract', () => {
 
     expect(result.issues.map((issue) => issue.code)).toContain('empty_required_text');
   });
+
+describe('legacy compare fallback', () => {
+  it('never creates unbalanced columns from odd legacy keyPoints', () => {
+    const result = validateSlideContent(
+      plan({ pageType: 'content-compare', keyPoints: ['左一', '右一', '未配对项'] }),
+      0,
+    );
+
+    expect(result.normalized.comparisonItems).toHaveLength(0);
+    expect(result.issues.map((issue) => issue.code)).toContain('compare_legacy_degraded_to_cards');
+    expect(result.issues.some((issue) => !issue.recoverable)).toBe(false);
+  });
+
+  it('projects every legacy point back to keyPoints when compare columns are unavailable', () => {
+    const points = ['左一', '右一', '未配对项'];
+    const normalized = normalizePresentationPlan({
+      title: 't',
+      primaryColor: '#2563eb',
+      slides: [plan({ pageType: 'content-compare', keyPoints: points })],
+    });
+
+    expect(normalized.plan.slides[0].keyPoints).toEqual(points);
+    expect(normalized.issues.some((issue) => !issue.recoverable)).toBe(false);
+  });
+
+  it('still pairs even legacy keyPoints and flags unverified ownership', () => {
+    const result = validateSlideContent(
+      plan({ pageType: 'content-compare', keyPoints: ['左一', '左二', '右一', '右二'] }),
+      0,
+    );
+
+    expect(result.normalized.comparisonItems).toHaveLength(4);
+    expect(result.normalized.comparisonItems.map((item) => item.column)).toEqual(['left', 'left', 'right', 'right']);
+    expect(result.issues.map((issue) => issue.code)).toContain('compare_column_ownership_unverified');
+  });
+});

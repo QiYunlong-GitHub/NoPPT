@@ -7,6 +7,7 @@ import type {
   SlidePlan,
   SummaryItem,
 } from '../../../types';
+import { isPairedLegacyManifest } from './compare-contract-normalizer';
 
 export const MAX_TITLE_LENGTH = 500;
 export const MAX_ITEM_TEXT_LENGTH = 10_000;
@@ -24,6 +25,7 @@ export type ContractIssueCode =
   | 'compare_duplicate_order'
   | 'compare_pair_alignment'
   | 'compare_column_ownership_unverified'
+  | 'compare_legacy_degraded_to_cards'
   | 'metric_count_mismatch'
   | 'metric_value_not_separable'
   | 'metric_label_not_provided'
@@ -136,7 +138,7 @@ function normalizeCompare(slide: SlidePlan, slideIndex: number): ComparisonItem[
   }
   const raw = sourceItems(slide);
   const manifest = Array.isArray(slide.legacyColumnManifest) ? slide.legacyColumnManifest : undefined;
-  if (manifest && manifest.length === raw.length) {
+  if (manifest && manifest.length === raw.length && isPairedLegacyManifest(manifest)) {
     return raw.map((value, index) => ({
       contentId: idFor(slideIndex, 'compare', index),
       text: value,
@@ -146,7 +148,11 @@ function normalizeCompare(slide: SlidePlan, slideIndex: number): ComparisonItem[
       legacyDerived: true,
     }));
   }
-  const half = Math.ceil(raw.length / 2);
+  // 声明过 manifest 却不合法时列归属不可信，与 strict 归一器一致走降级。
+  // 非配对 / 含空项的 legacy 要点也不再用 Math.ceil 硬分左右列：
+  // 返回空 compare 集合，由 keyPoints 以整齐卡片行承载，避免左右数量不等的 fatal。
+  if (manifest || raw.length < 2 || raw.length % 2 !== 0 || raw.some((value) => !value)) return [];
+  const half = raw.length / 2;
   return raw.map((value, index) => ({
     contentId: idFor(slideIndex, 'compare', index),
     text: value,
@@ -338,6 +344,11 @@ export function validateSlideContent(slide: SlidePlan, slideIndex: number): Vali
       issues.push({ code: 'compare_pair_alignment', slideIndex, path: 'comparisonItems.order', expected: 'matching row orders in both columns', observed: `${leftOrders.join(',')}/${rightOrders.join(',')}`, recoverable: false });
     }
     if (normalized.comparisonItems.some((item) => item.legacyDerived) && !slide.legacyColumnManifest) issues.push({ code: 'compare_column_ownership_unverified', slideIndex, path: 'comparisonItems', expected: 'explicit column manifest', observed: 'legacy keyPoints', recoverable: true });
+  } else if (text(slide.pageType) === 'content-compare') {
+    const legacyPoints = sourceItems(slide).filter(Boolean);
+    if (legacyPoints.length > 0) {
+      issues.push({ code: 'compare_legacy_degraded_to_cards', slideIndex, path: 'keyPoints', expected: 'paired comparisonItems or non-compare pageType', observed: `${legacyPoints.length} unpaired legacy keyPoints`, recoverable: true });
+    }
   }
   normalized.metricItems.forEach((item, index) => {
     if (item.kind === 'metric') {

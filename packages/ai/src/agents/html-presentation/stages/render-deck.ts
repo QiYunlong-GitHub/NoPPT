@@ -27,6 +27,7 @@ import type {
   PresentationPlan,
   ReferenceContext,
   ReferenceMaster,
+  ReferencePalette,
   ReferenceVisualAttributes,
   RenderedSlide,
   SlidePageType,
@@ -36,12 +37,24 @@ import {
   buildReferenceContext,
   computePageIndexInCategory,
   pageTypeToCategory,
-  resolveDeckReferencePrimaryColor,
   resolveHeroImageForPage,
   resolveLayoutForPage,
   resolveMasterForPage,
-  resolveReferencePrimaryColor,
 } from '../../../utils/reference-attribute-resolver';
+import { getReferencePaletteForDeck } from '../../../utils/reference/color';
+import { resolveStageDeckPrimary } from '../../../utils/reference/color-priority';
+import { resolveVisualThemeIdForPrimary } from '../deck/visual-tokens';
+import { attachVisualComponents } from '../deck/deck-component-layouts';
+import {
+  formatStrictDeckIssueDetails,
+  formatStrictDeckIssues,
+  formatStrictDeckNotices,
+  inspectDeckResultInWindow,
+  inspectStrictDeckResult,
+  normalizePlanForStrictDeckDetailed,
+  StrictDeckValidationError,
+} from '../deck/strict-deck';
+import { resolveRenderWindow } from './render-window';
 import { pLimit, resolveEffectivePrimaryColor } from '../shared';
 import type { AIModelProvider, TraceableProvider } from '../../../providers/base';
 import { formatBeijingTime } from '../../../providers/base';
@@ -57,7 +70,6 @@ import {
   buildLayoutContext,
   buildValidatedDeck,
   critiqueDeckSlide,
-  darkenHex,
   deckCritiqueContextFromDeck,
   deckSlideToHtml,
   type DeckLayoutContext,
@@ -81,14 +93,14 @@ interface DeckSlideJob {
   critiqueCtx: ReturnType<typeof deckCritiqueContextFromDeck>;
   options?: PresentationGenerationOptions;
   master?: ReferenceMaster;
+  /** deck 级一次裁决的参考调色板，全篇共用，避免逐页 accent 漂移。 */
+  deckReferencePalette?: ReferencePalette;
   referenceContext: ReferenceContext;
   originalIdx: number;
   renderCount: number;
   slideWidth: number;
   slideHeight: number;
   primaryColor: string;
-  /** 逐页参考主色覆盖（参考 > deck 级兜底），与 render.ts 逐页语义一致。 */
-  pagePrimary?: string;
   fontFamily: 'sans' | 'serif' | 'mono';
   iconStyle: IconStyle;
   critiqueEnabled: boolean;
@@ -131,16 +143,17 @@ function resolveReferenceMaster(
 
 /** 单页 Deck → HTML；评审开启时跑一次 Deck 评审；异常回落 generateFallbackSlide。 */
 async function renderDeckSlideAt(job: DeckSlideJob): Promise<DeckSlideResult> {
-  const { deps, slidePlan, slide, ctx, options, master, originalIdx } = job;
+  const { deps, slidePlan, slide, ctx, options, master, originalIdx, deckReferencePalette } = job;
   const t0 = formatBeijingTime();
   console.log(
     `[${t0}] [AGENT-DECK] Rendering slide ${originalIdx + 1} (${slide.pageType}): "${slide.title}"`,
   );
-  // 逐页参考主色覆盖（参考 > deck 级兜底），与 render.ts 逐页语义一致
-  const slideCtx: DeckLayoutContext = job.pagePrimary
-    ? { ...ctx, primary: job.pagePrimary, primaryDark: darkenHex(job.pagePrimary) }
-    : ctx;
+  // 全篇统一主色与参考调色板：由 renderSlides 一次裁决，不再按分类逐页取色。
+  const slideCtx: DeckLayoutContext = ctx;
   try {
+    // 阶段 1：把「参考克隆 · 色彩红线豁免」放行后的 accents 送进 Deck 渲染器。
+    // deckReferencePalette 与页型无关，保证 5 页斑点同色系；单色 / 空 accents 仍由
+    // renderReferenceAccentLayer 的 isMultiColor 豁免拦住，默认零装饰。
     const html = deckSlideToHtml(slide, slideCtx, {
       width: job.slideWidth,
       height: job.slideHeight,
@@ -149,6 +162,9 @@ async function renderDeckSlideAt(job: DeckSlideJob): Promise<DeckSlideResult> {
       background: slideCtx.background,
       fontFamily: slideCtx.fontFamily,
       referenceMaster: master,
+      referencePalette: deckReferencePalette,
+      visualTheme: resolveVisualThemeIdForPrimary(slideCtx.primary),
+      deriveDecorFromPrimary: true,
     });
 
     let critiqueResult: SlideCritique | null = null;
@@ -323,9 +339,28 @@ export async function renderSlidesWithDeck(
       : (finalIconStyle as IconStyle);
   const fontFamily = options?.fontFamily || design.fontFamily;
   const referenceVisualAttributes = options?.referenceVisualAttributes;
-  // FR-0/FR-4：参考主色前置裁决（参考 > 用户显式 > 主题 > 默认蓝），与 render.ts 同口径
-  const refDeckPrimary = resolveDeckReferencePrimaryColor(referenceVisualAttributes);
-  const primaryColor = refDeckPrimary ?? resolveEffectivePrimaryColor(options, design, '#2563eb');
+  const deckResolution = resolveStageDeckPrimary({
+    options,
+    topic: plan.title,
+    rva: referenceVisualAttributes,
+    fallback: resolveEffectivePrimaryColor(options, design, '#2563eb'),
+  });
+  const primaryColor = deckResolution.primary;
+  // 阶段 0：只记录「参考撞色豁免」信号是否可用、以及是否已送达 Deck 渲染器。
+  // 主色来源由统一裁决决定，模板只贡献 accent 白名单与最低优先级兜底。
+  const multiColorCategories = (['cover', 'content', 'summary'] as const).filter((cat) => {
+    const palette = referenceVisualAttributes?.byCategory?.[cat]?.palette;
+    return !!palette?.isMultiColor && (palette.accents?.length ?? 0) > 0;
+  });
+  console.log(
+    `[${formatBeijingTime()}] [AGENT-DECK] reference-color-policy: ` +
+      `hasReference=${!!referenceVisualAttributes} ` +
+      `multiColorCategories=[${multiColorCategories.join(',')}] ` +
+      `deckPrimary=${primaryColor} source=${deckResolution.source} ` +
+      `templatePrimary=${deckResolution.templatePrimary ?? '-'} ` +
+      // 阶段 1 起 referencePalette 已在 renderDeckSlideAt 中送入 deckSlideToHtml。
+      `paletteDeliveredToDeck=${multiColorCategories.length > 0}`,
+  );
   const slideWidth = options?.slideWidth || 1280;
   const slideHeight = options?.slideHeight || 720;
 
@@ -347,8 +382,7 @@ export async function renderSlidesWithDeck(
   }
 
   try {
-    const startIdx = Math.max(0, options?.startIndex ?? 0);
-    const endIdx = Math.min(plan.slides.length, options?.endIndex ?? plan.slides.length);
+    const { startIdx, endIdx, isFirstSlidePreview } = resolveRenderWindow(plan, options);
     const indicesToRender: number[] = [];
     for (let i = startIdx; i < endIdx; i++) indicesToRender.push(i);
     const renderCount = indicesToRender.length;
@@ -365,9 +399,19 @@ export async function renderSlidesWithDeck(
         true) &&
       imagePreference === 'none';
     const deckPlan = normalizeSlidesForDeck(plan, referenceVisualAttributes, fallbackEnabled);
+    const normalization = normalizePlanForStrictDeckDetailed(deckPlan);
+    const strictPlan = normalization.plan;
+    if (normalization.notices.length > 0) {
+      console.warn(
+        `[${formatBeijingTime()}] [AGENT-DECK] compare contract normalized: ` +
+          `${formatStrictDeckNotices(normalization.notices)}`,
+      );
+    }
 
-    // 整份 plan → Deck（节点层 image-plan-guard 在此完成占位/升级/剥离决策）
-    const deckResult = buildValidatedDeck(deckPlan, {
+    // 整份 plan → Deck（节点层 image-plan-guard 在此完成占位/升级/剥离决策）。
+    // 首屏预览用 legacy 模式保留整册 Deck，再按窗口过滤 fatal；不物理切片 plan，
+    // 避免页脚 01/01、master 页码与 originalIdx 绝对下标语义漂移。
+    const deckResult = buildValidatedDeck(strictPlan, {
       width: slideWidth,
       height: slideHeight,
       background: '#ffffff',
@@ -375,14 +419,34 @@ export async function renderSlidesWithDeck(
       imageEnabled,
       imagePreference,
       includePageNumber: true,
-      validationMode: 'strict',
+      validationMode: isFirstSlidePreview ? 'legacy' : 'strict',
     });
-    if (deckResult.status !== 'pass' || !deckResult.deck) {
-      throw new Error(`Deck contract validation failed: ${deckResult.issues.map((issue) => issue.code).join(', ')}`);
+    const inspection = isFirstSlidePreview
+      ? inspectDeckResultInWindow(deckResult, startIdx, endIdx)
+      : inspectStrictDeckResult(deckResult);
+    if (!inspection.ok || !inspection.deck) {
+      throw new StrictDeckValidationError(
+        inspection.issues.filter((issue) => !issue.recoverable),
+        inspection.warnings,
+        strictPlan,
+      );
     }
-    const deck = deckResult.deck;
-    const ctx = buildLayoutContext(deckPlan, { background: '#ffffff', fontFamily });
+    if (inspection.warnings.length > 0) {
+      console.warn(
+        `[${formatBeijingTime()}] [AGENT-DECK] strict deck accepted with recoverable issues: ` +
+          `${formatStrictDeckIssues(inspection.warnings)} | ` +
+          `${formatStrictDeckIssueDetails(inspection.warnings, strictPlan)}`,
+      );
+    }
+    // 阶段 3：给 Deck 追加全篇统一的页码 / 进度条（封面与封底不生成，且不承载正文）。
+    // 节点留在 Deck 内，HTML 与 PPTX 两端共用同一份数据真值，保持 parity。
+    const deck = attachVisualComponents(inspection.deck);
+    const ctx = buildLayoutContext(strictPlan, { background: '#ffffff', fontFamily });
     const critiqueCtx = deckCritiqueContextFromDeck(deck);
+    // 参考调色板在整册层裁决一次，所有页复用同一套 accents（LLM-HTML 路径仍逐页解析）。
+    const deckReferencePalette = referenceVisualAttributes
+      ? getReferencePaletteForDeck(referenceVisualAttributes)
+      : undefined;
 
     options?.onProgress?.({
       phase: 'content',
@@ -392,27 +456,23 @@ export async function renderSlidesWithDeck(
     });
 
     const jobs: DeckSlideJob[] = indicesToRender.map((originalIdx) => {
-      const slidePlan = deckPlan.slides[originalIdx];
+      const slidePlan = strictPlan.slides[originalIdx];
       return {
         deps,
-        plan: deckPlan,
+        plan: strictPlan,
         slidePlan,
         slide: deck.slides[originalIdx],
         ctx,
         critiqueCtx,
         options,
         master: resolveReferenceMaster(referenceVisualAttributes, slidePlan),
+        deckReferencePalette,
         referenceContext,
         originalIdx,
         renderCount,
         slideWidth,
         slideHeight,
         primaryColor,
-        pagePrimary:
-          resolveReferencePrimaryColor(
-            referenceVisualAttributes,
-            String(slidePlan.pageType ?? ''),
-          ) ?? undefined,
         fontFamily,
         iconStyle,
         critiqueEnabled,
@@ -423,7 +483,7 @@ export async function renderSlidesWithDeck(
 
     const results = await Promise.all(jobs.map((job) => limit(() => renderDeckSlideAt(job))));
 
-    return toRenderedSlides(results, deckPlan, referenceVisualAttributes);
+    return toRenderedSlides(results, strictPlan, referenceVisualAttributes);
   } finally {
     if (ownTraceSession && traceSessionId) {
       closeTraceSession(traceSessionId);

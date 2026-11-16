@@ -4,18 +4,18 @@ import {
   DesignProposal,
   PresentationGenerationOptions,
   PresentationPlan,
+  RenderedSlide,
   StyleTheme,
 } from '../../../types';
+import { StrictDeckValidationError } from '../deck/strict-deck';
 import { renderSlides } from './render';
-import {
-  formatReferenceOverrideOverview,
-  resolveDeckReferencePrimaryColor,
-} from '../../../utils/reference-attribute-resolver';
+import { formatReferenceOverrideOverview } from '../../../utils/reference-attribute-resolver';
+import { resolveStageDeckPrimary } from '../../../utils/reference/color-priority';
 import { closeTraceSession, openTraceSession } from '../../../utils/llm-tracer';
 import { TraceableProvider, formatBeijingTime } from '../../../providers/base';
 import { COLOR_THEMES, resolveProposalPrimaryColor } from '../shared';
 import { switchStage } from './deps';
-import { sanitizeSlideHtml } from '../html-sanitize';
+import { generateFallbackSlide, sanitizeSlideHtml } from '../html-sanitize';
 export async function generateDesignProposals(
   deps: AgentDeps,
   topic: string,
@@ -40,8 +40,12 @@ export async function generateDesignProposals(
   const userPrimaryColor = options?.primaryColor;
   const userFontFamily = options?.fontFamily;
   const userIconStyle = options?.iconStyle;
-  // FR-2.x：参考主色纳入提案单源链（参考 > 用户 > 默认蓝），与规划/renderSlides 一致（html-presentation-agent.ts:1894/2822）
-  const refDeckPrimary = resolveDeckReferencePrimaryColor(options?.referenceVisualAttributes);
+  const deckResolution = resolveStageDeckPrimary({
+    options,
+    topic,
+    rva: options?.referenceVisualAttributes,
+    fallback: '#2563eb',
+  });
 
   let ownTraceSession = false;
   if (!traceSessionId) {
@@ -56,6 +60,8 @@ export async function generateDesignProposals(
       referenceVisualAttributes: options?.referenceVisualAttributes,
       userColorTheme,
       userPrimaryColor,
+      topic,
+      referenceText: options?.referenceText,
     });
 
   // === 子项 D：style → styleTheme 映射函数
@@ -201,12 +207,11 @@ export async function generateDesignProposals(
       : `要求 3 个方案视觉上明显区分（通过风格质感、密度、图标风格等维度变化）。\n只返回 JSON 数组，不要任何其他文字或 Markdown 代码块标记。`;
 
     const categoryReferenceSummary = options?.referenceVisualAttributes
-      ? '【参考文件提取属性 · 绝对最高优先级 · 覆盖用户显式参数】\n' +
+      ? '【参考模板属性 · 最低优先级 · 仅提供版式/accent 白名单与封面色系兜底】\n' +
         formatReferenceOverrideOverview(options.referenceVisualAttributes)
       : '';
-    // 参考主色硬约束（优先级高于用户 colorTheme=blue）：确保 LLM 不会在「用户蓝」与「参考红」间选错
-    const referencePrimaryConstraint = refDeckPrimary
-      ? `\n【参考文件主色 · 绝对最高优先级】已解析到参考文件主色 ${refDeckPrimary}，该色优先级高于用户配色主题（含 blue），所有方案的 primaryColor 必须使用 "${refDeckPrimary}"。`
+    const referencePrimaryConstraint = deckResolution.templatePrimary
+      ? `\n【模板色系 · 最低优先级】模板参考色为 ${deckResolution.templatePrimary}；仅当用户未配置主题色且提示词未写颜色时，全篇统一采用封面模板色系。用户配置或提示词颜色优先，所有方案 primaryColor 必须使用统一裁决值 ${deckResolution.primary}。`
       : '';
 
     const prompt = `${head}
@@ -261,6 +266,8 @@ ${tail}`;
               referenceVisualAttributes: options?.referenceVisualAttributes,
               userColorTheme,
               userPrimaryColor,
+              topic,
+              referenceText: options?.referenceText,
             });
             const proposalsBefore = parsed.map((p: any) => ({
               id: p.id,
@@ -294,7 +301,7 @@ ${tail}`;
               colorTheme: p.colorTheme,
             }));
             console.log(
-              `[DESIGN] proposals 主色统一：LLM 返回=${JSON.stringify(proposalsBefore)}，强制统一后=${JSON.stringify(proposalsAfter)}（unifiedColor=${unifiedColor} enforcedTheme=${enforcedTheme || '(none)'} refDeckPrimary=${refDeckPrimary || '(none)'}${refDeckPrimary ? ' reference-first' : ''}）`,
+              `[DESIGN] proposals 主色统一：LLM 返回=${JSON.stringify(proposalsBefore)}，强制统一后=${JSON.stringify(proposalsAfter)}（unifiedColor=${unifiedColor} source=${deckResolution.source} enforcedTheme=${enforcedTheme || '(none)'} templatePrimary=${deckResolution.templatePrimary || '(none)'}）`,
             );
             break; // 解析成功，跳出重试循环
           }
@@ -377,12 +384,37 @@ ${tail}`;
             proposal.slides = [];
           }
         } catch (renderErr) {
+          // strict Deck 的 recoverable warning 已在 render-deck / finalize 内单独记录；
+          // 此处只剩 fatal 契约错误。用可见兜底首屏替代空首屏，避免引导式预览全白。
+          const validation = renderErr instanceof StrictDeckValidationError
+            ? { fatal: renderErr.fatalIssues, warnings: renderErr.warnings }
+            : { fatal: [], warnings: [] };
+          const firstPlanSlide = plan.slides[0];
+          const fallbackHtml = sanitizeSlideHtml(generateFallbackSlide(
+            firstPlanSlide ?? { pageType: 'cover', title: topic, keyPoints: [], needsImage: false },
+            proposal.primaryColor || '#2563eb',
+            slideWidth,
+            slideHeight,
+            proposal.fontFamily || 'sans',
+            proposal.iconStyle,
+          ));
+          const fallbackSlide: RenderedSlide = {
+            title: firstPlanSlide?.title || topic,
+            html: fallbackHtml,
+            pageType: firstPlanSlide?.pageType ?? 'cover',
+          };
+          proposal.coverHtml = fallbackHtml;
+          proposal.slides = [fallbackSlide];
           console.warn(
-            `[${formatBeijingTime()}] [AGENT] generateDesignProposals first-slide render failed for ${proposal.id}:`,
-            renderErr,
+            `[${formatBeijingTime()}] [AGENT] generateDesignProposals first-slide render failed for ${proposal.id}: ` +
+              `${renderErr instanceof Error ? renderErr.message : String(renderErr)}`,
+            {
+              firstSlidePageType: firstPlanSlide?.pageType,
+              fatalCodes: validation.fatal.map((issue) => issue.code),
+              warningCodes: validation.warnings.map((issue) => issue.code),
+              fallback: 'visible-fallback-slide',
+            },
           );
-          proposal.coverHtml = '';
-          proposal.slides = [];
         }
         return proposal;
       }),

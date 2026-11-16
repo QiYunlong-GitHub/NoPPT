@@ -11,7 +11,15 @@ import { formatBeijingTime, formatDuration } from '../../../providers/base';
 import { closeTraceSession, openTraceSession } from '../../../utils/llm-tracer';
 import { ensureSemanticWrapping, wrapTextNodes } from '../postprocess';
 import { flattenMeaninglessNesting } from '../html-sanitize';
-import { buildValidatedDeck, PlanContractError } from '../deck';
+import { buildValidatedDeck } from '../deck';
+import {
+  formatStrictDeckIssueDetails,
+  formatStrictDeckIssues,
+  formatStrictDeckNotices,
+  inspectStrictDeckResult,
+  normalizePlanForStrictDeckDetailed,
+  StrictDeckValidationError,
+} from '../deck/strict-deck';
 import type { Deck } from '@noppt/core/deck';
 export async function finalizePresentation(
   _deps: AgentDeps,
@@ -88,17 +96,36 @@ export async function finalizePresentation(
     }
 
     // ========== 结构化 Deck 输出（HTML 与 PPTX 共用的同一份数据真值）==========
-    // 由 plan 直接转换，不额外调用 LLM；任何异常都只降级掉 deck，绝不影响 html 主链路。
-    let deck: Deck | undefined;
-    const deckResult = buildValidatedDeck(plan, {
+    // 由 plan 直接转换，不额外调用 LLM；fatal 契约错误仍终止生成，仅 recoverable needs_review 记录 warning 后保留 deck。
+    const normalization = normalizePlanForStrictDeckDetailed(plan);
+    const strictPlan = normalization.plan;
+    if (normalization.notices.length > 0) {
+      console.warn(
+        `[${formatBeijingTime()}] [AGENT] [DECK] compare contract normalized: ` +
+          `${formatStrictDeckNotices(normalization.notices)}`,
+      );
+    }
+    const deckResult = buildValidatedDeck(strictPlan, {
       width: slideWidth,
       height: slideHeight,
       validationMode: 'strict',
     });
-    if (deckResult.status !== 'pass' || !deckResult.deck) {
-      throw new PlanContractError(deckResult.issues);
+    const inspection = inspectStrictDeckResult(deckResult);
+    if (!inspection.ok || !inspection.deck) {
+      throw new StrictDeckValidationError(
+        inspection.issues.filter((issue) => !issue.recoverable),
+        inspection.warnings,
+        strictPlan,
+      );
     }
-    deck = deckResult.deck;
+    if (inspection.warnings.length > 0) {
+      console.warn(
+        `[${formatBeijingTime()}] [AGENT] [DECK] strict deck accepted with recoverable issues: ` +
+          `${formatStrictDeckIssues(inspection.warnings)} | ` +
+          `${formatStrictDeckIssueDetails(inspection.warnings, strictPlan)}`,
+      );
+    }
+    const deck: Deck = inspection.deck;
     for (let i = 0; i < slides.length && i < deck.slides.length; i++) {
       slides[i].deck = deck.slides[i];
     }
