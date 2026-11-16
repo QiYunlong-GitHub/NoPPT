@@ -91,11 +91,11 @@ export function HtmlPreview({
   return (
     <div
       ref={containerRef}
-      className="overflow-hidden relative bg-white"
+      className="overflow-hidden relative"
       style={
         fit
-          ? { width: '100%', aspectRatio: `${width} / ${height}` }
-          : { width: width * effectiveScale, height: height * effectiveScale }
+          ? { width: '100%', aspectRatio: `${width} / ${height}`, background: 'var(--noppt-stage-bg, #ffffff)' }
+          : { width: width * effectiveScale, height: height * effectiveScale, background: 'var(--noppt-stage-bg, #ffffff)' }
       }
     >
       <div

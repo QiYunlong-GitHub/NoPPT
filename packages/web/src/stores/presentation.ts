@@ -151,14 +151,14 @@ export const usePresentationStore = create<PresentationState>()(
         set({
           presentation: loaded.presentation,
           history: [{ type: 'full', presentation: loaded.presentation }],
-          historyIndex: 0,
-          canUndo: false,
-          canRedo: false,
+          historyIndex: 0, canUndo: false, canRedo: false,
           currentChatPresentationId: id,
-          chatMessages: loaded.messages,
-          hasUnsavedChanges: false,
-          error: null,
+          chatMessages: getDefaultChatMessages(),
+          hasUnsavedChanges: false, error: null,
         });
+        // 聊天历史非阻塞补入；切页后旧请求不得覆盖新状态。
+        // prettier-ignore
+        void loaded.messages.then((m) => { if (loadSequence === presentationLoadSequence && get().currentChatPresentationId === id) set({ chatMessages: m }); });
       } catch (err) {
         if (loadSequence !== presentationLoadSequence) return;
         console.error('Failed to load presentation:', err);

@@ -158,6 +158,27 @@ function renderNodes(
         case 'chart':
           renderChartNode(slide, node);
           break;
+        case 'decoration':
+          // 视觉组件在 PPTX 侧降级为加粗文本框，保持与 HTML 侧的语义内容一致（parity）。
+          renderTextNode(
+            slide,
+            {
+              kind: 'text',
+              rect: node.rect,
+              paragraphs: [
+                {
+                  runs: [
+                    {
+                      text: [node.value, node.label].filter(Boolean).join(' · ') || ' ',
+                      bold: true,
+                    },
+                  ],
+                },
+              ],
+            },
+            ctx,
+          );
+          break;
         case 'group':
           renderNodes(slide, node.children ?? [], ctx, skipPlaceholder);
           break;

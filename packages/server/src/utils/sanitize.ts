@@ -103,7 +103,9 @@ function sanitizeStyleString(styleStr: string): string {
   const safe: string[] = [];
 
   for (const { key, value } of declarations) {
-    if (!ALLOWED_CSS_PROPERTIES.has(key)) continue;
+    // 阶段 4：与前端 security.ts 同构，放行主题注入用的 CSS 自定义属性。
+    const isCustomProperty = /^--[a-zA-Z0-9_-]+$/.test(key);
+    if (!isCustomProperty && !ALLOWED_CSS_PROPERTIES.has(key)) continue;
     if (isDangerousCssValue(value)) continue;
     safe.push(`${key}: ${value}`);
   }

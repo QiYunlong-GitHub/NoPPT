@@ -3,13 +3,14 @@
  *
  * - resolveReferenceForGeneration：统一聚合「参考视觉属性 + brief + 版本/来源」，供所有生成入口复用。
  *   resolveReferenceVisualAttributes（仍留在 ai.service，依赖 LLM/VLM）通过参数注入，保持门面不变。
- * - resolveFinalEffectivePrimary：5 级 single-source primary 链（参考 deck 主色 > 用户 > design > 默认蓝）。
+ * - resolveFinalEffectivePrimary：统一 single-source primary 链（用户配置 > 提示词颜色 > 模板色系 > 默认蓝）。
  *
  * ai.service.ts 保留对应 private 方法作为薄委托，调用方与 Phase 4 测试网不变。
  */
 import {
-  resolveDeckReferencePrimaryColor,
+  resolveDeckPrimaryColor,
   resolveEffectivePrimaryColor,
+  type DeckPrimaryColorResolution,
   type ReferenceVisualAttributes,
 } from '@noppt/ai';
 import type { ReferenceGenerationRequest } from './request-types';
@@ -58,29 +59,39 @@ export async function resolveReferenceForGeneration(
 }
 
 /**
- * 5 级 single-source primary 链：参考 deck 主色优先（single-source：参考 > 用户 > 默认蓝），
- * 回落到 resolveEffectivePrimaryColor（用户 primaryColor/colorTheme > design > 默认蓝）。
- * 并就地写回 presentation.design.primaryColor/colorTheme 与 generationOptions.primaryColor/colorTheme。
+ * 统一 single-source primary 链：用户配置 > 提示词颜色 > 模板色系（封面优先） > 默认蓝。
+ * 同时把裁决明细挂到 generationOptions.deckPrimaryResolution，供 final-write 日志与白名单复用。
  */
 export function resolveFinalEffectivePrimary(
   presentation: unknown,
   generationOptions: any,
-  opts: { primaryColor?: string; colorTheme?: any; design?: any },
+  opts: {
+    primaryColor?: string;
+    colorTheme?: any;
+    design?: any;
+    topic?: string;
+    referenceText?: string;
+  },
 ): string {
   const { primaryColor, colorTheme, design } = opts;
-  const refDeckPrimaryForFinal = resolveDeckReferencePrimaryColor(
-    (generationOptions as any)?.referenceVisualAttributes ?? null,
+  const fallback = resolveEffectivePrimaryColor(
+    { primaryColor, colorTheme },
+    {
+      primaryColor: (design as any)?.primaryColor ?? (presentation as any).design?.primaryColor,
+      colorTheme: (design as any)?.colorTheme ?? (presentation as any).design?.colorTheme,
+    },
+    '#2563eb',
   );
-  const finalEffectivePrimary = refDeckPrimaryForFinal
-    ? refDeckPrimaryForFinal
-    : resolveEffectivePrimaryColor(
-        { primaryColor, colorTheme },
-        {
-          primaryColor: (design as any)?.primaryColor ?? (presentation as any).design?.primaryColor,
-          colorTheme: (design as any)?.colorTheme ?? (presentation as any).design?.colorTheme,
-        },
-        '#2563eb',
-      );
+  const resolution: DeckPrimaryColorResolution = resolveDeckPrimaryColor({
+    primaryColor,
+    colorTheme,
+    topic: opts.topic ?? (generationOptions as any)?.topic ?? (presentation as any)?.title,
+    referenceText: opts.referenceText ?? (generationOptions as any)?.referenceText,
+    referenceVisualAttributes: (generationOptions as any)?.referenceVisualAttributes ?? null,
+    fallback,
+  });
+  const finalEffectivePrimary = resolution.primary;
+  const effectiveTheme = colorTheme ?? resolution.colorTheme;
   {
     const presDesign = (presentation as any).design;
     if (presDesign && typeof presDesign === 'object') {
@@ -89,23 +100,26 @@ export function resolveFinalEffectivePrimary(
         presDesign.primaryColor.toLowerCase() !== finalEffectivePrimary
       ) {
         console.warn(
-          `[DESIGN] presentation.design.primaryColor(${presDesign.primaryColor}) 与 5 级链结果(${finalEffectivePrimary}) 不一致，已覆盖（colorTheme=${colorTheme ?? 'N/A'} primaryColorOption=${primaryColor ?? 'N/A'}）。`,
+          `[DESIGN] presentation.design.primaryColor(${presDesign.primaryColor}) 与统一裁决结果(${finalEffectivePrimary}) 不一致，已覆盖（source=${resolution.source}）。`,
         );
       }
       presDesign.primaryColor = finalEffectivePrimary;
-      if (colorTheme) presDesign.colorTheme = colorTheme;
+      if (effectiveTheme) presDesign.colorTheme = effectiveTheme;
     }
   }
   if (generationOptions) {
     generationOptions.primaryColor = finalEffectivePrimary;
-    if (colorTheme) generationOptions.colorTheme = colorTheme;
+    if (effectiveTheme) generationOptions.colorTheme = effectiveTheme;
+    generationOptions.deckPrimaryResolution = resolution;
   }
   console.log(
-    `[DESIGN-SINGLE-SOURCE] 终局 primaryColor=${finalEffectivePrimary}（用户 primaryColor=${
+    `[DESIGN-SINGLE-SOURCE] 终局 primaryColor=${finalEffectivePrimary} source=${resolution.source}（用户 primaryColor=${
       primaryColor ?? 'N/A'
-    } | colorTheme=${colorTheme ?? 'N/A'} | design.colorTheme=${
+    } | colorTheme=${colorTheme ?? 'N/A'} | promptHint=${
+      resolution.promptHint?.matchedKeyword ?? 'N/A'
+    } | template=${resolution.templatePrimary ?? 'N/A'} | design.colorTheme=${
       (design as any)?.colorTheme ?? 'N/A'
-    } | design.primaryColor=${(design as any)?.primaryColor ?? 'N/A'}${refDeckPrimaryForFinal ? ` | refDeckPrimary=${refDeckPrimaryForFinal} reference-first` : ''}）。`,
+    } | design.primaryColor=${(design as any)?.primaryColor ?? 'N/A'}）。`,
   );
   return finalEffectivePrimary;
 }

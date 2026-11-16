@@ -716,7 +716,11 @@ export default function AIGenerateModal({ open, onClose }: { open: boolean; onCl
       onClose();
     }, 1500);
   };
-  const handleGenerationError = (error: unknown, startTimeBeijing: string) => {
+  const handleGenerationError = (
+    error: unknown,
+    startTimeBeijing: string,
+    recoveryStage: PipelineStage = 'config',
+  ) => {
     console.error('Generation failed:', error);
     const errorMessage = error instanceof Error ? error.message : t('未知错误');
     const errorTime = formatBeijingTime();
@@ -735,6 +739,12 @@ export default function AIGenerateModal({ open, onClose }: { open: boolean; onCl
       timestamp: errorTime,
     });
     showToast(t('生成失败，请检查 API 配置'), 'error');
+    // 生成失败后退出 generating 遮罩，但保留 topic / 大纲 / 参考素材 / 已选设计，便于直接重试。
+    setStage(recoveryStage);
+    setProgress({ current: 0, total: 0, message: '' });
+    setElapsedTime(0);
+    startTimeRef.current = 0;
+    setLoading(false);
   };
   const runFullAutoPipeline = async (finalPlan: PresentationPlan) => {
     const startTimeBeijing = formatBeijingTime();
@@ -787,7 +797,7 @@ export default function AIGenerateModal({ open, onClose }: { open: boolean; onCl
       });
       await finalizePresentationResult(generatedPres, startTimeBeijing);
     } catch (error) {
-      handleGenerationError(error, startTimeBeijing);
+      handleGenerationError(error, startTimeBeijing, 'outline');
     } finally {
       setLoading(false);
     }
@@ -820,7 +830,7 @@ export default function AIGenerateModal({ open, onClose }: { open: boolean; onCl
       });
       await finalizePresentationResult(generatedPres, startTimeBeijing);
     } catch (error) {
-      handleGenerationError(error, startTimeBeijing);
+      handleGenerationError(error, startTimeBeijing, 'layout-preview');
     } finally {
       setLoading(false);
     }

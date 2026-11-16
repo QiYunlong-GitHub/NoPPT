@@ -50,3 +50,22 @@ export {
   getReferencePaletteForPage,
 } from './utils/reference-attribute-resolver';
 export { applyMasterLogoSources, applyReferenceImageUrlSources } from './utils/reference-logo-src';
+
+// 阶段 4：受控语义色板供 server 终局裁决 / 后处理白名单复用（只增不减，保持既有导出不变）。
+export {
+  semanticPaletteHexes,
+  VISUAL_THEMES,
+  DEFAULT_VISUAL_THEME,
+  resolveVisualThemeIdForPrimary,
+} from './agents/html-presentation/deck/visual-tokens';
+
+// 主题色优先级更正：用户配置 > 提示词颜色 > 模板色系（只增不减）。
+export {
+  resolveColorThemeFromFreeText,
+  resolveTemplateDeckPrimaryColor,
+  resolveDeckPrimaryColor,
+  resolveStageDeckPrimary,
+  type ColorSource,
+  type PromptColorHint,
+  type DeckPrimaryColorResolution,
+} from './utils/reference/color-priority';

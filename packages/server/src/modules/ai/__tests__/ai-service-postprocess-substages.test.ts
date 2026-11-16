@@ -2,7 +2,7 @@
 // AiService · postProcessPresentation 关键子阶段 —— 行为锁定测试（characterization）
 //
 // 目的：在 Phase 5 把后处理子阶段切块外置之前，先锁定「现状行为」保证后续纯搬移不变：
-//   1) 5 级 single-source primary 链（resolveFinalEffectivePrimary）
+//   1) 统一 single-source primary 链（resolveFinalEffectivePrimary）
 //   2) 参考注入（resolveReferenceForGeneration / backfillReferenceOriginalSources /
 //      persistReferenceOriginals）
 //   3) 孤儿配图编排（rescueOrphanImages）—— 见下方 describe
@@ -35,8 +35,8 @@ function makeRva(overrides: any = {}) {
   };
 }
 
-describe('AiService · 5 级 single-source primary 链（resolveFinalEffectivePrimary）', () => {
-  it('无参考属性 → 回落 design.primaryColor（5 级链），并写回 presentation.design 与 generationOptions', () => {
+describe('AiService · 统一 single-source primary 链（resolveFinalEffectivePrimary）', () => {
+  it('无参考属性 → 回落 design.primaryColor，并写回 presentation.design 与 generationOptions', () => {
     const presentation: any = { design: { primaryColor: '#999999' } };
     const generationOptions: any = {};
     const final = svc.resolveFinalEffectivePrimary(presentation, generationOptions, {
@@ -49,17 +49,33 @@ describe('AiService · 5 级 single-source primary 链（resolveFinalEffectivePr
     expect(generationOptions.primaryColor).toBe('#123456');
   });
 
-  it('参考 deck 主色优先（single-source：参考 > 用户 > 默认蓝）', () => {
+  it('用户 primaryColor 压过模板参考主色（不再 reference-first）', () => {
     const presentation: any = { design: { primaryColor: '#000000' } };
-    const generationOptions: any = { referenceVisualAttributes: makeRva({ content: '#C7000B' }) };
+    const generationOptions: any = { referenceVisualAttributes: makeRva({ cover: '#C7000B' }) };
     const final = svc.resolveFinalEffectivePrimary(presentation, generationOptions, {
-      primaryColor: '#2563eb',
+      primaryColor: '#ea580c',
       colorTheme: undefined,
       design: { primaryColor: '#123456' },
+      topic: '主色用紫色',
     });
-    // content 单分类主色被提升为 deck 级 → 优先于用户/design
+    expect(final).toBe('#ea580c');
+    expect(generationOptions.primaryColor).toBe('#ea580c');
+    expect(generationOptions.deckPrimaryResolution.source).toBe('user-hex');
+  });
+
+  it('无用户配置且提示词无颜色时统一封面模板色系', () => {
+    const presentation: any = { design: {} };
+    const generationOptions: any = {
+      referenceVisualAttributes: makeRva({ cover: '#C7000B', content: '#00AA00' }),
+    };
+    const final = svc.resolveFinalEffectivePrimary(presentation, generationOptions, {
+      primaryColor: undefined,
+      colorTheme: undefined,
+      design: { primaryColor: '#123456' },
+      topic: '季度经营复盘',
+    });
     expect(final).toBe('#c7000b');
-    expect(generationOptions.primaryColor).toBe('#c7000b');
+    expect(generationOptions.deckPrimaryResolution.source).toBe('template-cover');
   });
 
   it('colorTheme 存在时同步写回 design.colorTheme 与 generationOptions.colorTheme', () => {

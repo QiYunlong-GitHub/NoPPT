@@ -102,7 +102,8 @@ export async function generateSlideHtml(
     ? formatReferenceOverrideForPage(referenceVisualAttributes, plan.pageType, pageIndexInCategory)
     : '';
   const categoryReferenceSummary = pageReferenceOverride
-    ? '【参考文件提取属性 · 绝对最高优先级 · 覆盖用户显式参数】\n' + pageReferenceOverride
+    ? '【参考模板属性 · 最低优先级 · 仅提供版式/accent 白名单与封面色系兜底，不覆盖统一主色】\n' +
+      pageReferenceOverride
     : '';
   // FR-参考克隆：本页只注入自身分类的参考指令（消除多份 brief 互相打架），并附骨架片段与色彩豁免
   const referenceSnippet = referenceVisualAttributes

@@ -29,6 +29,7 @@ import {
   Circle,
 } from 'lucide-react';
 import { usePresentationStore } from '@/stores/presentation';
+import { themeVarsForPrimary } from '@noppt/core/deck';
 import { useUIStore } from '@/stores/ui';
 import { useNavigate } from 'react-router-dom';
 import SlideListPanel from '@/components/SlideListPanel';
@@ -86,6 +87,7 @@ interface EditorLayoutProps {
 export default function EditorLayout({}: EditorLayoutProps) {
   const navigate = useNavigate();
   const presentation = usePresentationStore((s) => s.presentation);
+  const themeVars = themeVarsForPrimary((presentation as any)?.design?.primaryColor);
   const selectedSlideId = usePresentationStore((s) => s.presentation?.selectedSlideId);
   const undo = usePresentationStore((s) => s.undo);
   const redo = usePresentationStore((s) => s.redo);
@@ -1202,7 +1204,7 @@ export default function EditorLayout({}: EditorLayoutProps) {
                   <div
                     ref={contentRef}
                     className="w-full h-full"
-                    style={{ position: 'relative', ['--noppt-scale' as string]: 1, ['--noppt-root-width' as string]: `${logicalWidth}px`, ['--noppt-root-margin' as string]: '0px' } as React.CSSProperties}
+                    style={{ position: 'relative', ['--noppt-scale' as string]: 1, ['--noppt-root-width' as string]: `${logicalWidth}px`, ['--noppt-root-margin' as string]: '0px', ...themeVars } as React.CSSProperties}
                     data-slide-content="true"
                   />
                 )}

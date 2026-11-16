@@ -7,8 +7,14 @@ import {
   collectStyleViolationSamples,
   formatStyleViolationSamplesSummary,
   resolveReferencePrimaryColor,
-  resolveFinalPagePrimaryColor,
+  resolveDeckReferencePrimaryColor,
   getReferencePaletteForPage,
+  semanticPaletteHexes,
+  VISUAL_THEMES,
+  resolveVisualThemeIdForPrimary,
+  resolveTemplateDeckPrimaryColor,
+  resolveDeckPrimaryColor,
+  type DeckPrimaryColorResolution,
   simpleLog,
 } from '@noppt/ai';
 import { sanitizeHtmlServerSide } from '../../../utils/sanitize';
@@ -77,13 +83,12 @@ export async function runFinalWrite(ctx: FinalWriteCtx): Promise<void> {
 
     // —— finalGuard：写盘前对每页 HTML 重放后处理全链（兜底任何未 post 的通道产物）——
     const finalSanitizeStat = { pages: result.slides.length, reapplied: 0, assertionFailed: 0 };
-    // FR-3 / Task 4：finalMainColor 由函数入口的 finalEffectivePrimary 派生，
-    // 并在下方「逐页」用参考主色（resolveReferencePrimaryColor）前置裁决后覆盖（参考 > 用户显式 > 默认蓝）。
+    // 全篇统一主色：来自 resolveFinalEffectivePrimary 的 deck 级裁决，不再逐页用分类参考色覆盖。
     const slideW = slideWidth || finalWidth || 1280;
     const slideH = slideHeight || finalHeight || 720;
     // FR-A（回归修复）：参考属性来源兜底。generationOptions 在分步 finalizePresentation 等路径可能未带来源，
     // 此时用 presentationId + req 字段回源重解析（resolveReferenceVisualAttributes 内部走 sha1 缓存，命中零 I/O），
-    // 确保逐页参考主色裁决不丢失（否则回落默认蓝，把参考红色重染）。
+    // 用于 accent 白名单与模板色系日志，不改变已裁决的统一主色。
     let rva: ReferenceVisualAttributes | null | undefined =
       generationOptions?.referenceVisualAttributes;
     if (!rva) {
@@ -104,22 +109,44 @@ export async function runFinalWrite(ctx: FinalWriteCtx): Promise<void> {
     for (const [i, slide] of result.slides.entries()) {
       if (!slide.html || typeof slide.html !== 'string') continue;
       const raw = slide.html;
-      // FR-2.x：逐页用参考主色前置裁决——若该页对应分类/全局上传了参考图且含合法主色则以此为准，
-      // 否则回落 finalEffectivePrimary（与今日行为完全一致，向后兼容）。
-      // FR-0/FR-4：优先用 slide 自身 pageType；缺失（如前端 editor 落盘的残缺版本）时按位置兜底，
-      // 避免 pageTypeToCategory('') 一律回落 'content'，使封面/总结取到各自参考色而非默认蓝。
+      // FR-0/FR-4：优先用 slide 自身 pageType；缺失（如前端 editor 落盘的残缺版本）时按位置兜底。
       const rawPageType = String((slide as any)?.pageType ?? '').toLowerCase();
       const pageType =
         rawPageType || (i === 0 ? 'cover' : i === result.slides.length - 1 ? 'summary' : 'content');
-      // 终局逐页取色三级链：分类参考主色 → deck 级参考主色 → finalEffectivePrimary（用户显式/默认蓝）。
-      // 修复收尾缺口：某分类参考图缺失（或 VLM 未抽出主色）且 global 也无主色时，取 deck 级参考红，
-      // 避免该页回落默认蓝 #2563eb（plan 第 ④ 项）。
+      // 全篇统一主色：复用 resolveFinalEffectivePrimary 写入的裁决明细；分步路径缺失时按已裁决值重建。
+      const storedResolution = (generationOptions as any)?.deckPrimaryResolution as
+        | DeckPrimaryColorResolution
+        | undefined;
+      const deckResolution =
+        storedResolution ??
+        resolveDeckPrimaryColor({
+          primaryColor: finalEffectivePrimary,
+          referenceVisualAttributes: rva ?? undefined,
+          fallback: finalEffectivePrimary,
+        });
+      const finalMainColor = deckResolution.primary;
+      const finalColorSource = deckResolution.source;
+      const themeId = deckResolution.themeId ?? resolveVisualThemeIdForPrimary(finalMainColor);
+      const templatePrimary = resolveTemplateDeckPrimaryColor(rva ?? undefined).primary;
+      const referenceOverridden =
+        deckResolution.referenceOverridden ??
+        (!!templatePrimary && templatePrimary !== finalMainColor);
       const pageRefPrimary = resolveReferencePrimaryColor(rva ?? undefined, pageType);
-      const finalMainColor = resolveFinalPagePrimaryColor(
-        rva ?? undefined,
+      const deckRefPrimary = rva ? resolveDeckReferencePrimaryColor(rva) : undefined;
+      simpleLog('AI:FINAL', '终局主色裁决', {
+        slide: i + 1,
         pageType,
+        pageRefPrimary: pageRefPrimary ?? null,
+        deckRefPrimary: deckRefPrimary ?? null,
         finalEffectivePrimary,
-      );
+        finalMainColor,
+        source: finalColorSource,
+        colorTheme: deckResolution.colorTheme ?? null,
+        topicHint: deckResolution.promptHint?.matchedKeyword ?? null,
+        templateTheme: templatePrimary ?? null,
+        referenceOverridden,
+        overriddenByReference: false,
+      });
       // 参考撞色板 / 标题色 / 正文色 / 描边色 → 终局越权信号白名单，避免参考多色页被误判越权而反复重放。
       const cat =
         pageType === 'cover' || pageType === 'page-cover'
@@ -134,6 +161,8 @@ export async function runFinalWrite(ctx: FinalWriteCtx): Promise<void> {
       const styleRef = rva ? (rva.byCategory[cat] ?? rva.global) : undefined;
       const allowedAccentHexes = new Set<string>(
         [
+          // 阶段 4：受控语义色板纳入白名单，避免终局重放把主题组件色抹掉。
+          ...semanticPaletteHexes(VISUAL_THEMES[themeId]),
           ...(slidePalette?.accents || []),
           slidePalette?.strokeColor,
           slidePalette?.primary,
@@ -143,9 +172,9 @@ export async function runFinalWrite(ctx: FinalWriteCtx): Promise<void> {
           .filter((c): c is string => !!c)
           .map((c) => c.toLowerCase()),
       );
-      if (!pageRefPrimary && finalMainColor !== finalEffectivePrimary) {
+      if (finalColorSource === 'template-cover' || finalColorSource === 'template-global') {
         console.log(
-          `[FINAL] 第 ${i + 1} 页(${pageType}) 分类参考主色缺失 → deck 级参考主色 ${finalMainColor} 兜底（避免回落默认蓝）`,
+          `[FINAL] 第 ${i + 1} 页(${pageType}) 用户未配置主题色且提示词无颜色 → 全篇统一模板色系 ${finalMainColor}（来源 ${finalColorSource}）`,
         );
       }
       const proofOfViolation = styleViolationSignal(raw, finalMainColor, { allowedAccentHexes }); // breakdown: StyleViolationBreakdown

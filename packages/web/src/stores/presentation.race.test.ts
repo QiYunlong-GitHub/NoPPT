@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest';
 import type { Presentation } from '@noppt/core';
-import { presentationApi } from '@/utils/api';
+import { presentationApi, type ChatMessage } from '@/utils/api';
 import { usePresentationStore } from './presentation';
 
 const deferred = <T>() => {
@@ -66,5 +66,47 @@ describe('presentation async race guards', () => {
     expect(usePresentationStore.getState().hasUnsavedChanges).toBe(true);
     expect(saveSpy).toHaveBeenCalledOnce();
     saveSpy.mockRestore();
+  });
+
+  it('renders the canvas before chat history resolves, then patches messages in', async () => {
+    const chat = deferred<ChatMessage[]>();
+    const get = vi.spyOn(presentationApi, 'get').mockResolvedValue(makePresentation('p1'));
+    const chatSpy = vi.spyOn(presentationApi, 'getChatHistory').mockReturnValue(chat.promise);
+    usePresentationStore.setState({ presentation: null, error: null });
+
+    await usePresentationStore.getState().loadPresentation('p1');
+    expect(usePresentationStore.getState().presentation?.id).toBe('p1');
+    expect(chatSpy).toHaveBeenCalledWith('p1');
+
+    const late = [{ content: 'late-chat' }] as unknown as ChatMessage[];
+    chat.resolve(late);
+    await vi.waitFor(() => {
+      expect(usePresentationStore.getState().chatMessages).toEqual(late);
+    });
+    get.mockRestore();
+    chatSpy.mockRestore();
+  });
+
+  it('ignores stale chat history after switching to another presentation', async () => {
+    const oldChat = deferred<ChatMessage[]>();
+    const get = vi
+      .spyOn(presentationApi, 'get')
+      .mockImplementation((id) => Promise.resolve(makePresentation(id)));
+    const chatSpy = vi
+      .spyOn(presentationApi, 'getChatHistory')
+      .mockImplementation((id) => (id === 'first' ? oldChat.promise : Promise.resolve([])));
+    usePresentationStore.setState({ presentation: null, error: null });
+
+    await usePresentationStore.getState().loadPresentation('first');
+    await usePresentationStore.getState().loadPresentation('second');
+    const stale = [{ content: 'stale-chat' }] as unknown as ChatMessage[];
+    oldChat.resolve(stale);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(usePresentationStore.getState().presentation?.id).toBe('second');
+    expect(usePresentationStore.getState().chatMessages).not.toEqual(stale);
+    get.mockRestore();
+    chatSpy.mockRestore();
   });
 });

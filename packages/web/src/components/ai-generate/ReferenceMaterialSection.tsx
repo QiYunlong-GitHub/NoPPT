@@ -80,6 +80,16 @@ export function ReferenceMaterialSection({
               </span>
             </div>
           )}
+          {referenceText && (
+            <div className="flex items-start gap-1.5 px-2.5 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-[11px] text-blue-700 dark:text-blue-300">
+              <AlertTriangle className="w-3.5 h-3.5 mt-px shrink-0" />
+              <span>
+                {t(
+                  '配色优先级：配置界面选定的主题色 > 提示词中指定的颜色（主色/色调/颜色/色系等写法） > 模板色系。未指定时全篇统一使用封面模板色系；参考素材仅影响版式与 accent 白名单，详见生成日志。',
+                )}
+              </span>
+            </div>
+          )}
           <textarea
             value={referenceText}
             onChange={(event) => updateReferenceText(event.target.value)}

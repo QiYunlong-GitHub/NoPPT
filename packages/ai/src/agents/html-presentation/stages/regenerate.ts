@@ -13,11 +13,10 @@ import {
   buildReferenceContext,
   computePageIndexInCategory,
   pageTypeToCategory,
-  resolveDeckReferencePrimaryColor,
   resolveLayoutForPage,
   resolveMasterForPage,
-  resolveReferencePrimaryColor,
 } from '../../../utils/reference-attribute-resolver';
+import { resolveStageDeckPrimary } from '../../../utils/reference/color-priority';
 import {
   CHANNEL_BUDGET,
   MAX_RETRY_PER_SLIDE,
@@ -49,7 +48,7 @@ import { applyMasterToSlideHtml } from '../../../utils/apply-master-to-slide-htm
 import { generateSlideHtml } from './generate-slide';
 export async function regenerateSingleSlide(
   deps: AgentDeps,
-  _topic: string,
+  topic: string,
   plan: PresentationPlan,
   design: DesignProposal,
   slideIndex: number,
@@ -73,12 +72,16 @@ export async function regenerateSingleSlide(
   const colorTheme = design.colorTheme;
   // 参考视觉属性前置读取，供主色裁决使用
   const referenceVisualAttributes = options?.referenceVisualAttributes;
-  // FR-0/FR-4：参考主色前置裁决（参考 > 用户显式 > 主题 > 默认蓝）
-  const refDeckPrimary = resolveDeckReferencePrimaryColor(referenceVisualAttributes);
-  const primaryColor = refDeckPrimary ?? resolveEffectivePrimaryColor(options, design, '#2563eb');
+  const deckResolution = resolveStageDeckPrimary({
+    options,
+    topic,
+    rva: referenceVisualAttributes,
+    fallback: resolveEffectivePrimaryColor(options, design, '#2563eb'),
+  });
+  const primaryColor = deckResolution.primary;
   const primaryColorDarker = darkenColor(primaryColor, 20);
   console.log(
-    `[DESIGN] effective: style=${style} colorTheme=${colorTheme} primaryColor=${primaryColor}(single-source${refDeckPrimary ? ', reference-first' : ''})`,
+    `[DESIGN] effective: style=${style} colorTheme=${colorTheme} primaryColor=${primaryColor}(source=${deckResolution.source})`,
   );
   const backgroundEnabled = options?.backgroundEnabled || false;
   const slideWidth = options?.slideWidth || 1280;
@@ -105,12 +108,8 @@ export async function regenerateSingleSlide(
       },
     } as ReferenceMaster;
   }
-  // FR-0/FR-4：逐页用参考主色覆盖（参考 > deck 级兜底）
-  const pageRefPrimary = resolveReferencePrimaryColor(
-    referenceVisualAttributes,
-    String(slidePlan.pageType ?? ''),
-  );
-  const pagePrimary = pageRefPrimary ?? primaryColor;
+  // 全篇统一主色：单页重生成不再按分类参考色漂移
+  const pagePrimary = primaryColor;
   const rp = resolvePageReferenceStyleAttrs(slidePlan, referenceVisualAttributes, {
     primaryColor: pagePrimary,
     fontFamily,

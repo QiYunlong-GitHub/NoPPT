@@ -2198,14 +2198,11 @@ export class AiService {
     return postProcessPresentationImpl.call(this, presentation, { ...params, ...integrityContext });
   }
 
-  /**
-   * 5 级 single-source primary 链（FR-3 / Task4）：参考 deck 主色优先，否则 5 级回退，
-   * 并写回 presentation.design 与 generationOptions。纯逻辑（无 this.* 外部依赖），便于行为锁定测试。
-   */
+  /** 统一 single-source primary 链：用户配置 > 提示词颜色 > 模板色系 > 默认蓝；写回 design/generationOptions。 */
   protected resolveFinalEffectivePrimary(
     presentation: Presentation,
     generationOptions: any,
-    opts: { primaryColor?: string; colorTheme?: any; design?: any },
+    opts: { primaryColor?: string; colorTheme?: any; design?: any; topic?: string; referenceText?: string },
   ): string {
     return _resolveFinalEffectivePrimary(presentation, generationOptions, opts);
   }

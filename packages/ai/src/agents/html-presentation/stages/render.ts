@@ -14,12 +14,11 @@ import {
   buildReferenceContext,
   computePageIndexInCategory,
   pageTypeToCategory,
-  resolveDeckReferencePrimaryColor,
   resolveHeroImageForPage,
   resolveLayoutForPage,
   resolveMasterForPage,
-  resolveReferencePrimaryColor,
 } from '../../../utils/reference-attribute-resolver';
+import { resolveStageDeckPrimary } from '../../../utils/reference/color-priority';
 import {
   CHANNEL_BUDGET,
   COLOR_THEMES,
@@ -57,7 +56,7 @@ import { generateSlideHtmlSafe } from './generate-slide';
 import { renderSlidesWithDeck } from './render-deck';
 export async function renderSlides(
   deps: AgentDeps,
-  _topic: string,
+  topic: string,
   plan: PresentationPlan,
   design: DesignProposal,
   options?: PresentationGenerationOptions,
@@ -85,19 +84,20 @@ export async function renderSlides(
   // 参考视觉属性前置读取，供主色裁决使用（原位于 2712 处，后移至此，避免逐页后处理引用时尚未定义）
   const referenceVisualAttributes = options?.referenceVisualAttributes;
 
-  // FR-0/FR-4：参考主色前置裁决（参考 > 用户显式 > 主题 > 默认蓝）。
-  // 无参考时 refDeckPrimary 为 undefined，完整回落原 5 级链，行为与改造前逐字节一致。
-  const refDeckPrimary = resolveDeckReferencePrimaryColor(referenceVisualAttributes);
-  const primaryColor = refDeckPrimary ?? resolveEffectivePrimaryColor(options, design, '#2563eb');
+  const deckResolution = resolveStageDeckPrimary({
+    options,
+    topic,
+    rva: referenceVisualAttributes,
+    fallback: resolveEffectivePrimaryColor(options, design, '#2563eb'),
+  });
+  const primaryColor = deckResolution.primary;
 
-  // 设计参数生效日志：展示 renderSlides 实际使用的 effective 参数
+  // 设计参数生效日志：展示 renderSlides 实际使用的统一裁决主色与来源
   console.log(
-    `[DESIGN] effective: style=${style} colorTheme=${colorTheme} primaryColor=${primaryColor}(single-source${refDeckPrimary ? ', reference-first' : ''}) iconStyle=${iconStyle} fontFamily=${fontFamily} audience=${audience || ''}`,
+    `[DESIGN] effective: style=${style} colorTheme=${colorTheme} primaryColor=${primaryColor}(source=${deckResolution.source}) iconStyle=${iconStyle} fontFamily=${fontFamily} audience=${audience || ''}`,
   );
-  // 一致性告警（防线）：用户显式给了 colorTheme 但未显式给 primaryColor 时，effective 主色应等于 theme 色。
-  // 参考主色生效属预期不一致（参考 > 用户全局设置），跳过以避免噪音掩盖真实问题。
+  // 一致性告警：用户显式给了 colorTheme 但未显式给 primaryColor 时，主色应等于 theme 色。
   if (
-    !refDeckPrimary &&
     options?.colorTheme &&
     !options?.primaryColor &&
     primaryColor.toLowerCase() !== (COLOR_THEMES[options.colorTheme] || '').toLowerCase()
@@ -172,12 +172,8 @@ export async function renderSlides(
               },
             } as ReferenceMaster;
           }
-          // FR-0/FR-4：逐页用参考主色覆盖（参考 > deck 级兜底），与内容阶段 formatReferenceOverrideForPage 逐页语义一致
-          const pageRefPrimary = resolveReferencePrimaryColor(
-            referenceVisualAttributes,
-            String(slidePlan.pageType ?? ''),
-          );
-          const pagePrimary = pageRefPrimary ?? primaryColor;
+          // 全篇统一主色：封面/内容/结尾页不再按分类参考色漂移
+          const pagePrimary = primaryColor;
           const rp = resolvePageReferenceStyleAttrs(slidePlan, referenceVisualAttributes, {
             primaryColor: pagePrimary,
             fontFamily,

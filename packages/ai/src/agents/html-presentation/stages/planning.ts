@@ -1,6 +1,5 @@
 import type { AgentDeps } from './deps';
 import {
-  COLOR_THEMES,
   HTMLPresentation,
   PageStructureHints,
   SlideCountSpec,
@@ -33,8 +32,8 @@ import {
   getReferenceColorPolicyOverview,
   getReferenceLayoutDiversityHint,
   getReferenceSnippetOverview,
-  resolveDeckReferencePrimaryColor,
 } from '../../../utils/reference-attribute-resolver';
+import { resolveStageDeckPrimary } from '../../../utils/reference/color-priority';
 import { parsePlan } from '../html-sanitize';
 import {
   applyReferenceImageOverride,
@@ -104,7 +103,13 @@ export async function generatePlan(
     total: planningTotal,
     message: `正在规划演示结构（${displayText}）...`,
   });
-  const refDeckPrimary = resolveDeckReferencePrimaryColor(referenceVisualAttributes);
+  const deckResolution = resolveStageDeckPrimary({
+    options: { colorTheme, referenceText },
+    topic,
+    rva: referenceVisualAttributes,
+    fallback: computeU17EffectivePrimaryColor(style, colorTheme, primaryColor),
+  });
+  const effectiveColor = deckResolution.primary;
   const userSettingsOverride = buildUserSettingsPriorityOverridePrompt({
     slideCount: slideSpec,
     style,
@@ -115,20 +120,11 @@ export async function generatePlan(
     fontFamily,
     backgroundEnabled,
     audience,
-    referencePrimaryColor: refDeckPrimary,
+    referencePrimaryColor: deckResolution.templatePrimary,
+    effectivePrimaryColor: effectiveColor,
   });
-  // U-17-L · LLM 调用前一致化：
-  //   先按 U-17 公式算出最终主色，再把同一个值同时用于：
-  //   ① buildPlanningPrompt 里 system prompt 示例 JSON 和 配色强约束文案
-  //   ② user prompt 里主色说明
-  //   ③ parsePlan 后强制覆盖（U-17 原逻辑）
-  // 彻底消除「system 写 #ea580c / user 写 #2563eb」的 LLM 输入矛盾。
-  // FR-2.x：参考主色（deck 级代表）为绝对最高优先级，覆盖 colorTheme 默认的蓝/紫等；
-  // 否则回落 computeU17EffectivePrimaryColor（与今天行为一致）。
-  const effectiveColor =
-    refDeckPrimary ?? computeU17EffectivePrimaryColor(style, colorTheme, primaryColor);
   const categoryReferenceSummary = referenceVisualAttributes
-    ? '【参考文件提取属性 · 绝对最高优先级 · 覆盖用户显式参数与所有示例】\n' +
+    ? '【参考模板属性 · 最低优先级 · 仅提供版式/accent 白名单与无用户配置时的封面色系兜底】\n' +
       formatReferenceOverrideOverview(referenceVisualAttributes)
     : '';
   const planningSnippet = referenceVisualAttributes
@@ -180,10 +176,8 @@ export async function generatePlan(
   //   使用预先计算的 effectiveColor（与上面 messages 用同一值），
   //   保持计算单源、避免重复公式产生漂移。
   if (plan.primaryColor.toLowerCase() !== effectiveColor.toLowerCase()) {
-    const reason =
-      colorTheme && COLOR_THEMES[colorTheme] ? `colorTheme=${colorTheme}` : `auto(style=${style})`;
     console.warn(
-      `[PLAN] parsePlan 返回 primaryColor=${plan.primaryColor}，与 ${reason} 期望 ${effectiveColor} 不一致，已强制覆盖。`,
+      `[PLAN] parsePlan 返回 primaryColor=${plan.primaryColor}，与统一裁决(${deckResolution.source}) 期望 ${effectiveColor} 不一致，已强制覆盖。`,
     );
   }
   plan.primaryColor = effectiveColor;

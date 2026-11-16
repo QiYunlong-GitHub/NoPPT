@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'fs';
 import { extname, join } from 'path';
 import { JSDOM } from 'jsdom';
 import type { Presentation } from '@noppt/core';
+import { VISUAL_THEMES, resolveVisualThemeIdForPrimary } from '@noppt/ai';
 import type { StorageService } from '../../common/storage.service';
 import { sanitizeHtmlServerSide } from '../../utils/sanitize';
 import type { Locale } from '../../i18n/types';
@@ -69,6 +70,8 @@ export async function buildSelfContainedDeck(
   const height = Number(presentation?.height) || 720;
   const slides = (presentation?.slides || []).filter((s) => !s.hidden);
   const title = escapeHtml(presentation?.title || '演示');
+  const primary = ((presentation as any)?.design?.primaryColor as string) || '#2563eb';
+  const theme = VISUAL_THEMES[resolveVisualThemeIdForPrimary(primary)];
 
   const cache = new Map<string, string>();
   let inlined = 0;
@@ -155,6 +158,11 @@ export async function buildSelfContainedDeck(
     slidesMarkup,
     total: slideHtmlList.length,
     lang,
+    primary,
+    stageBg: theme.canvasBg,
+    surface: theme.surface,
+    border: theme.border,
+    text: theme.text,
   });
   return { html, inlined, failed };
 }
@@ -178,6 +186,11 @@ function renderShell(ctx: {
   slidesMarkup: string;
   total: number;
   lang: Locale;
+  primary?: string;
+  stageBg?: string;
+  surface?: string;
+  border?: string;
+  text?: string;
 }): string {
   const script = [
     '(function(){',
@@ -239,10 +252,11 @@ function renderShell(ctx: {
     '.deck-head{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:500;color:#94A3B8;',
     'max-width:92vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}',
     '.deck-head .badge{border:1px solid #334155;border-radius:999px;padding:2px 10px;font-size:12px;color:#CBD5E1;}',
-    '#stage{position:relative;background:#FFFFFF;border-radius:12px;overflow:hidden;',
+    ':root{--noppt-stage-bg:' + (ctx.stageBg || '#f5f7fb') + ';--noppt-surface:' + (ctx.surface || '#ffffff') + ';--noppt-theme-primary:' + (ctx.primary || '#2563eb') + ';--noppt-theme-text:' + (ctx.text || '#0f172a') + ';--noppt-theme-border:' + (ctx.border || '#e3e8ef') + ';}',
+    '#stage{position:relative;background:var(--noppt-stage-bg,#FFFFFF);border-radius:12px;overflow:hidden;',
     'box-shadow:0 24px 60px rgba(2,6,23,.55);cursor:pointer;}',
     '.slide{position:absolute;left:0;top:0;transform-origin:0 0;opacity:0;pointer-events:none;',
-    'width:' + ctx.width + 'px;height:' + ctx.height + 'px;overflow:hidden;background:#fff;',
+    'width:' + ctx.width + 'px;height:' + ctx.height + 'px;overflow:hidden;background:var(--noppt-stage-bg,#fff);',
     'transition:opacity .22s ease;}',
     '.slide.is-active{opacity:1;pointer-events:auto;}',
     '.deck-bar{display:flex;align-items:center;gap:14px;}',

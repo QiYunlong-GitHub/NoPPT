@@ -74,17 +74,16 @@ export async function postProcessPresentationImpl(
     }
   }
 
-  // —— Task4 / FR-3: 单源 primary 链（5 级优先级 resolveEffectivePrimaryColor）——
+  // —— 统一 single-source primary 链（用户配置 > 提示词颜色 > 模板色系 > 默认蓝）——
   // 全链路所有需要 primaryColor 的子阶段均从 finalEffectivePrimary 派生，
   // 彻底消除「design?.primaryColor / plan?.primaryColor / 局部 primaryColor 互相冲突」
-  // 导致的 styleViolationSignal 错主题色误判（本规格 spec 3.9 根因）。
-  // 额外：开发环境下若最终值与任何候选冲突，打印详细来源。
-  // FR-2.x：参考主色纳入终局单源链（参考 > 用户 > 默认蓝），与 3512 triage / 903 主管线一致；
-  // 避免无参考覆盖时回落默认蓝 #2563eb（缺口2：此前此处 5 级链缺参考分支，会把 design.primaryColor 写回蓝色，与红色成品冲突）。
+  // 导致的 styleViolationSignal 错主题色误判；裁决明细写入 generationOptions 供终局日志复用。
   const finalEffectivePrimary = this.resolveFinalEffectivePrimary(presentation, generationOptions, {
     primaryColor,
     colorTheme,
     design,
+    topic: topic || (plan as any)?.title || presentation?.title,
+    referenceText: generationOptions?.referenceText,
   });
 
   let result: Presentation;

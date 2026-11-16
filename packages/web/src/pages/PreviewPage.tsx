@@ -2,6 +2,7 @@ import { t } from '@/i18n';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { usePresentationStore } from '@/stores/presentation';
+import { themeVarsForPrimary } from '@noppt/core/deck';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { safeHtml } from '@/utils';
 type TransitionType = 'none' | 'fade' | 'slide' | 'zoom' | 'flip';
@@ -13,6 +14,7 @@ export default function PreviewPage() {
   }>();
   const loadPresentation = usePresentationStore((s) => s.loadPresentation);
   const presentation = usePresentationStore((s) => s.presentation);
+  const themeVars = themeVarsForPrimary((presentation as any)?.design?.primaryColor);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [prevIndex, setPrevIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -129,7 +131,7 @@ export default function PreviewPage() {
   return (
     <div
       className="min-h-screen bg-slate-900 flex items-center justify-center relative overflow-hidden"
-      style={{ perspective: '2000px' }}
+      style={{ perspective: '2000px', ...themeVars }}
     >
       <div className="w-full max-w-6xl mx-4 flex justify-center">
         <div
@@ -143,6 +145,7 @@ export default function PreviewPage() {
             <div
               className="absolute inset-0 bg-white rounded-lg shadow-2xl overflow-hidden"
               style={{
+                background: 'var(--noppt-stage-bg, #ffffff)',
                 transition: 'all 250ms cubic-bezier(0.4, 0, 0.2, 1)',
                 ...getSlideStyle(false),
               }}
@@ -154,6 +157,7 @@ export default function PreviewPage() {
           <div
             className="absolute inset-0 bg-white rounded-lg shadow-2xl overflow-hidden"
             style={{
+              background: 'var(--noppt-stage-bg, #ffffff)',
               transition: isTransitioning ? 'all 250ms cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
               ...(isTransitioning ? getEnteringStyle() : getSlideStyle(true)),
             }}
