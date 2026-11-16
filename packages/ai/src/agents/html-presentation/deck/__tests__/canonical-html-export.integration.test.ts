@@ -42,4 +42,30 @@ describe('Task 9 canonical Deck → HTML integration contract', () => {
     expect(html).toMatch(/<div[^>]*data-content-id="compare-item-1"[^>]*data-bullet="true"[\s\S]*• <span[^>]*>海表温度异常升高<\/span>[\s\S]*<\/div>/u);
     expect(html).not.toMatch(/<p[^>]*>•<\/p>\s*<span[^>]*>海表温度异常升高<\/span>/u);
   });
+
+  it('bullet 段落不再 nowrap，长中文按卡片宽度换行且不越出 rect', () => {
+    const longItem: DeckTextNode = {
+      ...compareSlide().nodes[0] as DeckTextNode,
+      paragraphs: [{
+        runs: [{ text: '降雨：正常年西太平洋多雨，厄尔尼诺年降雨带明显东移并引发区域旱涝风险' }],
+        bullet: true,
+      }],
+    };
+    const html = deckSlideToHtml(
+      { id: 'compare-long', pageType: 'content-compare', nodes: [longItem] } as DeckSlide,
+      context,
+    );
+    expect(html).not.toContain('white-space:nowrap');
+    expect(html).toContain('word-break:break-word');
+    expect(html).toContain('overflow-wrap:anywhere');
+    // 文本节点 rect 仍是 560px 上限，换行由样式约束，不再横向溢出到画布右缘。
+    expect(html).toContain('width:560px');
+  });
+
+  it('canonical root 保持唯一最外层，不被 padding wrapper 包裹', () => {
+    const html = deckSlideToHtml(compareSlide(), context);
+    expect((html.match(/data-canonical-root="true"/g) ?? [])).toHaveLength(1);
+    expect(html).not.toContain('padding:48px 64px');
+    expect(html).not.toContain('padding: 48px 64px');
+  });
 });

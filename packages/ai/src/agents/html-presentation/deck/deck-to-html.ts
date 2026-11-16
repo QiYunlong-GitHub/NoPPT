@@ -228,7 +228,7 @@ function renderRuns(
         : role === 'title' || role === 'subtitle'
           ? hexToCss(ctx.primary)
           : hexToCss(ctx.text);
-      let style = `color:${color};`;
+      let style = `color:${color};overflow-wrap:anywhere;word-break:break-word;`;
       if (r.bold) style += 'font-weight:700;';
       if (r.italic) style += 'font-style:italic;';
       if (r.underline) style += 'text-decoration:underline;';
@@ -253,14 +253,15 @@ function renderParagraph(p: DeckParagraph, ctx: DeckLayoutContext, role?: string
   const spaceAfter = p.spaceAfter ?? 4;
   const lh = p.lineSpacing ?? 1.3;
   const paddingLeft = (p.bullet ? 18 : 0) + level * 16;
-  // bullet 段落用 flex 把「• 」与文字锁在同一行，避免居中/后处理把圆点拆成独立块。
+  // bullet 段落用 flex 把「• 」与文字首行对齐；去掉 nowrap，长中文按容器宽度换行，
+  // min-width:0 + word-break 保证 flex 子项可收缩，杜绝超出卡片右缘。
   const bulletFlex = p.bullet
-    ? `display:flex;align-items:baseline;gap:6px;white-space:nowrap;` +
+    ? `display:flex;align-items:baseline;gap:6px;min-width:0;` +
       `justify-content:${align === 'center' ? 'center' : 'flex-start'};`
     : '';
   const style =
     `margin:0 0 ${spaceAfter}px;padding-left:${paddingLeft}px;` +
-    `${bulletFlex}text-align:${align};line-height:${lh};`;
+    `${bulletFlex}text-align:${align};line-height:${lh};overflow-wrap:anywhere;word-break:break-word;`;
   return `<div style="${style}">${renderRuns(p.runs, ctx, role, p.bullet)}</div>`;
 }
 

@@ -282,6 +282,9 @@ const layoutStatsHighlight: LayoutFn = (sp, ctx) => {
     if (item.trend && item.trend !== 'flat') requests.push({ id: 'trend', text: item.trend === 'up' ? '▲ 上升' : '▼ 下降', fontSize: DECK_FONT_SIZE.bodySm, minFontSize: DECK_FONT_SIZE.caption });
     return requests;
   };
+  // 指标卡行高铺满正文安全区：内容少时用卡片底色/边框消化空白，而不是把卡片缩到
+  // 测量高度后在下半页留下大片空白（与 layoutCards 的铺满策略保持一致）。
+  const evenRowH = Math.max(144, Math.floor((DECK_BODY_RECT.h - DECK_GAP * (rows - 1)) / rows));
   const rowHeights = Array.from({ length: rows }, (_, row) => {
     const rowItems = renderItems.slice(row * cols, (row + 1) * cols);
     const desired = rowItems.map((item) => {
@@ -293,7 +296,8 @@ const layoutStatsHighlight: LayoutFn = (sp, ctx) => {
       const measured = allocation.regions.reduce((sum, region) => sum + region.rect.h, 0) + Math.max(0, allocation.regions.length - 1) * 8 + 40;
       return Math.max(144, measured);
     });
-    return Math.min(maxRowH, Math.max(144, ...desired));
+    const needed = Math.max(144, ...desired);
+    return Math.min(maxRowH, Math.max(evenRowH, needed));
   });
   const rowY = (row: number) => DECK_BODY_RECT.y + rowHeights.slice(0, row).reduce((sum, height) => sum + height + DECK_GAP, 0);
 
@@ -312,7 +316,7 @@ const layoutStatsHighlight: LayoutFn = (sp, ctx) => {
     const allocation = allocateVerticalRegions(
       { x: cell.x + 20, y: cell.y + 20, w: cell.w - 40, h: cell.h - 56 },
       requests,
-      { gap: 8, fontFamily: ctx.fontFamily, distributeExtra: false },
+      { gap: 8, fontFamily: ctx.fontFamily, distributeExtra: true },
     );
     allocation.regions.forEach((region) => {
       const isValue = region.id === 'value';
