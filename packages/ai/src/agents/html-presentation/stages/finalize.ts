@@ -8,6 +8,7 @@ import {
 } from '../../../types';
 import { HTMLPresentation, HTMLSlide } from '../shared';
 import { formatBeijingTime, formatDuration } from '../../../providers/base';
+import { auditSlideHtml } from '../../../utils/slide-visual-audit';
 import { closeTraceSession, openTraceSession } from '../../../utils/llm-tracer';
 import { ensureSemanticWrapping, wrapTextNodes } from '../postprocess';
 import { flattenMeaninglessNesting } from '../html-sanitize';
@@ -40,6 +41,7 @@ export async function finalizePresentation(
   }));
 
   const imagePreference = options?.imagePreference || 'content-only';
+  const imageEnabled = options?.imageOptions?.enabled && imagePreference !== 'none';
   const slideWidth = options?.slideWidth || 1280;
   const slideHeight = options?.slideHeight || 720;
 
@@ -105,9 +107,14 @@ export async function finalizePresentation(
           `${formatStrictDeckNotices(normalization.notices)}`,
       );
     }
+    // 与 render-deck.ts 使用同一组 image / sparseEnhancement 开关，
+    // 保证屏幕预览 HTML 与落盘 Deck 的节点树一致（HTML↔PPTX parity）。
     const deckResult = buildValidatedDeck(strictPlan, {
       width: slideWidth,
       height: slideHeight,
+      imageEnabled,
+      imagePreference,
+      sparseEnhancement: true,
       validationMode: 'strict',
     });
     const inspection = inspectStrictDeckResult(deckResult);
@@ -135,6 +142,33 @@ export async function finalizePresentation(
       `[${formatBeijingTime()}] [AGENT] [DECK] built structured deck: ${deck.slides.length} slides / ${totalNodes} nodes` +
         (fallbackSlides > 0 ? ` (${fallbackSlides} empty-node fallback)` : ''),
     );
+
+    // ========== 生成期视觉审计（非阻断）==========
+    // 复用出片前门禁 auditSlideHtml，在 deck 挂回后逐页检查几何越界与稀疏问题。
+    // 确定性渲染无法按反馈再生，因此只记录告警供日志/QA 观察，不终止生成。
+    let auditWarnings = 0;
+    for (let i = 0; i < slides.length; i++) {
+      const audit = auditSlideHtml(slides[i].html, {
+        primary: (plan as any)?.primaryColor,
+        pageType: (slides[i].pageType as string) || (deck.slides[i]?.pageType as string),
+        width: slideWidth,
+        height: slideHeight,
+      });
+      if (audit.issues.length > 0) {
+        auditWarnings += audit.issues.length;
+        const summary = audit.issues
+          .map((issue) => `${issue.code}(${issue.detail})`)
+          .join(' | ');
+        console.warn(
+          `[${formatBeijingTime()}] [AGENT] [VISUAL-AUDIT] slide ${i + 1} "${slides[i].title}": ${summary}`,
+        );
+      }
+    }
+    if (auditWarnings > 0) {
+      console.warn(
+        `[${formatBeijingTime()}] [AGENT] [VISUAL-AUDIT] ${auditWarnings} issue(s) across ${slides.length} slides (non-blocking)`,
+      );
+    }
 
     return {
       title: plan.title || topic,

@@ -36,6 +36,7 @@ import {
 } from './layout-templates';
 import { applyDeckImageGuard } from './image-plan-guard';
 import { resolveContentDensity } from './content-density';
+import { applySparseEnhancement } from './sparse-enhancement';
 
 export interface PlanToDeckOptions {
   /** 画布宽（px），默认 1280。 */
@@ -65,6 +66,11 @@ export interface PlanToDeckOptions {
   viewport?: { width: number; height: number };
   viewportProfile?: ViewportProfile;
   density?: 'compact' | 'standard' | 'spacious';
+  /**
+   * 稀疏页视觉增强开关。默认关闭以保持既有调用方/测试行为不变；
+   * 生成阶段（render-deck / finalize）显式开启，让 HTML 与落盘 Deck 走同一份增强节点。
+   */
+  sparseEnhancement?: boolean;
 }
 
 export interface PlanToDeckResult {
@@ -277,7 +283,14 @@ export function slidePlanToDeckSlide(
   // 逐页密度由内容量 + 视口裁决（deck 级 ctx 只是默认档），布局 owner 据此
   // 在稀疏页放大视觉块铺满正文区、在稠密页收紧间距，避免恒 standard 的空钩子。
   const slideCtx: DeckLayoutContext = { ...ctx, density: resolveContentDensity(guarded, ctx) };
-  const nodes = annotateContentNodes(layoutSlideNodes(withIndex, slideCtx), requiredItems, `slide-${index + 1}-title`);
+  const laidOut = annotateContentNodes(layoutSlideNodes(withIndex, slideCtx), requiredItems, `slide-${index + 1}-title`);
+  // 稀疏页零成本视觉增强：只在生成阶段开启，且只追加节点，contentManifest 与 measurement 真值不变。
+  const enhanced = applySparseEnhancement(guarded, laidOut, slideCtx, `slide-${index + 1}`, {
+    enabled: options?.sparseEnhancement === true,
+    imagePreference: options?.imagePreference,
+    imageEnabled: options?.imageEnabled,
+  });
+  const nodes = enhanced.nodes;
   const measurementStatus = nodes.some((node) => node.kind === 'text' && node.autoFit) ? 'fail' : 'pass';
   return {
     id: `slide-${index + 1}`,
@@ -307,6 +320,7 @@ export function slidePlanToDeckSlide(
       viewportProfile: ctx.viewportProfile,
       density: slideCtx.density,
       fontProfile: ctx.fontProfile,
+      visualEnhancement: enhanced.decision,
       measurementStatus,
       descriptionStateByContentId,
       metricMeasuredRegionsByContentId,

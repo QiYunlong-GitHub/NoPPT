@@ -418,6 +418,7 @@ export async function renderSlidesWithDeck(
       fontFamily,
       imageEnabled,
       imagePreference,
+      sparseEnhancement: true,
       includePageNumber: true,
       validationMode: isFirstSlidePreview ? 'legacy' : 'strict',
     });
