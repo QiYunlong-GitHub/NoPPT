@@ -34,10 +34,10 @@ describe('formatReferenceOverrideForPage', () => {
       },
     });
     const block = formatReferenceOverrideForPage(attrs, 'cover');
-    expect(block).toContain('主色(primaryColor)：#ff0000');
+    expect(block).toContain('模板参考主色：#ff0000');
     expect(block).toContain('字体(fontFamily)：serif');
     expect(block).toContain('pageType=cover');
-    expect(block).toContain('参考文件 > 用户全局设置');
+    expect(block).toContain('用户配置 > 提示词颜色 > 模板色系');
   });
 
   it('falls back to global when page category not uploaded', () => {
@@ -45,7 +45,7 @@ describe('formatReferenceOverrideForPage', () => {
       global: { uploaded: true, style: { primaryColor: '#00ff00', iconStyle: 'bullet' } },
     });
     const block = formatReferenceOverrideForPage(attrs, 'content-no-image');
-    expect(block).toContain('主色(primaryColor)：#00ff00');
+    expect(block).toContain('模板参考主色：#00ff00');
     expect(block).toContain('图标风格(iconStyle)：bullet');
   });
 
@@ -91,7 +91,7 @@ describe('单份参考跨分类结构污染防护（仅 global 时 cover 无结�
     expect(coverBlock).not.toContain('参考版式结构指引');
     expect(coverBlock).not.toContain('构图红线');
     // 风格层仍广播（保留「只传一份 → 全 deck 风格统一」预期）
-    expect(coverBlock).toContain('主色(primaryColor)：#D81E06');
+    expect(coverBlock).toContain('模板参考主色：#D81E06');
   });
 
   it('仅传一份 global 参考：content 第 0 页含结构与风格，第 1 页不再含 layout/结构指引（防多页雷同）', () => {

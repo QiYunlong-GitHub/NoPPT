@@ -4,7 +4,7 @@
  */
 
 import type { ReferenceVisualAttributes } from '../../types';
-import { resolveDeckReferencePrimaryColor } from '../../utils/reference-attribute-resolver';
+import { resolveStageDeckPrimary } from '../../utils/reference/color-priority';
 import { COLOR_THEMES } from './color';
 
 export function resolveEffectivePrimaryColor(
@@ -29,21 +29,24 @@ export function resolveEffectivePrimaryColor(
 }
 
 /**
- * 视觉设计方向（design-proposals）阶段的主色解析：参考 > 用户显式 > 主题 > 默认蓝。
- * 与 renderSlides / regenerateSingleSlide 的「参考优先」单源一致（html-presentation-agent.ts:2822/3241）。
- * 抽成纯函数便于单测；无参考时行为与改造前逐字节一致（refDeckPrimary 为 undefined → 原 5 级链）。
+ * 视觉设计方向（design-proposals）阶段的主色解析：用户配置 > 提示词颜色 > 模板色系。
+ * 保留具名导出与调用签名，内部委托到 `color-priority.ts` 的单一真源。
  */
-
 export function resolveProposalPrimaryColor(opts: {
   referenceVisualAttributes?: ReferenceVisualAttributes | null;
   userColorTheme?: string;
   userPrimaryColor?: string;
+  topic?: string;
+  referenceText?: string;
 }): string {
-  const refDeckPrimary = resolveDeckReferencePrimaryColor(opts.referenceVisualAttributes);
-  if (refDeckPrimary) return refDeckPrimary; // 参考最高优先级，覆盖用户配色主题
-  if (opts.userPrimaryColor && /^#[0-9a-fA-F]{6}$/.test(opts.userPrimaryColor))
-    return opts.userPrimaryColor;
-  if (opts.userColorTheme && COLOR_THEMES[opts.userColorTheme])
-    return COLOR_THEMES[opts.userColorTheme] as string;
-  return '#2563eb';
+  return resolveStageDeckPrimary({
+    options: {
+      colorTheme: opts.userColorTheme,
+      primaryColor: opts.userPrimaryColor,
+      referenceText: opts.referenceText,
+    },
+    topic: opts.topic,
+    rva: opts.referenceVisualAttributes,
+    fallback: '#2563eb',
+  }).primary;
 }

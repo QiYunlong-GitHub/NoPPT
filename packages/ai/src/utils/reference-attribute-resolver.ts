@@ -15,6 +15,7 @@ export {
   getReferenceColorPolicyForPage,
   resolveAttrForPage,
   getReferencePaletteForPage,
+  resolveTemplateDeckPrimaryColor,
 } from './reference/color';
 export { resolveReferenceComposition, describeVisualFeatures } from './reference/composition';
 // 参考文件属性优先级解析（Task 1 / FR-0 / FR-3 / FR-4 / C-15）
@@ -33,7 +34,7 @@ import {
   SlidePageType,
 } from '../types';
 
-// ---------- 9 个三级优先级 resolve 函数（ref 优先 → user → default）----------
+// ---------- 参考属性解析函数（主色：用户配置 > 提示词 > 模板；其余属性保持参考指引）----------
 export function resolveFontFamily(
   ref?: 'sans' | 'serif' | 'mono',
   user?: 'sans' | 'serif' | 'mono',
@@ -471,7 +472,7 @@ export function getReferenceLayoutDiversityHint(
 /**
  * 生成「某一页」的参考属性覆盖指令（自然语言块），供注入该页的 HTML 生成 prompt。
  * 仅当该页对应分类或 global 中确有用户提供属性时才产出，否则返回 ''。
- * 覆盖优先级遵循 FR-5：参考文件 > 用户全局设置 > 系统默认。
+ * 主色优先级：用户配置 > 提示词颜色 > 模板色系；此处只输出版式/accent/字体等低优先级属性。
  */
 export function formatReferenceOverrideForPage(
   attrs: ReferenceVisualAttributes,
@@ -500,7 +501,7 @@ export function formatReferenceOverrideForPage(
   const bodyColor = pick('bodyColor');
 
   if (primary !== undefined)
-    lines.push(`- 主色(primaryColor)：${String(primary)}（必须精确使用，覆盖用户全局配色）`);
+    lines.push(`- 模板参考主色：${String(primary)}（最低优先级；用户未配置主题色且提示词未写颜色时，全篇统一采用封面模板色系，不得逐页覆盖统一主色）`);
   if (font !== undefined) lines.push(`- 字体(fontFamily)：${String(font)}`);
   if (density !== undefined) lines.push(`- 内容密度(contentDensity)：${String(density)}`);
   if (icon !== undefined) lines.push(`- 图标风格(iconStyle)：${String(icon)}`);
@@ -592,7 +593,7 @@ export function formatReferenceOverrideForPage(
   return (
     `【参考文件视觉覆盖指令 · 本页(pageType=${pageType})】\n` +
     lines.join('\n') +
-    `\n（优先级：参考文件 > 用户全局设置 > 系统默认；上述属性必须在本页精确呈现，不得被用户全局设置覆盖。）`
+    `\n（优先级：用户配置 > 提示词颜色 > 模板色系；上述属性仅作版式/accent/字体指引，主色以全篇统一裁决结果为准。）`
   );
 }
 

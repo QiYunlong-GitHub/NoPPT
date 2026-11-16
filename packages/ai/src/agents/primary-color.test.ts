@@ -56,8 +56,7 @@ describe('FR-9.4 resolveEffectivePrimaryColor — 5 级优先级', () => {
   });
 });
 
-describe('resolveProposalPrimaryColor — 设计提案阶段参考优先单源（修复缺口1）', () => {
-  // 构造最小 ReferenceVisualAttributes：按分类 uploaded + style.primaryColor
+describe('resolveProposalPrimaryColor — 用户配置 > 提示词颜色 > 模板色系', () => {
   const makeRva = (colors?: Partial<Record<'cover' | 'content' | 'summary', string>>): any => ({
     byCategory: {
       cover: colors?.cover
@@ -73,56 +72,49 @@ describe('resolveProposalPrimaryColor — 设计提案阶段参考优先单源�
     global: { uploaded: false },
   });
 
-  // P-1 — 参考主色覆盖用户 colorTheme=blue（本案例核心：提案应返回 #d80000 而非 #2563eb）
-  it('P-1 存在参考主色时，即便用户指定 blue 也返回参考色 #d80000', () => {
+  it('P-1 用户 colorTheme 压过参考模板主色', () => {
     const result = resolveProposalPrimaryColor({
-      referenceVisualAttributes: makeRva({ content: '#d80000' }),
-      userColorTheme: 'blue',
-      userPrimaryColor: undefined,
+      referenceVisualAttributes: makeRva({ cover: '#4c9a6b', content: '#d80000' }),
+      userColorTheme: 'orange',
+      topic: '主色用紫色',
     });
-    expect(result).toBe('#d80000');
+    expect(result).toBe('#ea580c');
   });
 
-  // P-2 — 参考主色覆盖用户显式 primaryColor
-  it('P-2 存在参考主色时，覆盖用户显式 primaryColor', () => {
+  it('P-2 用户显式 primaryColor 最高', () => {
     const result = resolveProposalPrimaryColor({
       referenceVisualAttributes: makeRva({ content: '#d80000' }),
       userColorTheme: 'blue',
       userPrimaryColor: '#123456',
     });
-    expect(result).toBe('#d80000');
+    expect(result).toBe('#123456');
   });
 
-  // P-3 — deck 级代表取 content（content > cover > summary）
-  it('P-3 deck 级代表取 content，优先于 cover/summary', () => {
+  it('P-3 无用户配置时提示词颜色压过模板', () => {
+    const result = resolveProposalPrimaryColor({
+      referenceVisualAttributes: makeRva({ cover: '#4c9a6b' }),
+      topic: '本页色系采用紫色',
+    });
+    expect(result).toBe('#7c3aed');
+  });
+
+  it('P-4 无用户配置且提示词无颜色时统一封面模板色系', () => {
     const result = resolveProposalPrimaryColor({
       referenceVisualAttributes: makeRva({
         cover: '#e60012',
         content: '#d80000',
         summary: '#c70000',
       }),
-      userColorTheme: 'blue',
+      topic: '季度经营复盘',
     });
-    expect(result).toBe('#d80000');
+    expect(result).toBe('#e60012');
   });
 
-  // P-4 — 无参考时回落用户 colorTheme=blue → #2563eb（向后兼容）
-  it('P-4 无参考时回落用户 colorTheme=blue → #2563eb', () => {
-    const result = resolveProposalPrimaryColor({
-      referenceVisualAttributes: makeRva(),
-      userColorTheme: 'blue',
-    });
-    expect(result).toBe('#2563eb');
-  });
-
-  // P-5 — 无参考且用户也未指定 → 默认蓝 #2563eb（逐字节一致）
   it('P-5 完全无参考无用户参数 → #2563eb', () => {
-    const result = resolveProposalPrimaryColor({});
-    expect(result).toBe('#2563eb');
+    expect(resolveProposalPrimaryColor({})).toBe('#2563eb');
   });
 
-  // P-6 — 无参考但用户显式 hex → 用户色优先
-  it('P-6 无参考时用户显式 primaryColor 优先于 colorTheme', () => {
+  it('P-6 无参考但用户显式 primaryColor 优先于 colorTheme', () => {
     const result = resolveProposalPrimaryColor({
       referenceVisualAttributes: makeRva(),
       userColorTheme: 'orange',

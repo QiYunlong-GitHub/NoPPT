@@ -141,25 +141,36 @@ export function resolveDeckReferencePrimaryColor(
   return mostConsistentColor(catEntries.map((e) => e.color)) ?? undefined;
 }
 
+/** 模板色系：封面优先，其次 global；仅作为无用户配置/提示词时的最低优先级兜底。 */
+export function resolveTemplateDeckPrimaryColor(
+  attrs: ReferenceVisualAttributes | null | undefined,
+): { primary?: string; source: 'template-cover' | 'template-global' | 'none' } {
+  if (!attrs) return { source: 'none' };
+  const pick = (c?: {
+    uploaded?: boolean;
+    style?: { primaryColor?: string };
+    palette?: { primary?: string };
+  }): string | undefined => {
+    const raw = c?.uploaded ? c.style?.primaryColor || c.palette?.primary : undefined;
+    return raw && HEX_RE.test(raw) ? raw.toLowerCase() : undefined;
+  };
+  const cover = pick(attrs.byCategory?.cover);
+  if (cover) return { primary: cover, source: 'template-cover' };
+  const global = pick(attrs.global);
+  if (global) return { primary: global, source: 'template-global' };
+  return { source: 'none' };
+}
+
 /**
- * 终局逐页主色三级链：页面分类参考主色 → deck 级参考主色 → fallback。
- * - 用于写盘前 finalGuard 逐页取色（ai.service postProcessPresentation）：某分类参考图缺失
- *   （或 VLM 未抽出主色）且 global 也无主色时，不再回落设计默认蓝 #2563eb，而是取 deck 级
- *   参考红（content → cover → summary → global 首个合法值），避免部分页面被染成默认蓝。
- * - 不改动 resolveEffectivePrimaryColor 的 5 级优先级本身（primary-color.test.ts 已锁定），
- *   只在调用侧插入 deck 级这一层。
- * - 向后兼容：attrs 为 undefined 时前两级均返回 undefined，结果等于 fallback（与改造前逐字节一致）。
+ * 兼容旧签名：不再逐页按分类取色，统一返回「封面模板色系 → global 模板色系 → fallback」，
+ * 保证整份演示文稿只有一套主色。用户配置与提示词优先级由 `color-priority.ts` 在调用侧裁决。
  */
 export function resolveFinalPagePrimaryColor(
   attrs: ReferenceVisualAttributes | null | undefined,
-  pageType: string,
+  _pageType: string,
   fallback: string,
 ): string {
-  const pageRef = resolveReferencePrimaryColor(attrs, pageType);
-  if (pageRef) return pageRef;
-  const deckRef = resolveDeckReferencePrimaryColor(attrs);
-  if (deckRef) return deckRef;
-  return fallback;
+  return resolveTemplateDeckPrimaryColor(attrs).primary ?? fallback;
 }
 
 /**
@@ -211,7 +222,7 @@ export function getReferenceColorPolicyForPage(
   const accents = palette.accents.map((c) => c.toUpperCase()).join('、');
   const stroke = palette.strokeColor ? `，粗描边可使用 ${palette.strokeColor.toUpperCase()}` : '';
   return (
-    `【参考克隆 · 色彩红线豁免】检测到参考文件使用多色调色板（撞色），本页允许在参考主色 ${palette.primary.toUpperCase()} 之外，使用以下 accent 色：${accents}${stroke}。` +
+    `【参考克隆 · accent 白名单】检测到参考文件使用多色调色板（撞色），本页允许在统一主色之外使用以下 accent 色：${accents}${stroke}。` +
     `这些 accent 色视为参考风格的一部分，不计入「单色系红线」的违规；其余装饰仍优先使用主色系。除参考调色板外，禁止引入其他未列明的色值。`
   );
 }
@@ -243,6 +254,30 @@ export function getReferencePaletteForPage(
   return (
     (cr?.uploaded && cr.palette) || (attrs.global.uploaded && attrs.global.palette) || undefined
   );
+}
+
+/**
+ * 确定性 Deck 路径：整册共用一套参考调色板（与页型无关）。
+ *
+ * `getReferencePaletteForPage` 按 cover/content/summary 分类逐页取 palette，实测会让
+ * 同一份演示出现 3 套互不相关的 accent 斑点（灰/红、绿/黄、青/深蓝），与 deck 主色冲突
+ * 且跨页观感不一致。本函数供 `render-deck.ts` 在组装 jobs 时裁决一次并复用到所有页；
+ * LLM-HTML 回退路径（`final-write.ts` 等）仍使用逐页版本，互不影响。
+ *
+ * 优先级：整册 global > content 分类 > cover 分类。单色/空 accents 参考仍由
+ * `renderReferenceAccentLayer` 的 `isMultiColor` 豁免拦住，默认保持零装饰。
+ */
+export function getReferencePaletteForDeck(
+  attrs: ReferenceVisualAttributes,
+): ReferencePalette | undefined {
+  const global = attrs?.global?.uploaded ? attrs.global.palette : undefined;
+  if (global) return global;
+  const content = attrs?.byCategory?.content?.uploaded
+    ? attrs.byCategory.content.palette
+    : undefined;
+  if (content) return content;
+  const cover = attrs?.byCategory?.cover?.uploaded ? attrs.byCategory.cover.palette : undefined;
+  return cover ?? undefined;
 }
 
 /** 规划阶段的骨架片段（拼接各分类，供全局规划 prompt 注入）。 */

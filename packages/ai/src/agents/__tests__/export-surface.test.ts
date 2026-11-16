@@ -25,6 +25,11 @@ describe('导出面快照 · A/B/C 拆分后符号可达', () => {
       'resolveProposalPrimaryColor',
       'darkenColor',
       'assertHueClose',
+      'resolveColorThemeFromFreeText',
+      'resolveTemplateDeckPrimaryColor',
+      'resolveDeckPrimaryColor',
+      'resolveStageDeckPrimary',
+      'resolveVisualThemeIdForPrimary',
     ]);
     expect((index as unknown as Record<string, unknown>).COLOR_THEMES).toBeTypeOf('object');
   });

@@ -80,7 +80,12 @@ export function postProcessLayout(
   result = result.replace(/<style[\s\S]*?<\/style>/gi, '');
   result = result.replace(/on\w+="[^"]*"/gi, '');
   result = result.replace(/on\w+='[^']*'/gi, '');
-  result = ensureOuterContainer(result, slideWidth, slideHeight, fontFamily);
+  // 确定性 Deck 的 canonical root 已是完整 1280×720 逻辑画布；
+  // 再包一层 padding:48px 64px 的 wrapper 会让内容整体右偏 64px、右缘贴边。
+  // LLM-HTML 路径（无 canonical root）保持原有 8 特征 wrapper 契约不变。
+  if (!result.includes('data-canonical-root="true"')) {
+    result = ensureOuterContainer(result, slideWidth, slideHeight, fontFamily);
+  }
   result = enforceFlatStructure(result);
   result = enforceImageContainerStyles(result);
   result = enforceImageStyles(result, { borderRadius: '12px', addDataImageRatio: true });

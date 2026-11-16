@@ -29,6 +29,27 @@ import {
   resolveReferenceComposition,
 } from '../../utils/reference-attribute-resolver';
 import { hexToHsl, hueDeltaDeg, darkenColor, POST_VERSION_SIG } from './shared';
+import {
+  semanticPaletteHexes,
+  VISUAL_THEMES,
+  resolveVisualThemeIdForPrimary,
+} from './deck/visual-tokens';
+
+/**
+ * 阶段 4：语义色 + 受控设计 token 色板；按最终主色动态选择主题，避免切到 warm/nature 时漏放。
+ * 提到模块级 helper，避免在 enforceSinglePalette 函数体内构造而越过 200 行门禁。
+ */
+function semanticAllowedHexes(primary: string): Set<string> {
+  const theme = VISUAL_THEMES[resolveVisualThemeIdForPrimary(primary)];
+  return new Set([
+    '#10b981',
+    '#059669',
+    '#ef4444',
+    '#dc2626',
+    '#f59e0b',
+    ...semanticPaletteHexes(theme).map((c) => c.toLowerCase()),
+  ]);
+}
 
 export function postProcessHtmlSnapshot(
   html: string,
@@ -339,7 +360,7 @@ export function enforceSinglePalette(
     '#000000',
     '#000',
   ]);
-  const semanticSet = new Set(['#10b981', '#059669', '#ef4444', '#dc2626', '#f59e0b']);
+  const semanticSet = semanticAllowedHexes(primary);
   const colorTokenRe = /#[0-9a-fA-F]{3,8}|rgba?\([^)]*\)/g;
   const relevantPropRe =
     /^(?:color|background|background-color|border(?:-(?:top|right|bottom|left))?|border-color|border-(?:top|right|bottom|left)-color|outline|outline-color|box-shadow)$/;
@@ -386,8 +407,11 @@ export function enforceSinglePalette(
     if (refExtra.has(h)) return true; // 参考撞色 / 标题色 / 正文色 / 描边色放行
     // FR-8/FR-6：色相接近（≤32°）或灰度，判为同色系合法色调变化，放行
     if (isSameHueFamily(h)) return true;
+    // 阶段 4：受控语义色板在 color / background / border / outline 上均放行，
+    // 否则主题组件的数字与文字颜色会被单色系归一重写。
     if (
       isBackgroundish(prop) ||
+      prop === 'color' ||
       prop === 'border' ||
       prop === 'border-color' ||
       prop.startsWith('border-')

@@ -108,43 +108,24 @@ describe('resolveDeckReferencePrimaryColor', () => {
   });
 });
 
-describe('resolveFinalPagePrimaryColor · 终局逐页三级链', () => {
-  it('① 页面分类主色命中时优先返回（即便其它分类也有主色）', () => {
+describe('resolveFinalPagePrimaryColor · 全篇统一封面模板色系', () => {
+  it('① 封面/内容/结尾模板色系不同时，所有页面统一取封面色', () => {
     const rva = makeRva();
     rva.byCategory.cover = { uploaded: true, style: { primaryColor: '#C7000B' } };
-    rva.byCategory.content = { uploaded: true, style: { primaryColor: '#D81E06' } };
-    expect(resolveFinalPagePrimaryColor(rva, 'content', '#2563eb')).toBe('#d81e06');
-  });
-
-  it('② 页面分类缺失，但唯一 content 主色被提升为 deck 级 → summary 页取 content 参考红，不回落默认蓝', () => {
-    // 仅 content 上传主色（content 单分类可提升为 deck 级）；summary 页应取 content 参考红而非 fallback 默认蓝
-    const rva = makeRva();
-    rva.byCategory.content = { uploaded: true, style: { primaryColor: '#D81E06' } };
-    expect(resolveFinalPagePrimaryColor(rva, 'summary', '#2563eb')).toBe('#d81e06');
-  });
-
-  it('②b 页面分类缺失，且唯一主色来自非 content（仅 cover）→ 不提升 deck 级，回落 fallback', () => {
-    // 护栏：单 cover 主色不扩散为 deck 级；summary 页取 fallback（不回落到 cover 的色）
-    const rva = makeRva();
-    rva.byCategory.cover = { uploaded: true, style: { primaryColor: '#C7000B' } };
-    expect(resolveFinalPagePrimaryColor(rva, 'summary', '#2563eb')).toBe('#2563eb');
-  });
-
-  it('②c 多分类主色互不一致 → deck 级不提升，无自身色的 content 页回落 fallback', () => {
-    const rva = makeRva();
-    rva.byCategory.cover = { uploaded: true, style: { primaryColor: '#00AA00' } };
+    rva.byCategory.content = { uploaded: true, style: { primaryColor: '#00AA00' } };
     rva.byCategory.summary = { uploaded: true, style: { primaryColor: '#0000FF' } };
-    // content 分类未上传主色，且其自身分类无主色 → 走 deck 级，但多分类不一致不提升 → fallback
-    expect(resolveFinalPagePrimaryColor(rva, 'content', '#2563eb')).toBe('#2563eb');
+    expect(resolveFinalPagePrimaryColor(rva, 'cover', '#2563eb')).toBe('#c7000b');
+    expect(resolveFinalPagePrimaryColor(rva, 'content', '#2563eb')).toBe('#c7000b');
+    expect(resolveFinalPagePrimaryColor(rva, 'summary', '#2563eb')).toBe('#c7000b');
   });
 
-  it('③ 全部分类缺失但 global 有主色 → 取 global', () => {
+  it('② 封面缺失时回落 global 模板色', () => {
     const rva = makeRva();
     rva.global = { uploaded: true, style: { primaryColor: '#654321' } };
     expect(resolveFinalPagePrimaryColor(rva, 'content', '#2563eb')).toBe('#654321');
   });
 
-  it('④ 无任何参考主色时等于 fallback（向后兼容，与改造前逐字节一致）', () => {
+  it('③ 无任何模板主色时等于 fallback', () => {
     const rva = makeRva();
     expect(resolveFinalPagePrimaryColor(rva, 'content', '#2563eb')).toBe('#2563eb');
     expect(resolveFinalPagePrimaryColor(null, 'cover', '#2563eb')).toBe('#2563eb');

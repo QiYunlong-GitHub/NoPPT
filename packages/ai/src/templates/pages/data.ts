@@ -188,13 +188,13 @@ const piece15 = (
       </div>
       <h3 style="font-size:28px;font-weight:700;margin:0;color:#111827;overflow-wrap:break-word;word-break:break-word;">市场份额同比</h3>
       <div style="display:flex;align-items:center;gap:10px;">
-        <span style="pointer-events:none;display:inline-flex;align-items:center;padding:6px 16px;border-radius:999px;background:#10b98118;color:#059669;font-size:20px;font-weight:800;">↗ +12.3pp</span>
+        <span style="pointer-events:none;display:inline-flex;align-items:center;padding:6px 16px;border-radius:999px;background:${ctx.P}18;color:${ctx.PD};font-size:20px;font-weight:800;">↗ +12.3pp</span>
       </div>
       <p style="pointer-events:none;font-size:18px;color:#6B7280;font-weight:500;margin:0;overflow-wrap:break-word;word-break:break-word;">2024 Q2 vs 2023 Q2</p>
     </div>
     <!-- 数值大卡 2 -->
-    <div style="padding:32px 24px;border-radius:20px;background:linear-gradient(135deg,#05966908,#0596691C);border:1px solid #05966930;box-shadow:0 12px 32px #05966920;display:flex;flex-direction:column;gap:16px;align-items:center;justify-content:center;text-align:center;min-width:0;min-height:0;">
-      <div style="font-size:88px;font-weight:900;line-height:1;background:linear-gradient(135deg,#059669,#047857);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+    <div style="padding:32px 24px;border-radius:20px;background:linear-gradient(135deg,${ctx.P}08,${ctx.P}1C);border:1px solid ${ctx.P}30;box-shadow:0 12px 32px ${ctx.P}20;display:flex;flex-direction:column;gap:16px;align-items:center;justify-content:center;text-align:center;min-width:0;min-height:0;">
+      <div style="font-size:88px;font-weight:900;line-height:1;background:linear-gradient(135deg,${ctx.P},${ctx.PD});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
         <span style="pointer-events:none;">3.2×</span>
       </div>
       <h3 style="font-size:28px;font-weight:700;margin:0;color:#111827;overflow-wrap:break-word;word-break:break-word;">效率提升倍数</h3>

@@ -16,6 +16,7 @@ import {
 import { extractReferenceHtmlAttributes } from '../../utils/reference-html-extractor';
 import { pageTypeToCategory, resolveAttrForPage } from '../../utils/reference-attribute-resolver';
 import { isStructurePage } from '../../utils/image-plan-guard';
+import { resolveColorThemeFromFreeText } from '../../utils/reference/color-priority';
 import { formatBeijingTime } from '../../providers/base';
 import {
   COLOR_THEMES,
@@ -109,26 +110,12 @@ export function sanitizeTopicSettingsConflict(
       );
     }
   }
-  // 2) 颜色冲突：
-  const colorKeywords: Record<string, ColorTheme> = {
-    蓝: 'blue',
-    紫: 'purple',
-    绿: 'green',
-    橙: 'orange',
-    青: 'teal',
-    灰: 'gray',
-  };
-  for (const [k, v] of Object.entries(colorKeywords)) {
-    if (
-      new RegExp(k + '(色|主题|风格系)').test(topic) &&
-      params.colorTheme &&
-      params.colorTheme !== v
-    ) {
-      warnings.push(
-        `主题中提到"${k}色"，但用户高级选项配色主题为 ${params.colorTheme}（高级选项优先级更高）`,
-      );
-      break;
-    }
+  // 2) 颜色冲突：用户配置主题色最高，提示词中的颜色描述次之（仅日志，不改写）。
+  const colorHint = resolveColorThemeFromFreeText(topic);
+  if (colorHint?.themeId && params.colorTheme && params.colorTheme !== colorHint.themeId) {
+    warnings.push(
+      `提示词中提到"${colorHint.matchedKeyword}"，但用户已选配色主题 ${params.colorTheme}（配置界面优先级最高）`,
+    );
   }
   // 3) 风格冲突：
   if (params.style && params.style !== 'business') {
@@ -168,6 +155,7 @@ export function buildUserSettingsPriorityOverridePrompt(params: {
   backgroundEnabled: boolean;
   audience: string;
   referencePrimaryColor?: string;
+  effectivePrimaryColor?: string;
 }): string {
   const densityText: Record<ContentDensity, string> = {
     compact: '紧凑（每页信息量大，字号较小）',
@@ -205,23 +193,19 @@ export function buildUserSettingsPriorityOverridePrompt(params: {
     'exact' in params.slideCount
       ? `严格 ${params.slideCount.exact} 页（不要多也不要少）`
       : `${params.slideCount.min} ~ ${params.slideCount.max} 页之间（自行按复杂度决定）`;
-  let colorThemeLine: string;
-  // FR-2.x：若「参考文件提取属性」提供了主色，则该参考主色为绝对最高优先级，
-  // 本配色主题的 hex 硬约束须让位（消除「参考最高优先级」与「#2563eb 绝对不可改」的提示词自相矛盾）。
-  const refPrimaryNote = params.referencePrimaryColor
-    ? `（⚠️ 但「参考文件提取属性」已提供主色 ${params.referencePrimaryColor}，该参考主色为绝对最高优先级（参考 > 用户显式 > 主题自然语言 > 默认），本配色主题的 hex 约束须让位于参考色，禁止再以本主题 hex 为唯一合法值）`
+  const expectedPrimary =
+    params.effectivePrimaryColor && /^#[0-9a-fA-F]{6}$/.test(params.effectivePrimaryColor)
+      ? params.effectivePrimaryColor
+      : params.colorTheme && COLOR_THEMES[params.colorTheme]
+        ? COLOR_THEMES[params.colorTheme]
+        : COLOR_THEMES[params.style] || '#2563eb';
+  const templateNote = params.referencePrimaryColor
+    ? `（模板参考色 ${params.referencePrimaryColor} 仅作最低优先级兜底：用户未选主题色且提示词未写颜色时，全篇统一采用封面模板色系）`
     : '';
+  let colorThemeLine: string;
   if (params.colorTheme && COLOR_THEMES[params.colorTheme]) {
-    const expectedPrimary = COLOR_THEMES[params.colorTheme];
-    if (params.referencePrimaryColor) {
-      colorThemeLine = `${colorThemeText[params.colorTheme]}（默认/兜底色系为 ${expectedPrimary}）${refPrimaryNote}`;
-    } else {
-      colorThemeLine = `${colorThemeText[params.colorTheme]}（⚠️ primaryColor 固定为 ${expectedPrimary}，绝对不可改；示例 JSON 输出必须填入此 hex；任何渐变/描边/阴影都只能在该色系内做明暗变化，禁止引入其他色系）`;
-    }
+    colorThemeLine = `${colorThemeText[params.colorTheme]}（⚠️ primaryColor 固定为 ${expectedPrimary}，绝对不可改；示例 JSON 输出必须填入此 hex；任何渐变/描边/阴影都只能在该色系内做明暗变化，禁止引入其他色系）${templateNote}`;
   } else {
-    // colorTheme 为「自动」：按 style 计算自动匹配到的具体 hex（business→蓝 / creative→紫 / simple→灰 / academic→青），
-    // 仍然以强约束形式写死，不给 LLM 自行猜色的空间，避免 auto 场景下出现深紫/深青/蓝色混乱。
-    const autoPrimary = COLOR_THEMES[params.style] || '#2563eb';
     const styleDesc: Record<string, string> = {
       business: '商务蓝（匹配商务风，专业稳重）',
       creative: '创意紫（匹配创意风，个性活泼）',
@@ -229,16 +213,12 @@ export function buildUserSettingsPriorityOverridePrompt(params: {
       academic: '学术青（匹配学术风，理性沉稳）',
     };
     const desc = styleDesc[params.style] || '系统默认蓝（专业稳重）';
-    if (params.referencePrimaryColor) {
-      colorThemeLine = `${desc}（默认/兜底色系为 ${autoPrimary}）${refPrimaryNote}`;
-    } else {
-      colorThemeLine = `${desc}（⚠️ 本次自动匹配 primaryColor=${autoPrimary}，你必须在 JSON 输出中原样填入该 hex，绝对不可自作主张换别的色；任何渐变/描边/阴影都只能在该色系内做明暗变化，禁止引入其他色系）`;
-    }
+    colorThemeLine = `${desc}（⚠️ 本次统一裁决 primaryColor=${expectedPrimary}，你必须在 JSON 输出中原样填入该 hex，绝对不可自作主张换别的色；任何渐变/描边/阴影都只能在该色系内做明暗变化，禁止引入其他色系）${templateNote}`;
   }
   const lines: string[] = [
-    '【用户显式参数 · 高优先级（仅低于参考文件提取属性） · 覆盖主题自然语言】',
-    '本红线优先级 > 主题自然语言描述中的对应数量/颜色/风格词汇（即用户显式参数高于主题自然语言）；但若「参考文件提取属性」已指定同一维度，则以参考为准（优先级：参考 > 用户显式 > 主题自然语言 > 默认）。',
-    '如果下列参数与上方「用户显式指令 / 主题描述 / 图文搭配覆盖规则 / 示例 imagePrompt」中的自然语言词汇冲突（例如主题里写了"10页蓝色商务风"，但下面参数写了页数=8 / 配色=紫色），以用户显式参数为准；但若与「参考文件提取属性」冲突，仍以参考为准。',
+    '【用户显式参数 · 最高优先级 · 覆盖提示词自然语言与模板色系】',
+    '配色优先级：配置界面选定的主题色 > 配置界面提示词中指定的颜色（主色/色调/颜色/色系等写法） > 模板色系；用户未配置且提示词未写颜色时，全篇统一使用封面模板色系。',
+    '如果下列参数与上方「用户显式指令 / 主题描述 / 图文搭配覆盖规则 / 示例 imagePrompt」中的自然语言词汇冲突，以配置界面显式参数为准；模板参考色不再覆盖用户显式配色，只提供 accent 白名单与最低优先级兜底。',
     '',
     `  · 幻灯片数量（最高优先级）：${slideCountText}`,
     `  · 风格：${params.style}`,
@@ -250,7 +230,7 @@ export function buildUserSettingsPriorityOverridePrompt(params: {
     `  · 自动背景图：${params.backgroundEnabled ? '开启（封面/目录/内容/总结各生成一张统一风格的背景大图）' : '关闭（纯色/浅色背景，不生成额外背景图片）'}`,
     `  · 目标受众：${params.audience || '通用商务受众'}`,
     '',
-    '【以上 9 项显式参数必须严格遵守，不可被主题中的自然语言描述覆盖；但若与「参考文件提取属性」冲突，以参考为准（参考 > 用户显式 > 主题自然语言 > 默认）】',
+    '【以上 9 项显式参数必须严格遵守；配色裁决顺序为「用户配置 > 提示词颜色 > 模板色系」，封面/内容/结尾页不得使用不同色系】',
   ];
   return '\n\n' + lines.join('\n') + '\n';
 }
@@ -474,13 +454,13 @@ export function buildPlanningPrompt(
   })();
   const colorThemeHint = colorTheme
     ? `【配色主题】\n配色主题（S-4 · 显式传递）：${colorThemeText[colorTheme]}。⚠️ primaryColor 必须精确填入 ${expectedPrimaryHex}（这是你输出 JSON 时的唯一合法值，绝对不可自己猜别的 hex）。imagePrompt 中生成的色调、整套 slides 的视觉气质，都要与该色系完全一致，禁止引入蓝/紫/绿等其他色系主强调色。`
-    : '【配色主题】：未显式设置（默认按蓝色商务或根据主题自适应，但 primaryColor 字段必须填合法 6 位 hex）';
+    : `【配色主题】：未显式设置；全篇统一主色已裁决为 ${expectedPrimaryHex}（用户配置 > 提示词颜色 > 模板色系），primaryColor 字段必须原样填入该 hex`;
   const iconStyleHint = `【列表图标风格（S-7）】：${iconStyleText[iconStyle]}。规划阶段不需要写具体图标的 CSS，但要在选择 pageType 时考虑 iconStyle 的适配（例如 iconStyle=large-number 时，尽量选择带编号列表的 content-list / content-cards / content-compare 等 layout）。`;
   const fontFamilyHint = `【字体风格（S-11）】：${getFontFamilyDescription(fontFamily)}。规划阶段不用写具体 font-family CSS，但要考虑整体排版的气质与字体匹配（例如 serif 更适合大量文字的正式内容页，mono 更适合技术代码型内容页）。`;
   const referenceHtmlBriefText =
     referenceHtmlBrief ||
     (hasReference
-      ? '（已上传参考文件，但本次未能提取到可落盘的 HTML 属性摘要；参考主色/字体/版式等仍以「参考文件视觉覆盖指令」为准）'
+      ? '（已上传参考文件，但本次未能提取到可落盘的 HTML 属性摘要；参考字体/版式/accent 白名单可参与，主色以统一裁决结果为准）'
       : '（用户未上传参考文件 HTML）');
   return (
     PRESENTATION_PLANNING_PROMPT.replace(/\{\{STYLE\}\}/g, style)
@@ -755,7 +735,7 @@ ${advIdx.length === 0 ? '⚠️ 空数组=无胜出维度 → 请重新规划（
   const referenceHtmlBriefText =
     referenceHtmlBrief ||
     (hasReference
-      ? '（已上传参考文件，但本次未能提取到可落盘的 HTML 属性摘要；参考主色/字体/版式等仍以「参考文件视觉覆盖指令」为准）'
+      ? '（已上传参考文件，但本次未能提取到可落盘的 HTML 属性摘要；参考字体/版式/accent 白名单可参与，主色以统一裁决结果为准）'
       : '（用户未上传参考文件 HTML）');
 
   return (

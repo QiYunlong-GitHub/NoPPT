@@ -21,5 +21,8 @@ describe('typed planning prompt contract', () => {
     expect(prompt).toContain('contentId');
     expect(prompt).toContain('不得使用空字符串');
     expect(prompt).toContain('omitted');
+    expect(prompt).toContain('对比页配对约束');
+    expect(prompt).toContain('legacyColumnManifest');
+    expect(prompt).toContain('两列 order 逐行对齐');
   });
 });
