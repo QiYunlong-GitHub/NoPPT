@@ -111,7 +111,26 @@ export interface DeckParagraph {
 // 节点（借鉴 python-pptx 的 Shape 分型）
 // ---------------------------------------------------------------------------
 
-export type DeckNodeKind = 'text' | 'shape' | 'image' | 'table' | 'chart' | 'group';
+export type DeckNodeKind =
+  | 'text'
+  | 'shape'
+  | 'image'
+  | 'table'
+  | 'chart'
+  | 'group'
+  | 'decoration';
+
+/** 视觉组件类型（从 GoodSamplePPT 提炼，落在 16:9 分页画布上）。 */
+export type DeckDecorationKind =
+  | 'badge'
+  | 'kpi'
+  | 'timeline'
+  | 'callout'
+  | 'quote'
+  | 'heat-cell';
+
+/** 语义色 key，避免组件里硬编码 hex，由渲染器按主题解析。 */
+export type DeckDecorationTone = 'blue' | 'teal' | 'amber' | 'rose' | 'violet' | 'neutral';
 
 export interface DeckNodeBase {
   id?: string;
@@ -165,6 +184,24 @@ export interface DeckShapeNode extends DeckNodeBase {
   /** 形状内文本（PptxGenJS `addText({shape})`）。 */
   text?: DeckParagraph[];
   valign?: DeckVAlign;
+}
+
+/**
+ * 视觉组件节点 —— 阶段 3 新增。
+ * 与 shape/text 的区别：携带语义（编号、指标、引言、进度）而不只是像素样式，
+ * 让 HTML 与 PPTX 两个后端都能按同一份数据真值渲染卡片 / 时间轴 / 提示块。
+ */
+export interface DeckDecorationNode extends DeckNodeBase {
+  kind: 'decoration';
+  decoration: DeckDecorationKind;
+  /** 主文本（编号 / 数字 / 引言）。 */
+  value?: string;
+  /** 副文本（标签 / 说明）。 */
+  label?: string;
+  /** 语义色 key。 */
+  tone?: DeckDecorationTone;
+  /** 0-100，用于 KPI 条 / 时间轴进度。 */
+  progress?: number;
 }
 
 export interface DeckImageNode extends DeckNodeBase {
@@ -255,7 +292,13 @@ export interface DeckGroupNode extends DeckNodeBase {
 }
 
 export type DeckNode =
-  DeckTextNode | DeckShapeNode | DeckImageNode | DeckTableNode | DeckChartNode | DeckGroupNode;
+  | DeckTextNode
+  | DeckShapeNode
+  | DeckImageNode
+  | DeckTableNode
+  | DeckChartNode
+  | DeckGroupNode
+  | DeckDecorationNode;
 
 // ---------------------------------------------------------------------------
 // 幻灯片 / 母版 / 主题 / 元信息 / Deck

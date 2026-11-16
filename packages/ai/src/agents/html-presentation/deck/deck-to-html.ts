@@ -37,7 +37,12 @@ import type {
   DeckMaster,
 } from '@noppt/core/deck';
 import { DECK_IMAGE_PLACEHOLDER, isDeckImagePlaceholder, normalizeColor } from '@noppt/core/deck';
-import type { ReferenceMaster, ReferenceVisualAttributes, StyleTheme } from '../../../types';
+import type {
+  ReferenceMaster,
+  ReferencePalette,
+  ReferenceVisualAttributes,
+  StyleTheme,
+} from '../../../types';
 import {
   DEFAULT_DECK_LAYOUT_CONTEXT,
   DECK_FONT_SIZE,
@@ -45,6 +50,13 @@ import {
   type DeckLayoutContext,
 } from './layout-templates';
 import { applyMasterToSlideHtml } from '../../../utils/apply-master-to-slide-html';
+import { resolveVisualTheme } from './visual-tokens';
+import { deriveDecorColors, type DerivedDecorColors } from './deck-primary-visual';
+import {
+  renderDecoration,
+  renderReferenceAccentLayer,
+  renderVisualBackdrop,
+} from './decoration-renderers';
 
 // ---------------------------------------------------------------------------
 // 选项
@@ -65,6 +77,17 @@ export interface DeckToHtmlOptions {
   background?: string;
   /** 参考视觉属性（预留，供后续配色策略接入）。 */
   referenceAttributes?: ReferenceVisualAttributes;
+  /**
+   * 逐页参考调色板（撞色豁免放行后的 accents）。
+   * 仅当 `isMultiColor && accents.length > 0` 时输出装饰层；默认路径保持零装饰，
+   * 以免影响既有 Deck↔HTML parity 与视觉完整性快照。
+   */
+  referencePalette?: ReferencePalette;
+  /**
+   * 设计主题 id（`visual-tokens.ts` 的 `blue | warm | nature`）。
+   * 未传时保持零装饰的 legacy 输出；生产路径由 `render-deck.ts` 传入默认主题。
+   */
+  visualTheme?: string;
   /** 参考母版（HTML 预览注入，与现状 LLM 路径一致）。 */
   referenceMaster?: ReferenceMaster;
   /** deck 级母版（PptxGenJS 风格），opt-in，默认关闭以与 LLM 预览 parity。 */
@@ -73,6 +96,14 @@ export interface DeckToHtmlOptions {
   renderDeckMaster?: boolean;
   /** 标题节点使用的语义标签（cover→h1，其余→h2）。 */
   headingForTitle?: 'h1' | 'h2' | 'h3';
+  /**
+   * 确定性 Deck 生产路径 opt-in：由 `ctx.primary` 派生装饰色，
+   * 让页眉母题 / 光斑 / 结论条与 deck 级统一主色同源。
+   * 未开启时沿用固定 `VISUAL_THEMES`，保证零装饰与参考多色保真分支不回归。
+   */
+  deriveDecorFromPrimary?: boolean;
+  /** 内部字段：由 `deckSlideToHtml` 注入一次，避免逐节点重复派生。 */
+  derivedDecor?: DerivedDecorColors;
 }
 
 // ---------------------------------------------------------------------------
@@ -86,9 +117,11 @@ const FONT_STACKS: Record<string, string> = {
 };
 
 function fontFamilyCss(ff?: string): string {
-  if (!ff) return FONT_STACKS.sans;
-  if (FONT_STACKS[ff]) return FONT_STACKS[ff];
-  return ff; // 已是显式字体栈
+  const stack = !ff ? FONT_STACKS.sans : (FONT_STACKS[ff] ?? ff);
+  // root 的 style 属性由双引号包裹，字体名里的双引号会提前闭合属性（产物 Q3：
+  // `font-family: -apple-system,BlinkMacSystemFont,"` 使 data-canonical-root 变成属性）。
+  // CSS 允许单引号字体名，统一替换以保证 HTML 属性结构完整。
+  return stack.replace(/"/g, "'");
 }
 
 /** DeckColor（6 位无 # HEX）→ CSS 颜色；容错带 # 输入与空值。 */
@@ -220,9 +253,14 @@ function renderParagraph(p: DeckParagraph, ctx: DeckLayoutContext, role?: string
   const spaceAfter = p.spaceAfter ?? 4;
   const lh = p.lineSpacing ?? 1.3;
   const paddingLeft = (p.bullet ? 18 : 0) + level * 16;
+  // bullet 段落用 flex 把「• 」与文字锁在同一行，避免居中/后处理把圆点拆成独立块。
+  const bulletFlex = p.bullet
+    ? `display:flex;align-items:baseline;gap:6px;white-space:nowrap;` +
+      `justify-content:${align === 'center' ? 'center' : 'flex-start'};`
+    : '';
   const style =
     `margin:0 0 ${spaceAfter}px;padding-left:${paddingLeft}px;` +
-    `text-align:${align};line-height:${lh};`;
+    `${bulletFlex}text-align:${align};line-height:${lh};`;
   return `<div style="${style}">${renderRuns(p.runs, ctx, role, p.bullet)}</div>`;
 }
 
@@ -235,7 +273,9 @@ function renderRichContent(
 ): string {
   if (headingTag) {
     const runsHtml = paragraphs.map((p) => renderRuns(p.runs, ctx, role, p.bullet)).join('<br>');
-    return `<${headingTag} style="margin:0;line-height:1.2;">${runsHtml}</${headingTag}>`;
+    // 继承段落对齐，否则居中版式的标题会靠左、要点居中，视觉重心分裂。
+    const align = paragraphs[0]?.align ?? 'left';
+    return `<${headingTag} style="margin:0;line-height:1.2;text-align:${align};">${runsHtml}</${headingTag}>`;
   }
   return paragraphs.map((p) => renderParagraph(p, ctx, role)).join('');
 }
@@ -570,6 +610,13 @@ function renderNode(
       return renderChart(node, ctx);
     case 'group':
       return renderGroup(node, ctx, options, identityPath);
+    case 'decoration':
+      return renderDecoration(
+        node,
+        resolveVisualTheme(options?.visualTheme),
+        identityPath,
+        options?.derivedDecor,
+      );
   }
 }
 
@@ -612,18 +659,30 @@ export function deckSlideToHtml(
 ): string {
   const W = options?.width ?? 1280;
   const H = options?.height ?? 720;
-  const bg = slide.background
+  const theme = resolveVisualTheme(options?.visualTheme);
+  const resolvedOptions: DeckToHtmlOptions | undefined =
+    options?.deriveDecorFromPrimary && !options.derivedDecor
+      ? { ...options, derivedDecor: deriveDecorColors(ctx.primary) }
+      : options;
+  const derivedDecor = resolvedOptions?.derivedDecor;
+  const legacyBg = slide.background
     ? fillToCss(slide.background)
     : `background:${hexToCss(ctx.background)};`;
+  const bg = theme
+    ? `background:linear-gradient(170deg,${derivedDecor?.surface ?? theme.surface} 0%,` +
+      `${derivedDecor?.canvasBg ?? theme.canvasBg} 100%);`
+    : legacyBg;
   const ff = fontFamilyCss(ctx.fontFamily);
+  const accentLayer = renderReferenceAccentLayer(options?.referencePalette, W, H);
+  const backdrop = theme ? renderVisualBackdrop(theme, W, H, slide.pageType, derivedDecor) : '';
 
-  let body = slide.pageType === 'content-compare'
-    ? slide.nodes.filter((node) => !node.contentColumn).map((node, index) => renderNode(node, ctx, options, `node-${index}`)).join('') + renderCompareNodes(slide, ctx, options)
-    : slide.nodes.map((n, index) => renderNode(n, ctx, options, `node-${index}`)).join('');
+  let body = accentLayer + backdrop + (slide.pageType === 'content-compare'
+    ? slide.nodes.filter((node) => !node.contentColumn).map((node, index) => renderNode(node, ctx, resolvedOptions, `node-${index}`)).join('') + renderCompareNodes(slide, ctx, resolvedOptions)
+    : slide.nodes.map((n, index) => renderNode(n, ctx, resolvedOptions, `node-${index}`)).join(''));
 
   // deck 级母版（opt-in，默认关闭以与 LLM 预览 parity）
   if (options?.renderDeckMaster && options.master) {
-    body += options.master.objects.map((o, index) => renderNode(o, ctx, options, `master-${index}`)).join('');
+    body += options.master.objects.map((o, index) => renderNode(o, ctx, resolvedOptions, `master-${index}`)).join('');
     const sn = options.master.slideNumber;
     if (sn) {
       body +=
@@ -642,7 +701,10 @@ export function deckSlideToHtml(
   const rootStyle =
     `position:relative;width:${W}px;height:${H}px;` +
     `width:var(--noppt-root-width,100vw);height:min(${H}px,calc(100vw * ${H} / ${W}));max-width:${W}px;min-height:0;aspect-ratio:${W} / ${H};` +
-    `margin-left:var(--noppt-root-margin,-8px);margin-right:var(--noppt-root-margin,-8px);margin-top:-8px;margin-bottom:-8px;` +
+    // 四边统一由 --noppt-root-margin 控制：编辑器 / QA 注入 0px 时画布零偏移；
+    // 无样式宿主（body 默认 8px margin）回落到 -8px 抵消，避免横向溢出。
+    // 不再单独硬编码 margin-top:-8px，否则已注入 0px 的宿主会出现 top 越界。
+    `margin:var(--noppt-root-margin,-8px);` +
     `${bg}font-family:${ff};box-sizing:border-box;overflow:visible;`;
   const canvas =
     `<div data-logical-canvas="true" style="position:relative;width:${W}px;height:${H}px;` +

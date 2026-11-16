@@ -14,3 +14,4 @@ export * from './geometry';
 export * from './chart-kinds';
 export * from './shapes';
 export * from './guards';
+export * from './theme-vars';

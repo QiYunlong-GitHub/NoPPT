@@ -175,8 +175,37 @@ export function isDeckNode(v: unknown): v is DeckNode {
   if (!isRecord(v)) return false;
   const kind = v.kind;
   if (typeof kind !== 'string') return false;
-  if (!['text', 'shape', 'image', 'table', 'chart', 'group'].includes(kind)) return false;
+  if (!['text', 'shape', 'image', 'table', 'chart', 'group', 'decoration'].includes(kind)) return false;
   return isDeckRect(v.rect);
+}
+
+const DECORATION_TONES: readonly string[] = [
+  'blue',
+  'teal',
+  'amber',
+  'rose',
+  'violet',
+  'neutral',
+];
+type DeckDecorationTone = Extract<DeckNode, { kind: 'decoration' }>['tone'];
+
+/** 阶段 3：独立归一化 decoration 字段，避免 normalizeNodes 复杂度越过门禁阈值。 */
+function normalizeDecoration(input: object, base: object): DeckNode | null {
+  const raw = input as Record<string, unknown>;
+  if (typeof raw.decoration !== 'string') return null;
+  const tone =
+    typeof raw.tone === 'string' && DECORATION_TONES.includes(raw.tone)
+      ? (raw.tone as DeckDecorationTone)
+      : undefined;
+  return {
+    ...base,
+    kind: 'decoration',
+    decoration: raw.decoration as Extract<DeckNode, { kind: 'decoration' }>['decoration'],
+    value: typeof raw.value === 'string' ? raw.value : undefined,
+    label: typeof raw.label === 'string' ? raw.label : undefined,
+    tone,
+    progress: isFiniteNumber(raw.progress) ? Math.max(0, Math.min(100, raw.progress)) : undefined,
+  } as DeckNode;
 }
 
 /** 节点归一化：非法节点被丢弃，矩形被钳制进画布，形状/图表类型被降级兜底。 */
@@ -217,6 +246,11 @@ export function normalizeNodes(v: unknown): DeckNode[] {
           kind: 'shape',
           shape: isDeckShapeType(raw.shape) ? raw.shape : DEFAULT_DECK_SHAPE,
         });
+        break;
+      }
+      case 'decoration': {
+        const decoration = normalizeDecoration(raw, base);
+        if (decoration) out.push(decoration);
         break;
       }
       case 'image': {

@@ -35,8 +35,12 @@ function textNodes(nodes: DeckNode[]): DeckNode[] {
   return nodes.filter((node) => node.kind === 'text');
 }
 
+/** 卡片容器本身：主色轨 / 底部数据条也是 shape，按尺寸排除后再推断列数。 */
 function cardShapes(nodes: DeckNode[]): DeckNode[] {
-  return nodes.filter((node) => node.kind === 'shape' && node.role !== 'title');
+  return nodes.filter((node) => node.kind === 'shape'
+    && node.role !== 'title'
+    && node.rect.w >= 200
+    && node.rect.h >= 40);
 }
 
 function inLogicalCanvas(rect: DeckRect): boolean {

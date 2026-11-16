@@ -12,6 +12,8 @@ import {
   para,
   shapeNode,
   solid,
+  cardSurface,
+  panelSurface,
   splitH,
   splitTitleBody,
   textNode,
@@ -20,6 +22,7 @@ import {
 } from './layout-primitives';
 import type { DeckNode, DeckParagraph, DeckRect } from '@noppt/core/deck';
 import type { SlidePlan } from '../../../types';
+import { densityGap, fillRowRects } from './content-density';
 
 /** 封面：居中海报级构图 + ≥2 个装饰元素（对齐 cover.ts 的真实数值）。 */
 const layoutCover: LayoutFn = (sp, ctx) => {
@@ -36,8 +39,9 @@ const layoutCover: LayoutFn = (sp, ctx) => {
       role: 'decoration',
     }),
   );
+  // 页眉安全区短装饰条：不再用贯通竖线切入标题首字。
   nodes.push(
-    shapeNode({ x: 80, y: 144, w: 3, h: 432 }, 'rect', {
+    shapeNode({ x: 64, y: 180, w: 56, h: 6 }, 'rect', {
       fill: solid(ctx.primary),
       role: 'decoration',
     }),
@@ -51,8 +55,8 @@ const layoutCover: LayoutFn = (sp, ctx) => {
     h: ctx.viewportProfile === 'narrow' ? 144 : 160,
   };
   const titleFit = fitTextRect(sp.title || '', titleRect, {
-    fontSize: ctx.viewportProfile === 'narrow' ? 72 : DECK_FONT_SIZE.h1,
-    minFontSize: 38,
+    fontSize: ctx.viewportProfile === 'narrow' ? 36 : DECK_FONT_SIZE.h1,
+    minFontSize: 32,
     lineHeight: 1.08,
     fontFamily: ctx.fontFamily,
   });
@@ -83,58 +87,68 @@ const layoutCover: LayoutFn = (sp, ctx) => {
       role: 'decoration',
     }),
   );
-  if (kp[0]) {
+  // 封面按新预算承载至多 5 条信息密度断言（结论 + 证据），而不是 3 行短名词短语。
+  // 字号维持 44/24/20/18 四档，避免与「同页 ≤4 种字号」冲突。
+  const slideNo = ((sp as SlidePlan & { _index?: number })._index ?? 0) + 1;
+  const lineTops = [408, 456, 504, 548, 590];
+  const lineHeights = [48, 40, 40, 36, 36];
+  const lineSizes = [24, 20, 18, 18, 18];
+  kp.slice(0, 5).forEach((text, i) => {
     nodes.push(
       textNode(
-        { x: 64, y: 408, w: 1152, h: 48 },
-        [para(kp[0], { bold: true, size: 32, align: 'center', color: ctx.primary })],
-        { align: 'center', role: 'subtitle', contentId: `slide-${((sp as SlidePlan & { _index?: number })._index ?? 0) + 1}-cover-1`, source: 'plan' },
+        { x: 64, y: lineTops[i], w: 1152, h: lineHeights[i] },
+        [para(text, {
+          bold: i === 0,
+          size: lineSizes[i],
+          align: 'center',
+          color: i === 0 || i === 4 ? ctx.primary : DECK_NEUTRAL.ink,
+        })],
+        {
+          align: 'center',
+          role: i < 2 ? 'subtitle' : 'kicker',
+          contentId: `slide-${slideNo}-cover-${i + 1}`,
+          source: 'plan',
+        },
       ),
     );
-  }
-  if (kp[1]) {
-    nodes.push(
-      textNode(
-        { x: 64, y: 456, w: 1152, h: 40 },
-        [para(kp[1], { size: 24, align: 'center', color: DECK_NEUTRAL.ink })],
-        { align: 'center', role: 'subtitle', contentId: `slide-${((sp as SlidePlan & { _index?: number })._index ?? 0) + 1}-cover-2`, source: 'plan' },
-      ),
-    );
-  }
-  if (kp[2]) {
-    nodes.push(
-      textNode(
-        { x: 64, y: 504, w: 1152, h: 40 },
-        [para(kp[2], { size: 18, align: 'center', color: ctx.primary })],
-        { align: 'center', role: 'kicker', contentId: `slide-${((sp as SlidePlan & { _index?: number })._index ?? 0) + 1}-cover-3`, source: 'plan' },
-      ),
-    );
-  }
+  });
   return nodes;
 };
 
-/** 目录：H2 + 垂直居中的条目行（44px 图标位 + 20px 文字，行高 72，gap 24）。 */
+/** 目录：条目行铺满正文区，每行带主色序号块，避免居中短行留下大片空白。 */
 const layoutToc: LayoutFn = (sp, ctx) => {
   const nodes: DeckNode[] = [titleBlock(sp, ctx)];
   const items = (sp.keyPoints ?? []).slice(0, 8);
   if (items.length === 0) return nodes;
-  const rowH = 72;
-  const total = items.length * rowH + (items.length - 1) * DECK_GAP;
-  const y0 = DECK_BODY_RECT.y + Math.max(0, Math.round((DECK_BODY_RECT.h - total) / 2));
+  const rows = fillRowRects(DECK_BODY_RECT, items.length, densityGap(ctx));
   items.forEach((t, i) => {
-    const y = y0 + i * (rowH + DECK_GAP);
+    const row = rows[i];
     nodes.push(
-      shapeNode({ x: DECK_BODY_RECT.x, y, w: DECK_BODY_RECT.w, h: rowH }, 'roundRect', {
-        fill: tint(ctx.primary, '08'),
-        radius: 0.35,
+      shapeNode(row, 'roundRect', {
+        fill: cardSurface(),
+        line: { color: DECK_NEUTRAL.border, width: 1 },
+        radius: 0.16,
       }),
     );
+    const marker = Math.min(44, Math.max(24, row.h - 24));
+    nodes.push(shapeNode(
+      { x: row.x + 24, y: row.y + Math.round((row.h - marker) / 2), w: marker, h: marker },
+      'roundRect', { fill: solid(ctx.primary), radius: 0.5 },
+    ));
+    nodes.push(shapeNode(
+      { x: row.x + 24 + marker + 24, y: row.y + row.h - 16, w: Math.max(48, Math.round((row.w - 160) * 0.36)), h: 6 },
+      'roundRect', { fill: tint(ctx.primary, '40'), radius: 0.5 },
+    ));
+    const fit = fitTextRect(t, { x: row.x + marker + 72, y: row.y + 8, w: row.w - marker - 112, h: Math.max(24, row.h - 16) }, {
+      fontSize: DECK_FONT_SIZE.body,
+      minFontSize: DECK_FONT_SIZE.bodySm,
+      lineHeight: 1.2,
+      fontFamily: ctx.fontFamily,
+    });
     nodes.push(
-      textNode(
-        { x: DECK_BODY_RECT.x + 32, y, w: DECK_BODY_RECT.w - 64, h: rowH },
-        [para(t, { bold: true, size: DECK_FONT_SIZE.body, color: DECK_NEUTRAL.ink })],
-        { valign: 'middle' },
-      ),
+      textNode(fit.rect, [para(t, { bold: true, size: fit.fontSize, color: DECK_NEUTRAL.ink })], {
+        valign: 'middle', autoFit: fit.status !== 'pass',
+      }),
     );
   });
   return nodes;
@@ -193,18 +207,41 @@ const layoutImageTop: LayoutFn = (sp, ctx) => {
   return nodes;
 };
 
-/** 纯文字（N≥6 双列）。 */
+/**
+ * 纯文字页：每条要点展开为独立卡片行（卡片 + 序号块 + 文字），铺满正文区。
+ * 旧实现把 N 条要点塞进一个 bulletList textNode，页面只剩 2 个 Deck 节点，
+ * 即使文字不变也会留下大片空白 —— 这是 content-no-image 页「太空」的直接原因。
+ */
 const layoutNoImage: LayoutFn = (sp, ctx) => {
   const nodes: DeckNode[] = [titleBlock(sp, ctx)];
-  const items = sp.keyPoints ?? [];
-  if (items.length >= 6) {
-    const [c1, c2] = splitH(DECK_BODY_RECT, [1, 1], DECK_GAP);
-    const half = Math.ceil(items.length / 2);
-    nodes.push(bulletList(c1, items.slice(0, half), { size: DECK_FONT_SIZE.bodySm }));
-    nodes.push(bulletList(c2, items.slice(half), { size: DECK_FONT_SIZE.bodySm }));
-  } else {
-    nodes.push(bulletList(DECK_BODY_RECT, items, { size: DECK_FONT_SIZE.body }));
-  }
+  const items = (sp.keyPoints ?? []).slice(0, 8);
+  if (items.length === 0) return nodes;
+  const gap = 12;
+  const rowH = Math.max(48, Math.floor((DECK_BODY_RECT.h - gap * (items.length - 1)) / items.length));
+  items.forEach((item, index) => {
+    const y = DECK_BODY_RECT.y + index * (rowH + gap);
+    const row: DeckRect = { x: DECK_BODY_RECT.x, y, w: DECK_BODY_RECT.w, h: rowH };
+    nodes.push(shapeNode(row, 'roundRect', {
+      fill: cardSurface(),
+      line: { color: DECK_NEUTRAL.border, width: 1 },
+      radius: 0.12,
+    }));
+    nodes.push(shapeNode(
+      { x: row.x + 24, y: y + Math.round((rowH - 32) / 2), w: 32, h: 32 },
+      'roundRect', { fill: solid(ctx.primary), radius: 0.5 },
+    ));
+    const fit = fitTextRect(item, { x: row.x + 76, y: y + 12, w: row.w - 116, h: Math.max(24, rowH - 24) }, {
+      fontSize: DECK_FONT_SIZE.body,
+      minFontSize: DECK_FONT_SIZE.bodySm,
+      lineHeight: 1.2,
+      fontFamily: ctx.fontFamily,
+    });
+    nodes.push(textNode(fit.rect, [para(item, { size: fit.fontSize, color: ctx.text })], {
+      valign: 'middle',
+      contentId: `no-image-${index + 1}`,
+      source: 'plan',
+    }));
+  });
   return nodes;
 };
 
@@ -308,23 +345,32 @@ const layoutCards: LayoutFn = (sp, ctx) => {
   const cellW = Math.floor((DECK_BODY_RECT.w - gap * (cols - 1)) / cols);
   const demands = rowDemands(items, cols, cellW);
   const rowRects: DeckRect[] = [];
-  let y = DECK_BODY_RECT.y;
-  demands.forEach((height) => {
-    const rowHeight = Math.min(height, DECK_BODY_RECT.y + DECK_BODY_RECT.h - y);
-    rowRects.push({ x: DECK_BODY_RECT.x, y, w: DECK_BODY_RECT.w, h: Math.max(24, rowHeight) });
-    y += rowHeight + gap;
+  // 卡片行铺满整个正文安全区：内容少时靠放大卡片消化空间，而不是把卡片缩小后
+  // 垂直居中留下大片空白。卡片底色与边框因此成为可见内容，覆盖率不再随字数骤降。
+  const rowH = Math.max(48, Math.floor((DECK_BODY_RECT.h - gap * (demands.length - 1)) / demands.length));
+  demands.forEach((_height, index) => {
+    rowRects.push({
+      x: DECK_BODY_RECT.x,
+      y: DECK_BODY_RECT.y + index * (rowH + gap),
+      w: DECK_BODY_RECT.w,
+      h: rowH,
+    });
   });
 
   items.forEach((item, index) => {
     const row = Math.floor(index / cols);
     const column = index % cols;
     const rowRect = rowRects[row];
-    const cell: DeckRect = {
-      x: DECK_BODY_RECT.x + column * (cellW + gap),
-      y: rowRect.y,
-      w: cellW,
-      h: rowRect.h,
-    };
+    // 奇数张卡片在双栏下最后一张通栏作为视觉主角，避免「2×2 + 半个空位」的均分陈列。
+    const isHero = cols === 2 && items.length % 2 === 1 && index === items.length - 1;
+    const cell: DeckRect = isHero
+      ? { x: DECK_BODY_RECT.x, y: rowRect.y, w: DECK_BODY_RECT.w, h: rowRect.h }
+      : {
+        x: DECK_BODY_RECT.x + column * (cellW + gap),
+        y: rowRect.y,
+        w: cellW,
+        h: rowRect.h,
+      };
     const title = cardText(item.title);
     const body = cardText(item.body);
     const hasTitle = Boolean(title.trim());
@@ -336,11 +382,21 @@ const layoutCards: LayoutFn = (sp, ctx) => {
 
     nodes.push(
       shapeNode(cell, 'roundRect', {
-        fill: solid(DECK_NEUTRAL.cardBg),
-        line: { color: DECK_NEUTRAL.border, width: 1 },
+        fill: isHero ? panelSurface() : cardSurface(),
+        line: { color: isHero ? ctx.primary : DECK_NEUTRAL.border, width: 1 },
         radius: 0.12,
       }),
     );
+    // 左侧主色轨 + 底部数据条：复用 shape kind，不增加文字量却提供两类
+    // 非文字视觉元素，并把卡片从「一行字」变成有结构的视觉块。
+    nodes.push(shapeNode(
+      { x: cell.x, y: cell.y + 16, w: 6, h: Math.max(16, cell.h - 32) },
+      'roundRect', { fill: solid(ctx.primary), radius: 0.5 },
+    ));
+    nodes.push(shapeNode(
+      { x: cell.x + 32, y: cell.y + cell.h - 20, w: Math.max(48, Math.round((cell.w - 64) * 0.42)), h: 6 },
+      'roundRect', { fill: tint(ctx.primary, '40'), radius: 0.5 },
+    ));
 
     if (singleText) {
       if (!content.trim()) return;
@@ -350,16 +406,18 @@ const layoutCards: LayoutFn = (sp, ctx) => {
         w: cell.w - 64,
         h: Math.max(24, cell.h - 48),
       }, {
-        fontSize: DECK_FONT_SIZE.body,
+        fontSize: isHero ? DECK_FONT_SIZE.h3 : DECK_FONT_SIZE.body,
         minFontSize: DECK_FONT_SIZE.bodySm,
         lineHeight: 1.2,
         fontFamily: ctx.fontFamily,
       });
       nodes.push(textNode(contentFit.rect, [para(content, {
-        bold: hasTitle,
+        bold: hasTitle || isHero,
         size: contentFit.fontSize,
-        color: hasTitle ? ctx.primary : ctx.text,
+        color: hasTitle || isHero ? ctx.primary : ctx.text,
       })], {
+        // 单行文字在放大的卡片里垂直居中，避免「顶部一行字 + 大片空卡」。
+        valign: 'middle',
         contentId,
         role: 'content',
         source,
@@ -435,40 +493,61 @@ const layoutCompare: LayoutFn = (sp, ctx) => {
   });
   const leftItems = items.filter((item) => item.column === 'left').sort((a, b) => a.order - b.order);
   const rightItems = items.filter((item) => item.column === 'right').sort((a, b) => a.order - b.order);
-  const [left, right] = splitH(DECK_BODY_RECT, [1, 1], 32);
-  nodes.push({
-    ...shapeNode(left, 'roundRect', {
-      fill: solid(DECK_NEUTRAL.cardBg),
-      line: { color: DECK_NEUTRAL.border, width: 2 },
-      radius: 0.1,
-    }),
-    contentColumn: 'left',
-  });
-  nodes.push({
-    ...shapeNode(right, 'roundRect', {
-      fill: tint(ctx.primary, '08'),
-      line: { color: ctx.primary, width: 2 },
-      radius: 0.1,
-    }),
-    contentColumn: 'right',
-  });
-  const leftRect = { x: left.x + 32, y: left.y + 32, w: left.w - 64, h: left.h - 64 };
-  const rightRect = { x: right.x + 32, y: right.y + 32, w: right.w - 64, h: right.h - 64 };
   const rowCount = Math.max(leftItems.length, rightItems.length, 1);
-  const rowGap = 16;
-  const rowHeight = Math.max(24, Math.floor((leftRect.h - rowGap * (rowCount - 1)) / rowCount));
+  const gap = densityGap(ctx);
+  const [left, right] = splitH(DECK_BODY_RECT, [1, 1], 32);
+  // 左右列完全同规格，避免「左浅底无框 / 右橙粗框」的不对称观感。
+  const columnStyle = () => ({
+    fill: cardSurface(),
+    line: { color: DECK_NEUTRAL.border, width: 2 },
+    radius: 0.1,
+  });
+  nodes.push({ ...shapeNode(left, 'roundRect', columnStyle()), contentColumn: 'left' });
+  nodes.push({ ...shapeNode(right, 'roundRect', columnStyle()), contentColumn: 'right' });
+  // 列头带 + 底部数据轨：复用 shape kind 增加非文字视觉手段，不新增文本节点。
+  const headerH = 48;
+  [left, right].forEach((rect) => {
+    nodes.push(shapeNode(
+      { x: rect.x + 24, y: rect.y + 24, w: rect.w - 48, h: headerH },
+      'roundRect', { fill: panelSurface(), radius: 0.3 },
+    ));
+    nodes.push(shapeNode(
+      { x: rect.x + 24, y: rect.y + rect.h - 20, w: Math.round((rect.w - 48) * 0.42), h: 6 },
+      'roundRect', { fill: tint(ctx.primary, '40'), radius: 0.5 },
+    ));
+  });
+  // 行铺满列高：内容少时放大行卡而不是 hug content 后留整块空白。
+  const rowTop = left.y + 24 + headerH + gap;
+  const rowArea: DeckRect = {
+    x: left.x + 32,
+    y: rowTop,
+    w: left.w - 64,
+    h: Math.max(48, left.y + left.h - 32 - rowTop),
+  };
+  const rows = fillRowRects(rowArea, rowCount, gap);
+  // 行卡不设 contentColumn，避免打乱 renderCompareNodes 的逐列内容 id 序列。
+  [left, right].forEach((rect) => {
+    rows.forEach((row) => {
+      nodes.push(shapeNode(
+        { x: rect.x + 24, y: row.y, w: rect.w - 48, h: row.h },
+        'roundRect', {
+          fill: cardSurface(),
+          line: { color: DECK_NEUTRAL.border, width: 1 },
+          radius: 0.16,
+        },
+      ));
+    });
+  });
+  const leftRect: DeckRect = { x: left.x + 48, y: rowArea.y, w: left.w - 96, h: rowArea.h };
+  const rightRect: DeckRect = { x: right.x + 48, y: rowArea.y, w: right.w - 96, h: rowArea.h };
 
   const addColumnItems = (column: 'left' | 'right', columnItems: typeof items, rect: DeckRect) => {
     columnItems.forEach((item) => {
-      const itemRect: DeckRect = {
-        x: rect.x,
-        y: rect.y + item.order * (rowHeight + rowGap),
-        w: rect.w,
-        h: rowHeight,
-      };
+      const row = rows[Math.min(Math.max(0, item.order), rows.length - 1)];
+      const itemRect: DeckRect = { x: rect.x, y: row.y, w: rect.w, h: row.h };
       const fit = fitTextRect(item.text, itemRect, {
-        fontSize: 22,
-        minFontSize: 16,
+        fontSize: DECK_FONT_SIZE.body,
+        minFontSize: DECK_FONT_SIZE.caption,
         lineHeight: 1.2,
         fontFamily: ctx.fontFamily,
       });
@@ -557,8 +636,8 @@ const layoutSummary: LayoutFn = (sp, ctx) => {
     }),
   );
   const titleFit = fitTextRect(sp.title || '谢谢', { x: 64, y: 242, w: 1152, h: 104 }, {
-    fontSize: ctx.viewportProfile === 'narrow' ? 56 : 72,
-    minFontSize: 36,
+    fontSize: ctx.viewportProfile === 'narrow' ? 32 : DECK_FONT_SIZE.h2,
+    minFontSize: 28,
     lineHeight: 1.1,
     fontFamily: ctx.fontFamily,
   });
@@ -584,10 +663,12 @@ const layoutSummary: LayoutFn = (sp, ctx) => {
     }));
   const visibleSummaryItems = summaryItems.filter((item) => Boolean(item.text?.trim()));
   if (visibleSummaryItems.length > 0) {
-    const summaryRect = { x: 64, y: 370, w: 1152, h: 250 };
-    const gap = visibleSummaryItems.length > 1 ? 12 : 0;
-    const itemHeight = Math.max(32, (summaryRect.h - gap * Math.max(0, visibleSummaryItems.length - 1)) / visibleSummaryItems.length);
-    const fontSize = ctx.viewportProfile === 'narrow' ? 20 : 24;
+    // 结论行铺满下半区：卡片底色 + 序号块 + 文字共同构成可见内容，
+    // 避免「居中 4 行短句」造成 0.06 级别的覆盖率。
+    const summaryRect = { x: 64, y: 340, w: 1152, h: 300 };
+    const gap = 12;
+    const itemHeight = Math.max(40, Math.floor((summaryRect.h - gap * (visibleSummaryItems.length - 1)) / visibleSummaryItems.length));
+    const fontSize = ctx.viewportProfile === 'narrow' ? 18 : DECK_FONT_SIZE.body;
     visibleSummaryItems.forEach((item, index) => {
       const rect = {
         x: summaryRect.x,
@@ -595,7 +676,21 @@ const layoutSummary: LayoutFn = (sp, ctx) => {
         w: summaryRect.w,
         h: itemHeight,
       };
-      const summaryFit = fitTextRect(item.text, rect, {
+      nodes.push(shapeNode(rect, 'roundRect', {
+        fill: cardSurface(),
+        line: { color: DECK_NEUTRAL.border, width: 1 },
+        radius: 0.16,
+      }));
+      nodes.push(shapeNode(
+        { x: rect.x + 20, y: rect.y + Math.round((itemHeight - 28) / 2), w: 28, h: 28 },
+        'roundRect', { fill: solid(ctx.primary), radius: 0.5 },
+      ));
+      const summaryFit = fitTextRect(item.text, {
+        x: rect.x + 68,
+        y: rect.y + 8,
+        w: rect.w - 108,
+        h: Math.max(24, itemHeight - 16),
+      }, {
         fontSize,
         minFontSize: 16,
         lineHeight: 1.2,
@@ -604,15 +699,9 @@ const layoutSummary: LayoutFn = (sp, ctx) => {
       nodes.push(
         textNode(
           summaryFit.rect,
-          [para(item.text, {
-            size: summaryFit.fontSize,
-            align: 'center',
-            color: ctx.textMuted,
-            bullet: visibleSummaryItems.length > 1,
-            spaceAfter: 8,
-          })],
+          [para(item.text, { size: summaryFit.fontSize, color: ctx.text, spaceAfter: 4 })],
           {
-            align: 'center',
+            valign: 'middle',
             role: 'subtitle',
             contentId: item.contentId,
             source: item.legacyDerived ? 'legacy' : 'plan',

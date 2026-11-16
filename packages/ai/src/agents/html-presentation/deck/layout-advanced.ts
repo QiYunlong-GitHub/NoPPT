@@ -13,6 +13,8 @@ import {
   para,
   shapeNode,
   solid,
+  cardSurface,
+  panelSurface,
   splitH,
   splitTitleBody,
   splitValueLabel,
@@ -31,6 +33,7 @@ import {
   type DeckShapeType,
 } from '@noppt/core/deck';
 import type { ArchitectureSpec, MetricItem, SlidePlan } from '../../../types';
+import { densityGap, fillRowRects } from './content-density';
 
 /** 深度对比：两栏 gap 28，右栏优势项带进度条。 */
 const layoutComparisonDeepDive: LayoutFn = (sp, ctx) => {
@@ -43,42 +46,62 @@ const layoutComparisonDeepDive: LayoutFn = (sp, ctx) => {
 
   nodes.push(
     shapeNode(left, 'roundRect', {
-      fill: solid(DECK_NEUTRAL.cardBg),
+      fill: cardSurface(),
       line: { color: DECK_NEUTRAL.border, width: 1 },
       radius: 0.1,
     }),
   );
   nodes.push(
     shapeNode(right, 'roundRect', {
-      fill: tint(ctx.primary, '08'),
+      fill: panelSurface(),
       line: { color: ctx.primary, width: 1 },
       radius: 0.1,
     }),
   );
 
-  const rowH = Math.round((left.h - 64 - DECK_GAP * Math.max(0, half - 1)) / Math.max(1, half));
-  for (let i = 0; i < half; i++) {
-    const y = left.y + 32 + i * (rowH + DECK_GAP);
-    nodes.push(
-      textNode(
-        { x: left.x + 32, y, w: left.w - 64, h: rowH },
-        [para(items[i] ?? '', { size: DECK_FONT_SIZE.body, color: ctx.text })],
-        { valign: 'middle' },
-      ),
-    );
-    const ry = right.y + 32 + i * (rowH + DECK_GAP);
-    const isAdv = advantage.has(i);
-    nodes.push(
-      textNode(
-        { x: right.x + 32, y: ry, w: right.w - 64, h: Math.round(rowH * 0.6) },
-        [para(items[half + i] ?? '', { bold: isAdv, size: DECK_FONT_SIZE.body, color: ctx.text })],
-        { valign: 'middle' },
-      ),
-    );
+  // 行铺满整列：旧实现用固定行高 hug content，稠密度不足时留下大片空白；
+  // 每行补一张行卡（非文字视觉元素），行数由真实要点数决定，不造伪图表。
+  const rows = fillRowRects(
+    { x: left.x + 32, y: left.y + 32, w: left.w - 64, h: left.h - 64 },
+    half,
+    densityGap(ctx),
+  );
+  rows.forEach((row, i) => {
+    [left, right].forEach((rect) => {
+      nodes.push(shapeNode(
+        { x: rect.x + 24, y: row.y, w: rect.w - 48, h: row.h },
+        'roundRect', {
+          fill: cardSurface(),
+          line: { color: DECK_NEUTRAL.border, width: 1 },
+          radius: 0.16,
+        },
+      ));
+    });
+    const leftText = items[i] ?? '';
+    const rightText = items[half + i] ?? '';
+    if (leftText.trim()) {
+      nodes.push(
+        textNode(
+          { x: row.x, y: row.y, w: row.w, h: row.h },
+          [para(leftText, { size: DECK_FONT_SIZE.body, color: ctx.text })],
+          { valign: 'middle' },
+        ),
+      );
+    }
+    if (rightText.trim()) {
+      const isAdv = advantage.has(i);
+      nodes.push(
+        textNode(
+          { x: right.x + 32, y: row.y, w: right.w - 64, h: Math.round(row.h * 0.6) },
+          [para(rightText, { bold: isAdv, size: DECK_FONT_SIZE.body, color: ctx.text })],
+          { valign: 'middle' },
+        ),
+      );
+    }
     const m = metrics[i];
     if (typeof m === 'number' && Number.isFinite(m)) {
       const pct = Math.max(0, Math.min(100, m));
-      const barY = ry + Math.round(rowH * 0.62);
+      const barY = row.y + Math.round(row.h * 0.62);
       nodes.push(
         shapeNode({ x: right.x + 32, y: barY, w: right.w - 64, h: 8 }, 'roundRect', {
           fill: solid(DECK_NEUTRAL.border),
@@ -93,7 +116,7 @@ const layoutComparisonDeepDive: LayoutFn = (sp, ctx) => {
         ),
       );
     }
-  }
+  });
   return nodes;
 };
 
@@ -151,7 +174,7 @@ const layoutValueShowcase: LayoutFn = (sp, ctx) => {
       w: cellW,
       h: cellH,
     };
-    nodes.push(shapeNode(cell, 'roundRect', { fill: tint(ctx.primary, '10'), radius: 0.16 }));
+    nodes.push(shapeNode(cell, 'roundRect', { fill: cardSurface(), radius: 0.16 }));
     const value = m.value || splitValueLabel(m.label).value;
     const label = m.value ? m.label : splitValueLabel(m.label).label;
     nodes.push(
@@ -279,7 +302,7 @@ const layoutStatsHighlight: LayoutFn = (sp, ctx) => {
     const c = i % cols;
     const cell: DeckRect = { x: DECK_BODY_RECT.x + c * (cellW + DECK_GAP), y: rowY(r), w: cellW, h: rowHeights[r] };
     nodes.push(shapeNode(cell, 'roundRect', {
-      fill: solid(DECK_NEUTRAL.cardBg),
+      fill: cardSurface(),
       line: { color: DECK_NEUTRAL.border, width: 1 },
       radius: 0.12,
     }));
@@ -401,7 +424,7 @@ const layoutThreeSection: LayoutFn = (sp, ctx) => {
   const items = sp.keyPoints ?? [];
   const n = Math.max(1, Math.min(3, items.length || 3));
   splitH(DECK_BODY_RECT, new Array(n).fill(1), DECK_GAP).forEach((cell, i) => {
-    nodes.push(shapeNode(cell, 'roundRect', { fill: tint(ctx.primary, '08'), radius: 0.1 }));
+    nodes.push(shapeNode(cell, 'roundRect', { fill: panelSurface(), radius: 0.1 }));
     const { title, body } = splitTitleBody(items[i] ?? '');
     const ps: DeckParagraph[] = [
       para(title, { bold: true, size: DECK_FONT_SIZE.h3, align: 'center', color: ctx.primary }),
@@ -437,7 +460,7 @@ const layoutProcessSteps: LayoutFn = (sp, ctx) => {
     };
     nodes.push(
       shapeNode(cell, 'roundRect', {
-        fill: solid(DECK_NEUTRAL.cardBg),
+        fill: cardSurface(),
         line: { color: DECK_NEUTRAL.border, width: 1 },
         radius: 0.12,
       }),
@@ -498,7 +521,7 @@ const layoutIconGrid: LayoutFn = (sp, ctx) => {
       shapeNode(
         { x: cell.x + (cell.w - iconSize) / 2, y: cell.y + 16, w: iconSize, h: iconSize },
         'ellipse',
-        { fill: tint(ctx.primary, '14') },
+        { fill: panelSurface() },
       ),
     );
     const { title, body } = splitTitleBody(items[i] ?? '');
@@ -577,7 +600,7 @@ const layoutTestimonial: LayoutFn = (sp, ctx) => {
   const nodes: DeckNode[] = [];
   const kp = sp.keyPoints ?? [];
   nodes.push(
-    shapeNode({ x: 592, y: 112, w: 96, h: 96 }, 'ellipse', { fill: tint(ctx.primary, '20') }),
+    shapeNode({ x: 592, y: 112, w: 96, h: 96 }, 'ellipse', { fill: panelSurface() }),
   );
   nodes.push(
     textNode(
@@ -624,7 +647,7 @@ const layoutTestimonial: LayoutFn = (sp, ctx) => {
   return nodes;
 };
 
-/** 流程图：横向节点 + 箭头。 */
+/** 流程图：横向节点 + 箭头；步骤卡铺满正文区，底部进度轨按真实步骤数分段。 */
 const layoutFlowchart: LayoutFn = (sp, ctx) => {
   const nodes: DeckNode[] = [titleBlock(sp, ctx)];
   const items = sp.keyPoints ?? [];
@@ -632,20 +655,41 @@ const layoutFlowchart: LayoutFn = (sp, ctx) => {
   const arrowW = 48;
   const totalGap = arrowW * (n - 1);
   const nodeW = Math.round((DECK_BODY_RECT.w - totalGap) / n);
-  const nodeH = 120;
-  const y = DECK_BODY_RECT.y + Math.round((DECK_BODY_RECT.h - nodeH) / 2);
+  const gap = densityGap(ctx);
+  const railH = 56;
+  const y = DECK_BODY_RECT.y + 16;
+  // 旧实现把 120px 步骤条垂直居中在 544px 正文区里，留下约 78% 空白。
+  const nodeH = Math.max(120, DECK_BODY_RECT.h - 32 - railH - gap);
+  const badge = Math.min(64, Math.max(32, Math.round(nodeW * 0.22)));
   for (let i = 0; i < n; i++) {
     const x = DECK_BODY_RECT.x + i * (nodeW + arrowW);
     nodes.push(
       shapeNode({ x, y, w: nodeW, h: nodeH }, 'roundRect', {
-        fill: tint(ctx.primary, '10'),
+        fill: cardSurface(),
         line: { color: ctx.primary, width: 1 },
-        radius: 0.25,
+        radius: 0.12,
       }),
     );
+    const badgeRect: DeckRect = {
+      x: x + Math.round((nodeW - badge) / 2), y: y + 24, w: badge, h: badge,
+    };
+    nodes.push(shapeNode(badgeRect, 'ellipse', {
+      fill: solid(ctx.primary), role: 'decoration',
+    }));
+    // 显式 contentId 让步骤序号不参与 manifest 匹配，避免抢走要点身份。
+    nodes.push(textNode(badgeRect, [para(String(i + 1), {
+      bold: true, size: DECK_FONT_SIZE.h3, align: 'center', color: DECK_NEUTRAL.white,
+    })], {
+      align: 'center', valign: 'middle', role: 'decoration',
+      contentId: `flow-step-${i + 1}-index`, source: 'plan',
+    }));
+    nodes.push(shapeNode(
+      { x: x + 16, y: y + nodeH - 24, w: Math.max(24, nodeW - 32), h: 6 },
+      'roundRect', { fill: tint(ctx.primary, '40'), radius: 0.5 },
+    ));
     nodes.push(
       textNode(
-        { x: x + 16, y: y + 16, w: nodeW - 32, h: nodeH - 32 },
+        { x: x + 16, y: y + 24 + badge + 16, w: nodeW - 32, h: Math.max(24, nodeH - badge - 80) },
         [
           para(items[i] ?? '', {
             bold: true,
@@ -666,6 +710,18 @@ const layoutFlowchart: LayoutFn = (sp, ctx) => {
         ),
       );
     }
+  }
+  const railY = y + nodeH + gap;
+  nodes.push(shapeNode(
+    { x: DECK_BODY_RECT.x, y: railY, w: DECK_BODY_RECT.w, h: railH - 16 },
+    'roundRect', { fill: panelSurface(), radius: 0.25 },
+  ));
+  const segW = Math.floor((DECK_BODY_RECT.w - 48 - 8 * (n - 1)) / n);
+  for (let i = 0; i < n; i++) {
+    nodes.push(shapeNode(
+      { x: DECK_BODY_RECT.x + 24 + i * (segW + 8), y: railY + 12, w: Math.max(8, segW), h: railH - 40 },
+      'roundRect', { fill: solid(ctx.primary), radius: 0.5 },
+    ));
   }
   return nodes;
 };
@@ -716,7 +772,7 @@ const layoutMatrix: LayoutFn = (sp, ctx) => {
   quad.forEach((cell, i) => {
     nodes.push(
       shapeNode(cell, 'roundRect', {
-        fill: tint(ctx.primary, i % 2 === 0 ? '08' : '14'),
+        fill: i % 2 === 0 ? cardSurface() : panelSurface(),
         line: { color: ctx.primary, width: 1 },
         radius: 0.08,
       }),
@@ -781,7 +837,7 @@ function layoutHierarchy(
               : 'roundRect';
       nodes.push(
         shapeNode(cell, shape, {
-          fill: tint(ctx.primary, li % 2 === 0 ? '10' : '18'),
+          fill: li % 2 === 0 ? cardSurface() : panelSurface(),
           line: { color: ctx.primary, width: 1 },
           radius: 0.15,
         }),
@@ -833,7 +889,7 @@ const layoutCycle: LayoutFn = (sp, ctx) => {
     const y = Math.round(cy + radius * Math.sin(angle) - nodeH / 2);
     nodes.push(
       shapeNode({ x, y, w: nodeW, h: nodeH }, 'roundRect', {
-        fill: tint(ctx.primary, '10'),
+        fill: cardSurface(),
         line: { color: ctx.primary, width: 1 },
         radius: 0.3,
       }),
@@ -888,7 +944,7 @@ const layoutDashboard: LayoutFn = (sp, ctx) => {
     const y = DECK_BODY_RECT.y;
     nodes.push(
       shapeNode({ x, y, w: cardW, h: cardH }, 'roundRect', {
-        fill: solid(DECK_NEUTRAL.cardBg),
+        fill: cardSurface(),
         line: { color: DECK_NEUTRAL.border, width: 1 },
         radius: 0.12,
       }),
@@ -963,7 +1019,7 @@ export const layoutMinimal: LayoutFn = (sp, ctx) => {
     const y = DECK_BODY_RECT.y + 56 + i * (rowH + DECK_GAP);
     nodes.push(
       shapeNode({ x: DECK_BODY_RECT.x, y, w: DECK_BODY_RECT.w, h: rowH }, 'roundRect', {
-        fill: tint(ctx.primary, '08'),
+        fill: panelSurface(),
         radius: 0.2,
       }),
     );

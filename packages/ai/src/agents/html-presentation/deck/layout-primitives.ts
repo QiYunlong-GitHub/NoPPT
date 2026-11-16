@@ -23,7 +23,8 @@ import type { ChartSpec, SlidePageType, SlidePlan, StyleTheme } from '../../../t
 // ---------------------------------------------------------------------------
 
 export const DECK_PAD_X = 64;
-export const DECK_PAD_Y = 48;
+/** 上下安全区 64px（≥60px 且满足 8pt 网格）；LLM-HTML 的 48px 保持不变。 */
+export const DECK_PAD_Y = 64;
 export const DECK_GAP = 24;
 
 /** 正文安全区（含标题）。 */
@@ -34,8 +35,8 @@ export const DECK_CONTENT_RECT: DeckRect = {
   h: SLIDE_H_PX - DECK_PAD_Y * 2,
 };
 
-/** 标题区高度（H2 50px × 1.25 + 8 留白）。 */
-export const DECK_TITLE_H = 72;
+/** 标题区高度（8pt 网格），保证正文区 544px ≥540px。 */
+export const DECK_TITLE_H = 48;
 
 /** 标题下的正文区。 */
 export const DECK_BODY_RECT: DeckRect = {
@@ -45,18 +46,22 @@ export const DECK_BODY_RECT: DeckRect = {
   h: DECK_CONTENT_RECT.h - DECK_TITLE_H,
 };
 
-/** 字号层级（pt），与 HTML 版式一一对应。 */
+/**
+ * 字号层级（pt）—— 仅确定性 Deck 路径。
+ * 用户标尺：主标 32–44px、正文 16–22px、同页 ≤4 种字号。
+ * LLM-HTML 回退路径的 H1/H2/正文 fatal 规则在 `slide-html.prompt.ts` 中保持不变。
+ */
 export const DECK_FONT_SIZE = {
-  h1: 92,
-  h2: 50,
-  h3: 28,
+  h1: 44,
+  h2: 40,
+  h3: 22,
   body: 20,
   bodySm: 18,
   caption: 16,
-  value: 88,
-  stat: 56,
-  quote: 44,
-  divider: 64,
+  value: 44,
+  stat: 36,
+  quote: 28,
+  divider: 40,
 } as const;
 
 /** 中性色（与 HTML 模板的 #F9FAFB / #E5E7EB / #6B7280 对齐）。 */
@@ -66,6 +71,21 @@ export const DECK_NEUTRAL = {
   muted: '6B7280',
   ink: '1F2937',
   white: 'FFFFFF',
+} as const;
+
+/**
+ * 全篇统一的不透明表面色。
+ *
+ * 旧实现各版式自行混用 `solid(DECK_NEUTRAL.cardBg)`、`solid(white)` 与
+ * `tint(primary,'08'/'10'/'14'/…)`（半透明主色）。半透明层叠在不同底层上会让
+ * 同一套页脚与卡片在不同页型呈现明显色差（实测 2/5 灰白、3/5 桃粉）。
+ * 这里收敛为两个不透明中性表面：主色只保留在圆点、边框、数据条与进度轨等点缀上，
+ * 既保证跨页一致，也不引入新的 hex 触发 `foreign_hex` 门禁。
+ */
+export const DECK_SURFACE = {
+  card: 'FFFFFF',
+  panel: 'F9FAFB',
+  border: 'E5E7EB',
 } as const;
 
 /** 视口档位；坐标仍始终使用 1280×720 logical canvas。 */
@@ -330,6 +350,16 @@ export function solid(color: DeckColor, transparency?: number): DeckFill {
   return transparency === undefined
     ? { type: 'solid', color }
     : { type: 'solid', color, transparency };
+}
+
+/** 卡片 / 行 / 步骤卡 / 对比列的统一底色（不透明，跨页型一致）。 */
+export function cardSurface(): DeckFill {
+  return solid(DECK_SURFACE.card);
+}
+
+/** 次级面板 / 列头带 / 进度轨底的统一底色（不透明，跨页型一致）。 */
+export function panelSurface(): DeckFill {
+  return solid(DECK_SURFACE.panel);
 }
 
 /** 主色衍生底色。 */
