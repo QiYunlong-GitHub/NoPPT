@@ -75,6 +75,14 @@ server 与 web **双端统一的 HTML 净化白名单单一真源**（防母版�
 | `ALLOWED_CSS_PROPERTIES` | const | 允许的 CSS 属性白名单（Set） |
 | `ALLOWED_ATTR_SET` | const | 属性白名单小写集合（大小写不敏感判定） |
 
+### 2.6 `./deck` — 结构化幻灯片中间层（`deck/`）
+
+| 符号 | 种类 | 用途 |
+| --- | --- | --- |
+| `DeckNodeKind` / `DeckDecorationKind` / `DeckDecorationTone` | type | 节点 kind 枚举；阶段 3 起新增 `decoration` 语义组件类型 |
+| `DeckDecorationNode` | interface | 徽章 / KPI / 时间轴 / 提示块 / 引言 / 热力格组件节点，HTML 与 PPTX 共用数据真值 |
+| `NOPPT_THEME_VARS` / `DEFAULT_THEME_VARS` / `themeVarsToCss` / `themeVarsForPrimary` | const/function | 展示层主题 CSS 变量契约（编辑器 / 预览 / MCP 舞台共用，各端保留白底兜底；`themeVarsForPrimary` 由最终主色派生舞台背景与边框） |
+
 ## 3. 包关系
 
 - **依赖**：无内部依赖（基座）。

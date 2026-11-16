@@ -71,11 +71,13 @@ NoPPT 的**生成能力核心**：模型供应商抽象、AI 智能体（大纲�
 | `image-plan-guard`：`resolveSlideImageDecision` / `stripImagePlaceholders` / `isStructurePage` / `IMAGE_PLACEHOLDER_SRC` / `SlideImageDecision` | function/const/interface/type | 每页图片决策与占位符剥离 |
 | `llm-tracer`：`openTraceSession` / `addTrace` / `getTraces` / `closeTraceSession` / `LLMCallTrace` / `ImageGenerationTrace` | function/interface | LLM/图片调用追踪（可观测性） |
 | `style-violation-signal`：`styleViolationSignal` / `exceedsThreshold` / `detectBlackBlockTitle` / `STYLE_VIOLATION_THRESHOLDS` / `StyleViolationBreakdown` | function/const/type | 样式违规信号（黑块标题/px sticky 等） |
-| `reference-attribute-resolver`：`mergeReferenceAttrs` / `assembleReferenceVisualAttributes` / `resolveReferencePrimaryColor` / `resolveDeckReferencePrimaryColor` / `resolveFinalPagePrimaryColor` / `getReferencePaletteForPage` / `resolveReferenceComposition` | function | 参考视觉属性解析与合并（生成期配色真源） |
+| `reference-attribute-resolver`：`mergeReferenceAttrs` / `assembleReferenceVisualAttributes` / `resolveReferencePrimaryColor` / `resolveDeckReferencePrimaryColor` / `resolveFinalPagePrimaryColor` / `getReferencePaletteForPage` / `resolveTemplateDeckPrimaryColor` / `resolveReferenceComposition` | function | 参考视觉属性解析与合并；`resolveFinalPagePrimaryColor` 现为全篇统一封面模板色系兜底 |
+| `utils/reference/color-priority`：`resolveColorThemeFromFreeText` / `resolveDeckPrimaryColor` / `resolveStageDeckPrimary` / `resolveTemplateDeckPrimaryColor` / `ColorSource` / `DeckPrimaryColorResolution` | function/type | 主题色优先级单一真源：用户配置 > 提示词颜色 > 模板色系（封面优先） |
 | `reference-html-extractor`：`extractReferenceHtmlAttributes` | function | 提取参考 HTML 属性（server 侧注入用） |
 | `reference-style-cascade`：`countStyleRules` | function | 样式级联统计 |
 | `vlm-attribute-extraction`：`VlmTextProvider` | interface | VLM 文本供应商接口 |
 | `reference-logo-src`：`applyMasterLogoSources` / `applyReferenceImageUrlSources` | function | 母版 Logo / 参考图 URL 源应用 |
+| `deck/visual-tokens`：`semanticPaletteHexes` / `VISUAL_THEMES` / `DEFAULT_VISUAL_THEME` / `resolveVisualThemeIdForPrimary` | function/const | 受控语义色板、默认主题与由最终主色派生 visualTheme；阶段 4 起供 server 终局样式越权白名单复用 |
 
 ## 3. 包关系
 
@@ -85,6 +87,6 @@ NoPPT 的**生成能力核心**：模型供应商抽象、AI 智能体（大纲�
 
 ## 4. 使用提示
 
-- 图片/配色/版式决策应尽量走 `reference-attribute-resolver` 与 `image-plan-guard`，保证「参考优先」的一致性。
+- 图片/版式决策走 `reference-attribute-resolver` 与 `image-plan-guard`；配色决策走 `utils/reference/color-priority`，保证「用户配置 > 提示词颜色 > 模板色系」的一致性。
 - 内联自检（`retryBudget` / `vlmPlaceholder`）在生成期逐页触发自动重生成，阈值见 `style-violation-signal`。
 - `exports` 中多处精确命名导出是为规避 `TS2308` 重复符号冲突，新增导出时勿再用 `export *` 覆盖同名内部符号。
