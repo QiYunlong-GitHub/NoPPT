@@ -140,6 +140,10 @@ function computeDefaultPadding(): { padX: number; padY: number } {
 function ensureRootContainerStyles(html: string): string {
   const trimmed = html.trim();
   if (!trimmed) return trimmed;
+  // 确定性 Deck 的 canonical root 自带 1280×720 逻辑画布、安全区与背景。
+  // 给它注入 padding/width:100%/display:flex 会叠加留白并让内容右移、右缘贴边被裁。
+  // 原样返回，内部节点由 editor 的 --noppt-* 变量负责缩放定位。
+  if (/data-canonical-root\s*=\s*["']true["']/i.test(trimmed)) return trimmed;
   const { padX, padY } = computeDefaultPadding();
   const defaultPadding = `${padY}px ${padX}px`;
 
@@ -221,8 +225,32 @@ function ensureRootContainerStyles(html: string): string {
   return `<div${newAttrs}>${inner}</div>`;
 }
 
+/**
+ * 剥离确定性 Deck canonical root 之外被误加的 padding wrapper。
+ * 历史产物里 canonical root 被套了一层 padding:48px 64px 容器，安全区叠加导致
+ * 内容整体右移、右缘贴边被裁。编辑态加载时先剥掉这层壳再走 sanitize。
+ */
+function peelCanonicalRootWrapper(html: string): string {
+  let result = html.trim();
+  const isCanonical = /data-canonical-root\s*=\s*["']true["']/i;
+  if (!isCanonical.test(result)) return result;
+  for (let i = 0; i < 3; i++) {
+    const outer = /^<(div|section|article)\b([^>]*)>/i.exec(result);
+    if (!outer || isCanonical.test(outer[2])) break;
+    const tag = outer[1].toLowerCase();
+    const closeRe = new RegExp(`</${tag}>\\s*$`, 'i');
+    if (!closeRe.test(result)) break;
+    const inner = result.slice(outer[0].length, result.search(closeRe)).trim();
+    const innerOpen = /^<(div|section|article)\b([^>]*)>/i.exec(inner);
+    if (!innerOpen || !isCanonical.test(innerOpen[2])) break;
+    result = inner;
+  }
+  return result;
+}
+
 export function sanitizeHtml(html: string): string {
   if (!html || typeof html !== 'string') return '';
+  html = peelCanonicalRootWrapper(html);
 
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, 'text/html');

@@ -9,9 +9,23 @@ import {
   mergeStrayElementsIntoContainer,
   stripContainerStylesFromUserElements,
   wrapWithContainer,
+  unwrapCanonicalRootWrapper,
+  isCanonicalRootHtml,
 } from './dom';
 import { isCoverLikeHtml } from './cover';
+
+/**
+ * 确定性 Deck 的 canonical root 是完整 1280×720 画布（自带安全区/留白/背景）。
+ * 严禁 flatten + wrapWithContainer 再套 padding wrapper：那会让内容整体右移、右缘贴边被裁。
+ * 这里先剥离历史产物里被误加的 wrapper，再原样返回，不改动内部任何节点。
+ */
 export function normalizeOuterContainer(html: string): string {
+  const result = unwrapCanonicalRootWrapper(html.trim());
+  if (isCanonicalRootHtml(result)) return result;
+  return normalizeOuterContainerLegacy(result);
+}
+
+function normalizeOuterContainerLegacy(html: string): string {
   let result = html.trim();
   if (!result) return DEFAULT_HTML;
 

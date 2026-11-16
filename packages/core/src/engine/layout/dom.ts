@@ -1,6 +1,41 @@
 import { parseStyleDeclarations } from '../visual-fixes';
 
 import { CONTAINER_STYLE_KEYS, CONTAINER_PADDING_PATTERN, defaultPadYx } from './constants';
+
+const CANONICAL_ROOT_RE = /data-canonical-root\s*=\s*["']true["']/i;
+
+/**
+ * 剥离 canonical Deck 根之外被误加的 padding wrapper。
+ *
+ * 确定性 Deck 渲染器产出的 canonical root 已是完整 1280×720 逻辑画布（自带 64px 安全区
+ * 与 --noppt-root-margin）。postProcessLayout / LayoutEngine 若在它外面再包一层
+ * `padding:48px 64px` wrapper，安全区叠加会让内容整体右移 64px、右缘贴边并被裁切。
+ * 本函数在一切「补外层容器」动作之前调用，保证 canonical root 始终是唯一的最外层元素。
+ */
+export function unwrapCanonicalRootWrapper(html: string): string {
+  let result = html.trim();
+  if (!CANONICAL_ROOT_RE.test(result)) return result;
+  // 最多剥离 3 层误加的 wrapper，避免死循环，也足以覆盖历史多次重放产生的嵌套。
+  for (let i = 0; i < 3; i++) {
+    const outer = /^<(div|section|article)\b([^>]*)>/i.exec(result);
+    if (!outer || CANONICAL_ROOT_RE.test(outer[2])) break;
+    const tag = outer[1].toLowerCase();
+    const closeRe = new RegExp(`</${tag}>\\s*$`, 'i');
+    if (!closeRe.test(result)) break;
+    const innerEnd = result.search(closeRe);
+    const inner = result.slice(outer[0].length, innerEnd).trim();
+    const innerOpen = /^<(div|section|article)\b([^>]*)>/i.exec(inner);
+    if (!innerOpen || !CANONICAL_ROOT_RE.test(innerOpen[2])) break;
+    result = inner;
+  }
+  return result;
+}
+
+/** 判断 HTML 是否为（或包含）确定性 Deck 的 canonical 根画布。 */
+export function isCanonicalRootHtml(html: string): boolean {
+  return CANONICAL_ROOT_RE.test(html);
+}
+
 export function removeEmptyDefaultContainer(html: string): string {
   const firstDivMatch = html.match(/^<div\b([^>]*)>[\s\S]*?<\/div>/i);
   if (!firstDivMatch) return html;
