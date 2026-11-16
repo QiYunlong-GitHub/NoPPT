@@ -51,6 +51,7 @@ import { closeTraceSession, openTraceSession } from '../../../utils/llm-tracer';
 import { renderSlides } from './render';
 import { assembleImages } from './assemble';
 import { finalizePresentation } from './finalize';
+import { enrichSparseContent } from './enrich-content';
 export async function generatePlan(
   deps: AgentDeps,
   topic: string,
@@ -467,12 +468,21 @@ export async function generateFromPlan(
   }
 
   try {
-    const rendered = await renderSlides(deps, topic, plan, design, options, traceSessionId);
+    // 稀疏页内容扩写：两条生成链路（generatePresentation / generateFromPlan）都经过这里，
+    // 用 contentProvider 单次批量把空洞短句扩成断言；失败自动回退原 plan，非阻断。
+    const enriched = await enrichSparseContent(deps, plan, {
+      enabled: options?.contentEnrichment !== false,
+      referenceText: options?.referenceText || '',
+      onProgress: options?.onProgress,
+    });
+    const effectivePlan = enriched.plan;
+
+    const rendered = await renderSlides(deps, topic, effectivePlan, design, options, traceSessionId);
     const assembled = await assembleImages(
       deps,
       topic,
       rendered,
-      plan,
+      effectivePlan,
       design,
       options,
       traceSessionId,
@@ -481,12 +491,12 @@ export async function generateFromPlan(
       deps,
       topic,
       assembled,
-      plan,
+      effectivePlan,
       design,
       options,
       traceSessionId,
     );
-    presentation.plan = plan;
+    presentation.plan = effectivePlan;
     presentation.design = design;
     return presentation;
   } finally {

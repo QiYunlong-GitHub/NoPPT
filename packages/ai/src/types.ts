@@ -495,6 +495,11 @@ export interface PresentationGenerationOptions {
    * 注意：这是**内容素材**，与 `referenceHtml`（版式/视觉参考）语义不同。
    */
   referenceText?: string;
+  /**
+   * 稀疏页内容扩写开关。默认开启（对内容不足的页用 contentProvider 单次批量扩写）；
+   * 设为 false 可关闭以降本/便于测试。不暴露到 MCP 工具 schema。
+   */
+  contentEnrichment?: boolean;
   /** 生成内容的输出语言；缺省按 'zh'（中文）。 */
   language?: 'zh' | 'en';
   postHtmlAuditHook?: (
